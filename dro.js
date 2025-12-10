@@ -1,5 +1,3 @@
-
-
 export class DROHandler {
     constructor(ws, term) {
         this.ws = ws;
@@ -37,6 +35,22 @@ export class DROHandler {
         this.ws.sendCommand(wcs);
         this.term.writeln(`\x1b[34m> Switched to ${wcs}\x1b[0m`);
     }
+
+    // --- NEW: Predefined Positions (G28/G30) ---
+    goToPredefined(pos) {
+        // pos is 28 or 30
+        this.ws.sendCommand(`G${pos}`);
+        this.term.writeln(`\x1b[34m> Moving to G${pos} Position\x1b[0m`);
+    }
+
+    setPredefined(pos) {
+        // pos is 28 or 30
+        if(confirm(`Set G${pos} location to current Machine Coordinates?`)) {
+            this.ws.sendCommand(`G${pos}.1`);
+            this.term.writeln(`\x1b[32m> G${pos} Position Set.\x1b[0m`);
+        }
+    }
+    // -------------------------------------------
 
     toggleUnits() {
         const toggle = document.getElementById('unitToggle');
@@ -85,8 +99,6 @@ export class DROHandler {
             });
 
             // 3. Restore selection
-            // If prevIndex is valid, use it (keeps relative position, e.g., 2nd option -> 2nd option)
-            // Otherwise default to 2 (10mm or 0.1in)
             select.selectedIndex = (prevIndex > -1 && prevIndex < steps.length) ? prevIndex : 2;
 
             // 4. Save new value to storage
@@ -97,8 +109,6 @@ export class DROHandler {
         const feedInput = document.getElementById('feedRate');
         if (feedInput) {
             let currentFeed = parseFloat(feedInput.value) || 0;
-            // Only convert if the number looks like it belongs to the OTHER unit system
-            // This prevents double-conversion bugs if called multiple times
             if (this.isMm) {
                 // Was Inch? Convert to MM
                 if(currentFeed < 200) {
@@ -183,19 +193,16 @@ export class DROHandler {
                 let wVal = this.wpos[i] !== undefined ? this.wpos[i] : 0;
                 let mVal = this.mpos[i] !== undefined ? this.mpos[i] : 0;
 
-                // Convert if Inches
                 if (!this.isMm) {
                     wVal = wVal / 25.4;
                     mVal = mVal / 25.4;
                 }
 
-                // Format: MM = 3 decimals, Inch = 4 decimals
                 const decimals = this.isMm ? 3 : 4;
 
                 elW.textContent = wVal.toFixed(decimals);
                 if (elM) elM.textContent = mVal.toFixed(decimals);
 
-                // Handle 4th Axis visibility
                 if (axis === 'a') {
                     if (this.wpos.length > 3) {
                         elW.closest('.dro-row').classList.remove('hidden');
