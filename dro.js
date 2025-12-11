@@ -1,19 +1,24 @@
 export class DROHandler {
-    constructor(ws, term) {
+    constructor(ws, term, store) {
         this.ws = ws;
         this.term = term;
-        this.isMm = true; // Default state
+        this.store = store;
+
+        // Initialize Units from Store
+        this.isMm = this.store.get('general.units') === 'mm';
 
         // Coordinate State
-        this.wco = [0, 0, 0, 0]; // Work Coordinate Offset
+        this.wco = [0, 0, 0, 0];
         this.wpos = [0, 0, 0, 0];
         this.mpos = [0, 0, 0, 0];
+
+        // Initial UI Render
+        this.updateUIUnits();
     }
 
     // --- Command Senders ---
 
     setZero(axis) {
-        // P0 targets the currently active WCS (G54-G59.3)
         if (axis === 'XYZ') {
             this.ws.sendCommand('G10 L20 P0 X0 Y0 Z0');
         } else {
@@ -36,49 +41,45 @@ export class DROHandler {
         this.term.writeln(`\x1b[34m> Switched to ${wcs}\x1b[0m`);
     }
 
-    // --- NEW: Predefined Positions (G28/G30) ---
     goToPredefined(pos) {
-        // pos is 28 or 30
         this.ws.sendCommand(`G${pos}`);
         this.term.writeln(`\x1b[34m> Moving to G${pos} Position\x1b[0m`);
     }
 
     setPredefined(pos) {
-        // pos is 28 or 30
         if(confirm(`Set G${pos} location to current Machine Coordinates?`)) {
             this.ws.sendCommand(`G${pos}.1`);
             this.term.writeln(`\x1b[32m> G${pos} Position Set.\x1b[0m`);
         }
     }
-    // -------------------------------------------
 
     toggleUnits() {
         const toggle = document.getElementById('unitToggle');
         this.isMm = toggle.checked;
 
-        // Save to local storage
-        localStorage.setItem('grbl_units', this.isMm ? 'mm' : 'in');
+        // Save to Store
+        this.store.set('general.units', this.isMm ? 'mm' : 'in');
 
-        const label = document.getElementById('unitLabel');
-        if(label) label.innerText = this.isMm ? 'MM' : 'IN';
+        // Update UI
+        this.updateUIUnits();
 
-        // Update Controller Modal State
+        // Update Controller
         if (this.isMm) this.ws.sendCommand('G21');
         else this.ws.sendCommand('G20');
 
-        // Update UI Elements (Jog steps, Feedrate)
-        this.updateJogOptions();
-
-        // Force re-render of DRO values immediately
         this._updateAxisDisplay();
     }
 
-    /**
-     * Re-renders the step size dropdown with units.
-     * Handles value conversion if switching units.
-     */
-    updateJogOptions() {
-        // Update Step Distances
+    updateUIUnits() {
+        // Toggle Switch
+        const toggle = document.getElementById('unitToggle');
+        if(toggle) toggle.checked = this.isMm;
+
+        // Label
+        const label = document.getElementById('unitLabel');
+        if(label) label.innerText = this.isMm ? 'MM' : 'IN';
+
+        // Step Options
         const select = document.getElementById('stepSize');
         if (select) {
             const mmSteps = [0.1, 1, 10, 100];
@@ -86,49 +87,31 @@ export class DROHandler {
             const steps = this.isMm ? mmSteps : inSteps;
             const unit = this.isMm ? 'mm' : 'in';
 
-            // 1. Determine which index was selected before redraw
-            const prevIndex = select.selectedIndex;
+            // Get Current Stored Preference
+            const currentStep = parseFloat(this.store.get('jog.step')) || (this.isMm ? 10 : 0.1);
 
-            // 2. Redraw Options
             select.innerHTML = '';
+            let matchFound = false;
+
             steps.forEach((step) => {
                 const opt = document.createElement('option');
                 opt.value = step;
                 opt.innerText = `${step} ${unit}`;
+                if(step === currentStep) matchFound = true;
                 select.appendChild(opt);
             });
 
-            // 3. Restore selection
-            select.selectedIndex = (prevIndex > -1 && prevIndex < steps.length) ? prevIndex : 2;
-
-            // 4. Save new value to storage
-            localStorage.setItem('grbl_step_size', select.value);
+            if(matchFound) select.value = currentStep;
+            else select.selectedIndex = 2; // Default to middle option if mismatch
         }
 
-        // Update Feedrate
+        // Feedrate
         const feedInput = document.getElementById('feedRate');
-        if (feedInput) {
-            let currentFeed = parseFloat(feedInput.value) || 0;
-            if (this.isMm) {
-                // Was Inch? Convert to MM
-                if(currentFeed < 200) {
-                    feedInput.value = Math.round(currentFeed * 25.4);
-                } else if (currentFeed === 0) {
-                     feedInput.value = 1000; // Default
-                }
-            } else {
-                // Was MM? Convert to Inch
-                if(currentFeed > 100) {
-                    feedInput.value = Math.round(currentFeed / 25.4);
-                } else if (currentFeed === 0) {
-                    feedInput.value = 20; // Default
-                }
-            }
-            localStorage.setItem('grbl_feed_rate', feedInput.value);
+        if(feedInput) {
+            // Read from Store
+            feedInput.value = this.store.get('jog.feed');
         }
     }
-
-    // --- Status Parsing ---
 
     parseStatus(line) {
         const content = line.substring(1, line.length - 1);
@@ -163,12 +146,9 @@ export class DROHandler {
     _updateStateBadge(state) {
         const stateEl = document.getElementById('machine-state');
         if (!stateEl) return;
-
         const cleanState = state.split(':')[0];
         stateEl.textContent = cleanState;
-
         stateEl.className = "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase text-white transition-all duration-300";
-
         const s = cleanState.toLowerCase();
 
         if (s.startsWith('alarm')) {
@@ -184,22 +164,17 @@ export class DROHandler {
 
     _updateAxisDisplay() {
         const axes = ['x', 'y', 'z', 'a'];
-
         axes.forEach((axis, i) => {
             const elW = document.getElementById(`dro-${axis}`);   // Work
             const elM = document.getElementById(`dro-${axis}-m`); // Machine
-
             if (elW) {
                 let wVal = this.wpos[i] !== undefined ? this.wpos[i] : 0;
                 let mVal = this.mpos[i] !== undefined ? this.mpos[i] : 0;
-
                 if (!this.isMm) {
                     wVal = wVal / 25.4;
                     mVal = mVal / 25.4;
                 }
-
                 const decimals = this.isMm ? 3 : 4;
-
                 elW.textContent = wVal.toFixed(decimals);
                 if (elM) elM.textContent = mVal.toFixed(decimals);
 

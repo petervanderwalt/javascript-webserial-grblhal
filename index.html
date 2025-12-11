@@ -74,6 +74,9 @@
             .btn-ghost { @apply text-grey hover:text-primary hover:bg-grey-bg rounded p-1; }
             .btn-icon { @apply p-2 rounded-md hover:bg-grey-bg transition-colors; }
 
+            /* Overrides Button */
+            .btn-ovr { @apply h-7 w-full bg-grey-light/50 hover:bg-secondary hover:text-white rounded text-[10px] font-bold text-grey-dark transition-colors border border-grey-light; }
+
             /* Inputs */
             .input-field { @apply w-full rounded-md border-2 border-grey-light bg-grey-bg px-3 py-2 text-sm font-bold text-grey-dark focus:border-secondary focus:bg-white outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
 
@@ -81,19 +84,19 @@
             .dro-panel { @apply bg-grey-bg rounded-xl p-2 shadow-inner mb-2 border border-grey-light; }
 
             /* The Axis Card Container */
-            .dro-card { @apply flex items-stretch bg-white rounded-md shadow-sm border border-grey-light mb-1 overflow-hidden transition-colors h-10; }
+            .dro-card { @apply flex items-stretch bg-white rounded-md shadow-sm border border-grey-light mb-1 overflow-hidden transition-colors h-8; }
 
             /* The Axis Letter Box */
-            .dro-label-box { @apply w-8 flex items-center justify-center font-heading font-black text-lg text-white; }
+            .dro-label-box { @apply w-8 flex items-center justify-center font-heading font-black text-lg text-black; }
 
             /* The Number Area */
             .dro-readout { @apply flex-1 flex items-baseline justify-between gap-4 px-3 py-1 bg-white overflow-hidden; }
 
             /* Work Position (Big) - Right Aligned, takes remaining space */
-            .dro-val-lg { @apply font-mono text-2xl font-black tracking-tight text-grey-dark leading-none text-right flex-1 tabular-nums; }
+            .dro-val-lg { @apply font-mono text-[24px] font-black tracking-tight text-grey-dark leading-none text-right flex-1 tabular-nums mb-0; }
 
             /* Machine Position (Small) - Fixed Width & Right Aligned */
-            .dro-val-sm { @apply font-mono text-[11px] font-bold text-grey/60 tracking-wider leading-none text-right w-20 flex-shrink-0 tabular-nums; }
+            .dro-val-sm { @apply font-mono text-[16px] font-bold text-grey/80 tracking-wider leading-none text-right w-28 flex-shrink-0 tabular-nums; }
 
             /* The Zero Button inside the card */
             .dro-zero-btn { @apply w-10 border-l border-grey-light bg-grey-bg/30 hover:bg-primary hover:text-black hover:border-primary text-[9px] font-bold text-grey uppercase transition-colors flex items-center justify-center; }
@@ -113,8 +116,8 @@
 
             /* Tabs */
             .tab-nav { @apply flex bg-white border-b border-grey-light px-6 gap-2 pt-2; }
-            .tab-btn { @apply py-3 px-4 text-sm font-bold text-grey transition-all flex items-center hover:text-secondary-dark; }
-            .tab-btn.active { @apply bg-secondary-dark text-white; }
+            .tab-btn { @apply py-3 px-4 text-sm font-bold text-grey transition-all flex items-center hover:text-white; }
+            .tab-btn.active { @apply bg-grey-bg text-secondary-dark; }
 
             /* Viewer Overlay */
             .viewer-controls { @apply absolute top-4 right-4 flex flex-col gap-2 z-20; }
@@ -155,16 +158,24 @@
             </div>
 
             <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
 
                 <!-- Machine Controls Wrapper (Disabled when offline) -->
-                <div id="machine-controls" class="flex flex-col gap-3 opacity-50 pointer-events-none transition-opacity duration-200">
+                <div id="machine-controls" class="flex flex-col gap-1 opacity-50 pointer-events-none transition-opacity duration-200">
 
                     <!-- DRO (New Card Design - Side by Side) -->
                     <div class="dro-panel">
 
                         <!-- Header: WCS & Units -->
                         <div class="flex justify-between items-center mb-1.5 px-1">
+
+                          <!-- Units Toggle -->
+                          <label class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-0.5 shadow-sm gap-2">
+                              <span class="text-[10px] font-black text-grey uppercase" id="unitLabel">MM</span>
+                              <input type="checkbox" id="unitToggle" class="sr-only peer" checked onchange="window.dro.toggleUnits()">
+                              <div class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary"></div>
+                          </label>
+
                              <!-- WCS Select -->
                              <div class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-0.5 shadow-sm">
                                 <span class="text-[10px] font-black text-grey uppercase">WCS</span>
@@ -178,17 +189,12 @@
                                 </select>
                             </div>
 
-                            <!-- Units Toggle -->
-                            <label class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-0.5 shadow-sm gap-2">
-                                <span class="text-[10px] font-black text-grey uppercase" id="unitLabel">MM</span>
-                                <input type="checkbox" id="unitToggle" class="sr-only peer" checked onchange="window.dro.toggleUnits()">
-                                <div class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary"></div>
-                            </label>
+
                         </div>
 
                         <!-- X Axis -->
                         <div class="dro-card border-l-4 border-l-axis-x">
-                            <div class="dro-label-box bg-axis-x">X</div>
+                            <div class="dro-label-box">X</div>
                             <div class="dro-readout">
                                 <span id="dro-x-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-x" class="dro-val-lg">0.000</span>
@@ -198,7 +204,7 @@
 
                         <!-- Y Axis -->
                         <div class="dro-card border-l-4 border-l-axis-y">
-                            <div class="dro-label-box bg-axis-y">Y</div>
+                            <div class="dro-label-box">Y</div>
                             <div class="dro-readout">
                                 <span id="dro-y-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-y" class="dro-val-lg">0.000</span>
@@ -208,7 +214,7 @@
 
                         <!-- Z Axis -->
                         <div class="dro-card border-l-4 border-l-axis-z">
-                            <div class="dro-label-box bg-axis-z">Z</div>
+                            <div class="dro-label-box">Z</div>
                             <div class="dro-readout">
                                 <span id="dro-z-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-z" class="dro-val-lg">0.000</span>
@@ -218,7 +224,7 @@
 
                         <!-- A Axis (Hidden by default) -->
                         <div class="dro-row hidden dro-card border-l-4 border-l-axis-a">
-                            <div class="dro-label-box bg-axis-a">A</div>
+                            <div class="dro-label-box">A</div>
                             <div class="dro-readout">
                                 <span id="dro-a-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-a" class="dro-val-lg">0.000</span>
@@ -251,17 +257,60 @@
                                 <button class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark" onclick="window.dro.home()">
                                     <i class="bi bi-house-door-fill"></i> HOME
                                 </button>
-                                <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">ZERO ALL</button>
-                                <button class="dro-sub-btn" onclick="window.dro.goXY0()">XY 0</button>
+                                <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
+                                <button class="dro-sub-btn" onclick="window.dro.goXY0()">SET XY 0</button>
                              </div>
+                        </div>
+                    </div>
+
+                    <!-- Overrides (Compact) -->
+                    <div class="bg-white p-2 rounded-xl border border-grey-light shadow-card">
+                        <!-- Header -->
+
+                        <div class="flex flex-col gap-1.5">
+
+                            <!-- Row 1: Feed & Spindle Side-by-Side -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <!-- Feed -->
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex justify-between text-[9px] font-bold text-grey-dark px-0.5">
+                                        <span><i class="bi bi-speedometer2"></i> Feed</span>
+                                    </div>
+                                    <div class="flex gap-0.5">
+                                        <button class="btn-ovr h-6 flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100" onclick="sendRealtime('\x92')" title="-10%">-10</button>
+                                        <button class="btn-ovr h-6 flex-1 !bg-white !text-black border-grey-light" onclick="sendRealtime('\x90')" title="Reset 100%">100</button>
+                                        <button class="btn-ovr h-6 flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100" onclick="sendRealtime('\x91')" title="+10%">+10</button>
+                                    </div>
+                                </div>
+
+                                <!-- Spindle -->
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex justify-between text-[9px] font-bold text-grey-dark px-0.5">
+                                        <span><i class="bi bi-fan"></i> Spindle</span>
+                                    </div>
+                                    <div class="flex gap-0.5">
+                                        <button class="btn-ovr h-6 flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100" onclick="sendRealtime('\x9B')" title="-10%">-10</button>
+                                        <button class="btn-ovr h-6 flex-1 !bg-white !text-black border-grey-light" onclick="sendRealtime('\x99')" title="Reset 100%">100</button>
+                                        <button class="btn-ovr h-6 flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100" onclick="sendRealtime('\x9A')" title="+10%">+10</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Rapids (Full Width) -->
+                            <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
+                                <span class="text-[9px] font-bold text-grey-dark w-12 shrink-0"><i class="bi bi-lightning-charge-fill text-primary"></i> Rapid</span>
+                                <div class="flex gap-1 flex-1">
+                                    <button class="btn-ovr h-5 flex-1" onclick="sendRealtime('\x97')">25%</button>
+                                    <button class="btn-ovr h-5 flex-1" onclick="sendRealtime('\x96')">50%</button>
+                                    <button class="btn-ovr h-5 flex-1 !bg-white !text-black" onclick="sendRealtime('\x95')">100%</button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
                     <!-- Jog Controls (Compact) -->
                     <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-xs font-bold text-grey uppercase tracking-wider">Manual Control</span>
-                        </div>
 
                         <div class="jog-wrapper">
                             <!-- XY Pad -->
@@ -315,15 +364,12 @@
                             <div class="relative">
                                 <span class="absolute left-2 top-2 text-[9px] font-bold text-grey uppercase">Dist</span>
                                 <select id="stepSize" class="input-field pl-8 text-right h-8 py-0">
-                                    <option value="0.1">0.1</option>
-                                    <option value="1">1</option>
-                                    <option value="10" selected>10</option>
-                                    <option value="100">100</option>
+                                    <!-- Populated by JS -->
                                 </select>
                             </div>
                             <div class="relative">
                                 <span class="absolute left-2 top-2 text-[9px] font-bold text-grey uppercase">Feed</span>
-                                <input type="number" id="feedRate" value="1000" class="input-field pl-8 text-right h-8 py-0">
+                                <input type="number" id="feedRate" class="input-field pl-8 text-right h-8 py-0">
                             </div>
                         </div>
                     </div>
@@ -331,10 +377,6 @@
 
                 <!-- Console (Light Mode) -->
                 <div class="flex-1 flex flex-col min-h-[150px]">
-                    <div class="flex justify-between items-center mb-1 px-1">
-                        <span class="text-[10px] font-bold text-grey uppercase tracking-wider">Console</span>
-                        <button class="btn-ghost text-xs" onclick="clearTerminal()"><i class="bi bi-trash"></i></button>
-                    </div>
                     <div class="console-wrapper">
                         <div id="terminal-container" class="w-full h-full"></div>
                     </div>
@@ -342,6 +384,7 @@
                     <div id="console-input-area" class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
                         <input type="text" id="cmdInput" class="input-field font-mono h-8" placeholder="G-Code...">
                         <button id="btnSend" class="btn btn-secondary px-3 h-8"><i class="bi bi-send-fill text-xs"></i></button>
+                        <button class="btn-ghost text-xs" onclick="clearTerminal()"><i class="bi bi-trash"></i></button>
                     </div>
                 </div>
 
@@ -352,7 +395,7 @@
         <main class="flex-1 flex flex-col bg-grey-bg relative overflow-hidden">
 
             <!-- Navigation -->
-            <div class="tab-nav p-0 m-0">
+            <div class="tab-nav p-0 m-0 bg-secondary-dark">
                 <button class="tab-btn active" onclick="switchTab('viewer-view', this)">3D Preview</button>
                 <button class="tab-btn" onclick="switchTab('probe-view', this)">Probe</button>
                 <button class="tab-btn" onclick="switchTab('sd-view', this)">
@@ -470,7 +513,7 @@
                                 </h2>
                                 <p class="text-sm text-grey">Configure GrblHAL firmware parameters.</p>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2" id="settings-toolbar">
                                 <button class="btn btn-secondary" onclick="window.grblSettings.fetchSettings()">
                                     <i class="bi bi-arrow-clockwise"></i> Refresh
                                 </button>
@@ -496,187 +539,163 @@
                 </div>
 
                 <!-- Probing Tab -->
-                <div id="probe-view" class="tab-pane hidden w-full h-full p-8 overflow-y-auto bg-grey-bg">
-                    <div class="max-w-4xl mx-auto">
-
-                        <!-- Header -->
+                <div id="probe-view" class="tab-pane hidden w-full h-full bg-grey-bg overflow-y-auto">
+                    <!-- Added ID for enabling/disabling content -->
+                    <div id="probe-panel-content" class="max-w-6xl mx-auto p-6 opacity-50 pointer-events-none transition-opacity duration-200">
                         <div class="flex justify-between items-center mb-6">
                             <div>
                                 <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
-                                    <i class="bi bi-crosshair"></i> Probing
+                                    <i class="bi bi-bullseye"></i> Probe Operations
                                 </h2>
                                 <p class="text-sm text-grey">Configure geometry and execute probing cycles.</p>
                             </div>
-                            <button class="btn btn-primary" onclick="window.probeHandler.saveSettings()">
+                            <button class="btn btn-primary shadow-soft" onclick="window.probeHandler.saveSettings()">
                                 <i class="bi bi-save"></i> Save Settings
                             </button>
                         </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <!-- Left: Config -->
+                            <div class="lg:col-span-4 xl:col-span-3">
+                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft sticky top-4">
+                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
+                                        <i class="bi bi-sliders"></i> Configuration
+                                    </h3>
+                                    <div class="space-y-4">
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                            <!-- Left Col: Configuration -->
-                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft h-fit">
-                                <h3 class="text-sm font-bold text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Configuration</h3>
-
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs font-bold text-grey-dark block mb-1">Tool Diameter (mm)</label>
-                                        <div class="relative">
-                                            <input type="number" id="prb-tool" class="input-field pl-8 font-mono" step="0.01">
-                                            <i class="bi bi-vinyl absolute left-2.5 top-2 text-grey"></i>
+                                        <!-- GLOBAL TOGGLE -->
+                                        <div class="bg-grey-bg/50 p-3 rounded-lg border border-grey-light flex justify-between items-center">
+                                            <span class="text-xs font-bold text-secondary-dark">Use Probe Plate?</span>
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" id="prb-use-plate-main" class="sr-only peer" onchange="window.probeHandler.saveSettings()">
+                                                <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <label class="text-xs font-bold text-grey-dark block mb-1">Z Plate Thickness (mm)</label>
-                                        <div class="relative">
-                                            <input type="number" id="prb-z-thick" class="input-field pl-8 font-mono" step="0.01">
-                                            <i class="bi bi-layers absolute left-2.5 top-2 text-grey"></i>
+                                        <div class="space-y-2">
+                                            <label class="text-[11px] font-bold text-secondary-dark block">Probe Diameter (mm)</label>
+                                            <div class="relative">
+                                                <input type="number" id="prb-tool" class="input-field pl-8 font-mono text-sm" step="0.01">
+                                                <i class="bi bi-vinyl absolute left-2.5 top-2 text-grey"></i>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-3">
-                                      <div>
-                                          <label class="text-[10px] font-bold text-grey block mb-1">X Offset (mm)</label>
-                                          <div class="relative">
-                                              <input type="number" id="prb-x-offset" class="input-field pl-6 font-mono text-xs" step="0.01">
-                                              <span class="absolute left-2 top-2 text-[10px] font-bold text-grey">X</span>
-                                          </div>
-                                      </div>
-                                      <div>
-                                          <label class="text-[10px] font-bold text-grey block mb-1">Y Offset (mm)</label>
-                                          <div class="relative">
-                                              <input type="number" id="prb-y-offset" class="input-field pl-6 font-mono text-xs" step="0.01">
-                                              <span class="absolute left-2 top-2 text-[10px] font-bold text-grey">Y</span>
-                                          </div>
-                                      </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="space-y-2">
+                                            <label class="text-[11px] font-bold text-secondary-dark block">Z Plate Thickness (mm)</label>
+                                            <div class="relative">
+                                                <input type="number" id="prb-z-thick" class="input-field pl-8 font-mono text-sm" step="0.01">
+                                                <i class="bi bi-arrow-bar-down absolute left-2.5 top-2 text-grey"></i>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <label class="text-[11px] font-bold text-secondary-dark block">XY Plate Offset (mm)</label>
+                                            <div class="relative">
+                                                <input type="number" id="prb-xy-offset" class="input-field pl-8 font-mono text-sm" step="0.01" title="Width of the probe block shoulder">
+                                                <i class="bi bi-arrow-bar-right absolute left-2.5 top-2 text-grey"></i>
+                                            </div>
+                                        </div>
+                                        <hr class="border-grey-light/50">
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Feedrate</label><input type="number" id="prb-feed" class="input-field font-mono text-xs h-8"></div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Latch Feed</label><input type="number" id="prb-feed-latch" class="input-field font-mono text-xs h-8"></div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Max Travel</label><input type="number" id="prb-dist" class="input-field font-mono text-xs h-8"></div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Retract</label><input type="number" id="prb-retract" class="input-field font-mono text-xs h-8"></div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">XY Clearance</label><input type="number" id="prb-edge-dist" class="input-field font-mono text-xs h-8"></div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Z Depth</label><input type="number" id="prb-z-depth" class="input-field font-mono text-xs h-8"></div>
+                                        </div>
+                                        <hr class="border-grey-light/50">
                                         <div>
-                                            <label class="text-[10px] font-bold text-grey block mb-1">Max Travel</label>
-                                            <input type="number" id="prb-dist" class="input-field font-mono text-xs" value="25">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] font-bold text-grey block mb-1">Retract</label>
-                                            <input type="number" id="prb-retract" class="input-field font-mono text-xs" value="2">
-                                        </div>
-                                    </div>
-
-                                    <!-- Edge & Depth Config -->
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="text-[10px] font-bold text-grey block mb-1">Edge Clearance</label>
-                                            <input type="number" id="prb-edge-dist" class="input-field font-mono text-xs" value="20" title="Distance to move away from plate">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] font-bold text-grey block mb-1">Side Z Depth</label>
-                                            <input type="number" id="prb-z-depth" class="input-field font-mono text-xs" value="10" title="Distance to drop Z for side probing">
-                                        </div>
-                                    </div>
-
-                                     <div>
-                                        <label class="text-xs font-bold text-grey-dark block mb-1">Probe Feedrate</label>
-                                        <div class="relative">
-                                            <input type="number" id="prb-feed" class="input-field pl-8 font-mono" value="100">
-                                            <i class="bi bi-speedometer2 absolute left-2.5 top-2 text-grey"></i>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <label class="text-[11px] font-bold text-secondary-dark">Boss / Stock Size</label>
+                                                <i class="bi bi-info-circle text-[10px] text-grey" title="Required for Outside Boss probing."></i>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-3">
+                                                <div><label class="text-[9px] font-bold text-grey block mb-1">Width (X)</label><input type="number" id="prb-boss-x" class="input-field font-mono text-xs h-8" placeholder="0.00"></div>
+                                                <div><label class="text-[9px] font-bold text-grey block mb-1">Height (Y)</label><input type="number" id="prb-boss-y" class="input-field font-mono text-xs h-8" placeholder="0.00"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            <!-- Right: Operations -->
+                            <div class="lg:col-span-8 xl:col-span-9 space-y-5">
 
-                            <!-- Right Col: Operations -->
-                            <div class="md:col-span-2 space-y-6">
-
-                              <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft bg-gradient-to-r from-white to-primary/5">
-                                   <h3 class="text-sm font-bold text-secondary-dark mb-3 flex items-center gap-2">
-                                       <i class="bi bi-box-seam-fill text-primary-dark"></i> Automatic XYZ Corner
-                                   </h3>
-                                   <p class="text-xs text-grey mb-4">
-                                       Position tool above the probe plate circle.
-                                       Cycle: Z Probe -> X Edge -> Y Edge.
-                                   </p>
-
-                                   <button class="w-full py-4 bg-secondary-dark text-white rounded-xl font-bold hover:bg-black transition-all flex flex-col items-center gap-2 shadow-lg" onclick="window.probeHandler.runXYZCorner()">
-                                       <div class="flex items-center gap-2">
-                                           <i class="bi bi-play-circle-fill text-xl text-primary"></i>
-                                           <span>Run XYZ Probe Cycle</span>
-                                       </div>
-                                   </button>
-                                </div>
-
-                                <!-- Z Probing -->
-                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                    <h3 class="text-sm font-bold text-secondary-dark mb-3 flex items-center gap-2">
-                                        <i class="bi bi-arrow-bar-down"></i> Z-Axis Zero
-                                    </h3>
-                                    <p class="text-xs text-grey mb-4">Place probe plate under tool. Clip ground to bit.</p>
-
-                                    <button class="w-full py-4 bg-primary/10 border-2 border-primary/50 text-secondary-dark rounded-xl font-bold hover:bg-primary hover:border-primary transition-all flex flex-col items-center gap-2 group" onclick="window.probeHandler.runZProbe()">
-                                        <i class="bi bi-arrow-bar-down text-3xl group-hover:scale-110 transition-transform"></i>
-                                        <span>Run Z-Probe</span>
-                                    </button>
-                                </div>
-
-                                <!-- XY Probing -->
-                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                    <h3 class="text-sm font-bold text-secondary-dark mb-3 flex items-center gap-2">
-                                        <i class="bi bi-bounding-box-circles"></i> XY Zeroing
-                                    </h3>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <!-- X Axis -->
-                                        <div class="flex flex-col gap-2">
-                                            <span class="text-xs font-bold text-grey text-center">X-Axis (Side)</span>
-                                            <div class="flex gap-2">
-                                                <button class="flex-1 py-3 border-2 border-grey-light rounded-lg hover:border-primary hover:bg-primary/10 transition-all text-xs font-bold" onclick="window.probeHandler.runSingleAxis('X', 1)">
-                                                    <i class="bi bi-arrow-right mr-1"></i> X+
-                                                </button>
-                                                <button class="flex-1 py-3 border-2 border-grey-light rounded-lg hover:border-primary hover:bg-primary/10 transition-all text-xs font-bold" onclick="window.probeHandler.runSingleAxis('X', -1)">
-                                                    <i class="bi bi-arrow-left mr-1"></i> X-
-                                                </button>
+                                <!-- Corners -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div class="bg-white p-5 rounded-xl shadow-soft border border-grey-light flex flex-col">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div><h3 class="font-bold text-secondary-dark text-sm flex items-center gap-2"><i class="bi bi-box"></i> Outside Corner</h3><p class="text-[10px] text-grey mt-0.5">Probe corner (Stock).</p></div>
+                                            <span class="text-[9px] text-grey font-bold plate-status-text mt-1">Mode: Plate</span>
+                                        </div>
+                                        <div class="flex gap-5 flex-1">
+                                            <div class="w-28 h-28 grid grid-cols-2 gap-1 flex-shrink-0 self-center">
+                                                <button class="corner-sel-btn rounded-tl-lg bg-grey-bg border border-grey-light hover:bg-primary hover:border-primary transition-colors h-full" data-corner="RL" onclick="window.probeHandler.selectCorner(this, 'Outside', 'RL')"></button>
+                                                <button class="corner-sel-btn rounded-tr-lg bg-grey-bg border border-grey-light hover:bg-primary hover:border-primary transition-colors h-full" data-corner="RR" onclick="window.probeHandler.selectCorner(this, 'Outside', 'RR')"></button>
+                                                <button class="corner-sel-btn rounded-bl-lg bg-primary border-2 border-black/20 ring-2 ring-primary/30 h-full" data-corner="FL" onclick="window.probeHandler.selectCorner(this, 'Outside', 'FL')"></button>
+                                                <button class="corner-sel-btn rounded-br-lg bg-grey-bg border border-grey-light hover:bg-primary hover:border-primary transition-colors h-full" data-corner="FR" onclick="window.probeHandler.selectCorner(this, 'Outside', 'FR')"></button>
+                                            </div>
+                                            <div class="flex-1 flex flex-col justify-center gap-3">
+                                                <div class="text-[11px] text-grey leading-tight space-y-1"><p>1. Position probe above corner.</p><p>2. Ensure Z path is clear.</p></div>
+                                                <button class="btn btn-primary w-full justify-center mt-auto" onclick="window.probeHandler.runCornerProbe('Outside')">Probe Corner</button>
                                             </div>
                                         </div>
-
-                                        <!-- Y Axis -->
-                                        <div class="flex flex-col gap-2">
-                                            <span class="text-xs font-bold text-grey text-center">Y-Axis (Side)</span>
-                                            <div class="flex gap-2">
-                                                <button class="flex-1 py-3 border-2 border-grey-light rounded-lg hover:border-primary hover:bg-primary/10 transition-all text-xs font-bold" onclick="window.probeHandler.runSingleAxis('Y', 1)">
-                                                    <i class="bi bi-arrow-up mr-1"></i> Y+
-                                                </button>
-                                                <button class="flex-1 py-3 border-2 border-grey-light rounded-lg hover:border-primary hover:bg-primary/10 transition-all text-xs font-bold" onclick="window.probeHandler.runSingleAxis('Y', -1)">
-                                                    <i class="bi bi-arrow-down mr-1"></i> Y-
-                                                </button>
+                                    </div>
+                                    <div class="bg-white p-5 rounded-xl shadow-soft border border-grey-light flex flex-col">
+                                        <div class="flex justify-between items-start mb-4">
+                                            <div><h3 class="font-bold text-secondary-dark text-sm flex items-center gap-2"><i class="bi bi-bounding-box"></i> Inside Corner</h3><p class="text-[10px] text-grey mt-0.5">Probe corner (Hole/Pocket).</p></div>
+                                            <span class="text-[9px] text-grey font-bold plate-status-text mt-1">Mode: Plate</span>
+                                        </div>
+                                        <div class="flex gap-5 flex-1">
+                                            <div class="w-28 h-28 grid grid-cols-2 gap-1 flex-shrink-0 p-1.5 bg-grey-light rounded-xl self-center">
+                                                <button class="corner-sel-btn rounded-tl shadow-inner bg-white hover:bg-primary transition-colors h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'RL')"></button>
+                                                <button class="corner-sel-btn rounded-tr shadow-inner bg-white hover:bg-primary transition-colors h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'RR')"></button>
+                                                <button class="corner-sel-btn rounded-bl bg-primary border-2 border-black/20 ring-2 ring-primary/30 h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'FL')"></button>
+                                                <button class="corner-sel-btn rounded-br shadow-inner bg-white hover:bg-primary transition-colors h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'FR')"></button>
+                                            </div>
+                                            <div class="flex-1 flex flex-col justify-center gap-3">
+                                                <p class="text-[11px] text-grey leading-tight">Position probe roughly inside the corner of a pocket or hole.</p>
+                                                <button class="btn btn-secondary w-full justify-center mt-auto" onclick="window.probeHandler.runCornerProbe('Inside')">Probe Inner</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Center Finding -->
-                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                    <h3 class="text-sm font-bold text-secondary-dark mb-3 flex items-center gap-2">
-                                        <i class="bi bi-bullseye"></i> Center Finding (Inside Hole)
-                                    </h3>
-                                    <p class="text-xs text-grey mb-4">Jog tool inside the hole/pocket roughly in the center.</p>
-
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <!-- X Center -->
-                                        <button class="py-4 border-2 border-grey-light rounded-xl hover:border-primary hover:bg-primary/10 transition-all font-bold text-sm text-secondary-dark flex flex-col items-center gap-2" onclick="window.probeHandler.runCenterFind('X')">
-                                            <!-- Fixed Icon: Left-Right Arrows -->
-                                            <i class="bi bi-arrow-left-right text-2xl"></i>
-                                            Find X Center
-                                        </button>
-
-                                        <!-- Y Center -->
-                                        <button class="py-4 border-2 border-grey-light rounded-xl hover:border-primary hover:bg-primary/10 transition-all font-bold text-sm text-secondary-dark flex flex-col items-center gap-2" onclick="window.probeHandler.runCenterFind('Y')">
-                                            <!-- Fixed Icon: Up-Down Arrows -->
-                                            <i class="bi bi-arrow-down-up text-2xl"></i>
-                                            Find Y Center
-                                        </button>
+                                <!-- Single Axis -->
+                                <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Single Surface</h3>
+                                        <span class="text-[10px] text-grey font-bold plate-status-text">Mode: Plate</span>
+                                    </div>
+                                    <div class="flex gap-3 overflow-x-auto pb-1">
+                                        <button class="btn btn-secondary flex-1 py-4 flex-col gap-2 h-auto min-w-[80px]" onclick="window.probeHandler.runSingleAxis('X', 1)"><i class="bi bi-arrow-bar-right text-2xl text-grey-dark"></i><span class="text-xs font-bold">Find X+</span></button>
+                                        <button class="btn btn-secondary flex-1 py-4 flex-col gap-2 h-auto min-w-[80px]" onclick="window.probeHandler.runSingleAxis('X', -1)"><i class="bi bi-arrow-bar-left text-2xl text-grey-dark"></i><span class="text-xs font-bold">Find X-</span></button>
+                                        <button class="btn btn-secondary flex-1 py-4 flex-col gap-2 h-auto min-w-[80px]" onclick="window.probeHandler.runSingleAxis('Y', 1)"><i class="bi bi-arrow-bar-up text-2xl text-grey-dark"></i><span class="text-xs font-bold">Find Y+</span></button>
+                                        <button class="btn btn-secondary flex-1 py-4 flex-col gap-2 h-auto min-w-[80px]" onclick="window.probeHandler.runSingleAxis('Y', -1)"><i class="bi bi-arrow-bar-down text-2xl text-grey-dark"></i><span class="text-xs font-bold">Find Y-</span></button>
+                                        <button class="btn btn-secondary flex-1 py-4 flex-col gap-2 h-auto min-w-[80px] !bg-primary/10 !border-primary/50 !text-secondary-dark hover:!bg-primary hover:!border-primary hover:!text-black" onclick="window.probeHandler.runZProbe()"><i class="bi bi-arrow-bar-down text-2xl"></i><span class="text-xs font-bold">Find Z-</span></button>
                                     </div>
                                 </div>
 
+                                <!-- Centers -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                    <div class="bg-white p-5 rounded-xl shadow-soft border border-grey-light flex flex-col items-center text-center">
+                                        <div class="w-12 h-12 bg-grey-bg rounded-full flex items-center justify-center mb-3 text-secondary"><i class="bi bi-circle-square text-2xl"></i></div>
+                                        <h4 class="font-bold text-sm text-secondary-dark">Pocket Center</h4>
+                                        <span class="text-[10px] text-grey uppercase mb-4">Inside Hole/Rect</span>
+                                        <button class="btn btn-secondary w-full mt-auto" onclick="window.probeHandler.runPocketCenter()">Find Center</button>
+                                    </div>
+                                    <div class="bg-white p-5 rounded-xl shadow-soft border border-grey-light flex flex-col items-center text-center">
+                                        <div class="w-12 h-12 bg-grey-bg rounded-full flex items-center justify-center mb-3 text-secondary"><i class="bi bi-square-fill text-2xl"></i></div>
+                                        <h4 class="font-bold text-sm text-secondary-dark">Rect Boss</h4>
+                                        <span class="text-[10px] text-grey uppercase mb-4">Uses Stock Size</span>
+                                        <button class="btn btn-secondary w-full mt-auto" onclick="window.probeHandler.runBossCenter('Rect')">Find Center</button>
+                                    </div>
+                                    <div class="bg-white p-5 rounded-xl shadow-soft border border-grey-light flex flex-col items-center text-center">
+                                        <div class="w-12 h-12 bg-grey-bg rounded-full flex items-center justify-center mb-3 text-secondary"><i class="bi bi-circle-fill text-2xl"></i></div>
+                                        <h4 class="font-bold text-sm text-secondary-dark">Circular Boss</h4>
+                                        <span class="text-[10px] text-grey uppercase mb-4">Uses Stock Dia</span>
+                                        <button class="btn btn-secondary w-full mt-auto" onclick="window.probeHandler.runBossCenter('Circ')">Find Center</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -707,414 +726,376 @@
     </script>
 
     <script type="module">
-        import { WebSerial } from './webserial.js';
-        import { GCodeViewer } from './3dview.js';
-        import { ProbeHandler } from './probe.js';
-        import { SDCardHandler } from './sdcard.js';
-        import { AlarmsAndErrors } from './alarms_and_errors.js';
-        import { DROHandler } from './DRO.js';
-        import { GrblSettings } from './grbl_settings.js';
+            import { WebSerial } from './webserial.js';
+            import { GCodeViewer } from './3dview.js';
+            import { ProbeHandler } from './probe.js';
+            import { SDCardHandler } from './sdcard.js';
+            import { AlarmsAndErrors } from './alarms_and_errors.js';
+            import { DROHandler } from './DRO.js';
+            import { GrblSettings } from './grbl_settings.js';
+            import { AppStore } from './store.js';
 
-        // Globals
-        const ws = new WebSerial();
-        window.addEventListener('beforeunload', (e) => {
-            // Only warn if we are currently connected to the machine
-            if (ws && ws.isConnected) {
-                e.preventDefault();
-                // Browsers require returnValue to be set to trigger the dialog
-                // Note: Modern browsers will show a generic message, not this specific text
-                e.returnValue = "Closing this tab will disconnect the CNC controller. Are you sure?";
-                return e.returnValue;
+            // Globals
+            const ws = new WebSerial();
+            const store = new AppStore();
+
+            window.addEventListener('beforeunload', (e) => {
+                if (ws && ws.isConnected) {
+                    e.preventDefault();
+                    e.returnValue = "Closing this tab will disconnect the CNC controller. Are you sure?";
+                    return e.returnValue;
+                }
+            });
+
+            const viewer = new GCodeViewer('viewer-container', 'loading-overlay');
+            const reporter = new AlarmsAndErrors(ws);
+            window.viewer = viewer;
+
+            // --- ERROR HANDLING ---
+            ws.on('error', (err) => {
+                let msg = err.message;
+                let code = "Connection";
+
+                // Make common errors friendlier
+                if(msg.includes("Failed to open serial port")) {
+                    msg = "Unable to open serial port. It may be in use by another application or tab.";
+                    code = "Port Busy";
+                }
+
+                reporter.showModal('ERROR', code, msg);
+            });
+            // -----------------------
+
+            let term, fitAddon, statusInterval;
+
+            let currentGCodeContent = null;
+            let gcodeStreamer = { active: false, lines: [], index: 0 };
+            let commandHistory = [];
+            let historyIndex = -1;
+            let sdHandler = null;
+            let droHandler = null;
+            let grblSettings = null;
+            let probeHandler = null;
+
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initTerminal();
+
+                // Initialize Helpers with Store
+                droHandler = new DROHandler(ws, term, store);
+                window.dro = droHandler;
+
+                grblSettings = new GrblSettings(ws, term);
+                grblSettings.init('grbl-settings-container');
+                window.grblSettings = grblSettings;
+
+                sdHandler = new SDCardHandler(ws, term, viewer, {
+                    onDownloadComplete: (content) => {
+                        currentGCodeContent = content;
+                    },
+                    switchToViewer: () => {
+                        switchTab('viewer-view');
+                    },
+                    pausePolling: () => {
+                        if (statusInterval) clearInterval(statusInterval);
+                    },
+                    resumePolling: () => {
+                        statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
+                    }
+                });
+                window.sdHandler = sdHandler;
+
+                ws.on('connect', () => updateUIConnected(true));
+                ws.on('disconnect', () => updateUIConnected(false));
+                ws.on('line', (line) => processLine(line));
+                ws.on('sent', (line) => {
+                    if (window.sdHandler?.isDownloading) return;
+                    if (gcodeStreamer.active) return;
+                    if (line === '?' || line === '$G') return;
+                    term.writeln(`\x1b[2m> ${line}\x1b[0m`);
+                });
+
+                const connectBtn = document.getElementById('btn-connect');
+                connectBtn.addEventListener('click', () => {
+                    if(ws.isConnected) {
+                        ws.disconnect();
+                    } else {
+                        // Connect, but catch errors to prevent console spam since we handle them in the 'error' event now
+                        ws.connect(115200).catch(e => {
+                            // Handled by ws.on('error') or ignored (if cancelled)
+                        });
+                    }
+                });
+
+                document.getElementById('btnSend').addEventListener('click', sendFromInput);
+
+                document.getElementById('cmdInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        sendFromInput();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        navigateHistory(-1);
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        navigateHistory(1);
+                    }
+                });
+
+                document.getElementById('gcode-file-input').addEventListener('change', (e) => viewer.loadLocalFile(e.target.files[0]));
+                document.getElementById('sd-upload-input').addEventListener('change', (e) => sdHandler.startUpload(e.target.files[0]));
+
+                window.addEventListener('resize', () => { fitAddon.fit(); viewer.resize(); });
+                window.addEventListener('tab-shown', (e) => {
+                    if(e.detail.id === 'viewer-view') {
+                        requestAnimationFrame(() => {
+                            viewer.resize();
+                            if (viewer.controls.target.length() === 0) viewer.resetCamera();
+                        });
+                    }
+                    if(e.detail.id === 'settings-view' && ws.isConnected) {
+                        if(Object.keys(grblSettings.settings).length === 0) {
+                            grblSettings.fetchSettings();
+                        }
+                    }
+                });
+
+                initJogging();
+
+                // Initialize Probe Handler with Store
+                probeHandler = new ProbeHandler(ws, term, store);
+                window.probeHandler = probeHandler;
+
+            });
+
+            window.toggleCamera = function() {
+                const mode = viewer.toggleCamera();
+                document.getElementById('cam-toggle-btn').innerHTML = mode === 'Persp' ? '<i class="bi bi-eye-fill text-secondary"></i> Persp' : '<i class="bi bi-box-fill text-secondary"></i> Ortho';
+            };
+            window.resetCamera = function() { viewer.resetCamera(); };
+            window.sendCmd = function(cmd) { ws.sendCommand(cmd); };
+            window.sendRealtime = function(c) { ws.sendRealtime(c); };
+            window.clearTerminal = function() { term.clear(); }
+
+            function sendFromInput() {
+                const i = document.getElementById('cmdInput');
+                const val = i.value.trim();
+                if(val) {
+                    if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== val) {
+                        commandHistory.push(val);
+                        if(commandHistory.length > 50) commandHistory.shift();
+                    }
+                    historyIndex = commandHistory.length;
+                    window.sendCmd(val);
+                    i.value = '';
+                }
             }
-        });
-        const viewer = new GCodeViewer('viewer-container', 'loading-overlay');
-        const reporter = new AlarmsAndErrors();
-        window.viewer = viewer;
 
-        let term, fitAddon, statusInterval;
-
-        let currentGCodeContent = null;
-        let gcodeStreamer = { active: false, lines: [], index: 0 };
-
-        // Command History
-        let commandHistory = [];
-        let historyIndex = -1;
-
-        // Handler Instantiation
-        let sdHandler = null;
-        let droHandler = null;
-        let grblSettings = null;
-
-        // Probing
-        let probeHandler = null;
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initTerminal();
-
-            // Initialize Helpers
-            droHandler = new DROHandler(ws, term);
-            window.dro = droHandler;
-
-            grblSettings = new GrblSettings(ws, term);
-            grblSettings.init('grbl-settings-container');
-            window.grblSettings = grblSettings;
-
-            sdHandler = new SDCardHandler(ws, term, viewer, {
-                onDownloadComplete: (content) => {
-                    currentGCodeContent = content;
-                },
-                switchToViewer: () => {
-                    switchTab('viewer-view');
-                },
-                pausePolling: () => {
-                    if (statusInterval) clearInterval(statusInterval);
-                },
-                resumePolling: () => {
-                    statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
-                }
-            });
-            window.sdHandler = sdHandler;
-
-            ws.on('connect', () => updateUIConnected(true));
-            ws.on('disconnect', () => updateUIConnected(false));
-            ws.on('line', (line) => processLine(line));
-            ws.on('sent', (line) => {
-                // Prevent console flood during bulk operations
-                if (window.sdHandler?.isDownloading) return;
-                if (gcodeStreamer.active) return;
-                // Don't log automated status queries (though sendCommand shouldn't be used for '?' usually, sendRealtime is)
-                if (line === '?' || line === '$G') return;
-
-                term.writeln(`\x1b[2m> ${line}\x1b[0m`);
-            });
-
-            const connectBtn = document.getElementById('btn-connect');
-            connectBtn.addEventListener('click', () => {
-                if(ws.isConnected) {
-                    ws.disconnect();
+            function navigateHistory(direction) {
+                if (commandHistory.length === 0) return;
+                historyIndex += direction;
+                if (historyIndex < 0) historyIndex = 0;
+                if (historyIndex > commandHistory.length) historyIndex = commandHistory.length;
+                const input = document.getElementById('cmdInput');
+                if (historyIndex < commandHistory.length) {
+                    input.value = commandHistory[historyIndex];
                 } else {
-                    ws.connect(115200);
+                    input.value = '';
                 }
-            });
+            }
 
-            document.getElementById('btnSend').addEventListener('click', sendFromInput);
+            function initJogging() {
+                const btns = document.querySelectorAll('[data-jog]');
+                const toggle = document.getElementById('jogContinuous');
 
-            // CMD Input Keydown: Enter + Up/Down History
-            document.getElementById('cmdInput').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    sendFromInput();
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    navigateHistory(-1);
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    navigateHistory(1);
-                }
-            });
+                // Restore from Store
+                toggle.checked = store.get('jog.continuous');
+                document.getElementById('stepSize').disabled = toggle.checked;
 
-            document.getElementById('gcode-file-input').addEventListener('change', (e) => viewer.loadLocalFile(e.target.files[0]));
-            document.getElementById('sd-upload-input').addEventListener('change', (e) => sdHandler.startUpload(e.target.files[0]));
+                toggle.addEventListener('change', () => {
+                    store.set('jog.continuous', toggle.checked);
+                    document.getElementById('stepSize').disabled = toggle.checked;
+                });
 
-            window.addEventListener('resize', () => { fitAddon.fit(); viewer.resize(); });
-            window.addEventListener('tab-shown', (e) => {
-                if(e.detail.id === 'viewer-view') {
-                    requestAnimationFrame(() => {
-                        viewer.resize();
-                        if (viewer.controls.target.length() === 0) viewer.resetCamera();
+                document.getElementById('stepSize').addEventListener('change', (e) => {
+                     store.set('jog.step', parseFloat(e.target.value));
+                });
+
+                document.getElementById('feedRate').addEventListener('change', (e) => {
+                     store.set('jog.feed', parseFloat(e.target.value));
+                });
+
+                btns.forEach(btn => {
+                    const dir = btn.dataset.jog;
+                    const startJog = (e) => {
+                        if(!toggle.checked) return;
+                        e.preventDefault();
+
+                        const f = document.getElementById('feedRate').value;
+                        const isMm = store.get('general.units') === 'mm';
+                        const unit = isMm ? 'G21' : 'G20';
+                        const dist = isMm ? '1000' : '50';
+
+                        let move = "";
+                        if(dir.includes('X')) move += `X${dir.includes('X-')?'-':''}${dist} `;
+                        if(dir.includes('Y')) move += `Y${dir.includes('Y-')?'-':''}${dist} `;
+                        if(dir.includes('Z')) move += `Z${dir.includes('Z-')?'-':''}${dist} `;
+                        if(dir.includes('A')) move += `A${dir.includes('A-')?'-':''}${dist} `;
+
+                        ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
+                    };
+                    const stopJog = (e) => {
+                        if(!toggle.checked) return;
+                        ws.sendRealtime('\x85');
+                    };
+                    const clickJog = () => {
+                        if(toggle.checked) return;
+                        const s = document.getElementById('stepSize').value;
+                        const f = document.getElementById('feedRate').value;
+                        const isMm = store.get('general.units') === 'mm';
+                        const unit = isMm ? 'G21' : 'G20';
+
+                        let move = "";
+                        if(dir.includes('X')) move += `X${dir.includes('X-')?'-':''}${s} `;
+                        if(dir.includes('Y')) move += `Y${dir.includes('Y-')?'-':''}${s} `;
+                        if(dir.includes('Z')) move += `Z${dir.includes('Z-')?'-':''}${s} `;
+                        if(dir.includes('A')) move += `A${dir.includes('A-')?'-':''}${s} `;
+
+                        ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
+                    };
+
+                    btn.addEventListener('mousedown', startJog);
+                    btn.addEventListener('touchstart', startJog);
+                    btn.addEventListener('mouseup', stopJog);
+                    btn.addEventListener('mouseleave', stopJog);
+                    btn.addEventListener('touchend', stopJog);
+                    btn.addEventListener('click', clickJog);
+                });
+            }
+
+            function updateUIConnected(state) {
+                const btn = document.getElementById('btn-connect');
+                const resetBtn = document.getElementById('btn-reset');
+
+                // ADDED probe-panel-content to list
+                const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar', 'probe-panel-content'];
+
+                if(state) {
+                    btn.textContent='Disconnect'; btn.className = "btn btn-danger h-8 text-xs shadow-none";
+                    document.getElementById('connection-dot').classList.replace('bg-red-500','bg-green-500');
+                    document.getElementById('connection-text').textContent='Online';
+                    resetBtn.classList.remove('opacity-50', 'pointer-events-none');
+                    disabledIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if(el) el.classList.remove('opacity-50', 'pointer-events-none');
+                    });
+                    setTimeout(() => ws.sendCommand('$EA'), 500);
+                    setTimeout(() => ws.sendCommand('$EE'), 1000);
+                    setTimeout(() => sdHandler.refresh(), 1500);
+                    setTimeout(() => ws.sendCommand('$EG'), 2000);
+                    setTimeout(() => ws.sendCommand('$ES'), 2500);
+                    setTimeout(() => ws.sendCommand('$$'), 3000); // Fetch Settings for Ghost Box
+                    statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
+                } else {
+                    if(statusInterval) clearInterval(statusInterval);
+                    btn.textContent='Connect'; btn.className = "btn btn-primary h-8 text-xs shadow-none border border-white/10";
+                    document.getElementById('connection-dot').classList.replace('bg-green-500','bg-red-500');
+                    document.getElementById('connection-text').textContent='Offline';
+                    resetBtn.classList.add('opacity-50', 'pointer-events-none');
+                    disabledIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if(el) el.classList.add('opacity-50', 'pointer-events-none');
                     });
                 }
-                if(e.detail.id === 'settings-view' && ws.isConnected) {
-                    // Auto fetch settings if empty
-                    if(Object.keys(grblSettings.settings).length === 0) {
-                        grblSettings.fetchSettings();
+            }
+
+            function initTerminal() {
+                term = new Terminal({ cursorBlink: true, fontSize: 11, fontFamily: '"JetBrains Mono", monospace', theme: { background: '#FFFFFF', foreground: '#333333', cursor: '#333333', selectionBackground: '#E6F4F5' } });
+                term.attachCustomKeyEventHandler((arg) => {
+                    if (arg.ctrlKey && arg.code === "KeyC" && term.hasSelection()) return false;
+                    return true;
+                });
+                fitAddon = new FitAddon.FitAddon(); term.loadAddon(fitAddon); term.open(document.getElementById('terminal-container')); fitAddon.fit();
+            }
+
+            function processLine(line) {
+                if(!line) return;
+                line = line.trim();
+                if (line.startsWith('[PRB:')) {
+                    probeHandler.handleProbeResult(line);
+                    return;
+                }
+                if (sdHandler.processLine(line)) return;
+
+                // Handle Settings for Ghost Box
+                if (grblSettings.handleLine(line)) {
+                    // Update viewer limits if settings are loaded
+                    if (viewer && grblSettings.settings['130'] && grblSettings.settings['131'] && grblSettings.settings['132']) {
+                        viewer.setMachineLimits(
+                            parseFloat(grblSettings.settings['130'].val),
+                            parseFloat(grblSettings.settings['131'].val),
+                            parseFloat(grblSettings.settings['132'].val)
+                        );
                     }
+                    return;
                 }
-            });
 
-            initJogging();
-
-            // Initialize Probe Handler
-            probeHandler = new ProbeHandler(ws, term);
-            window.probeHandler = probeHandler;
-
-        });
-
-        window.toggleCamera = function() {
-            const mode = viewer.toggleCamera();
-            document.getElementById('cam-toggle-btn').innerHTML = mode === 'Persp' ? '<i class="bi bi-eye-fill text-secondary"></i> Persp' : '<i class="bi bi-box-fill text-secondary"></i> Ortho';
-        };
-        window.resetCamera = function() { viewer.resetCamera(); };
-        window.sendCmd = function(cmd) { ws.sendCommand(cmd); }; // Manual log removed
-        window.sendRealtime = function(c) { ws.sendRealtime(c); };
-
-        // jog logic moved to initJogging
-        window.clearTerminal = function() { term.clear(); }
-
-        function sendFromInput() {
-            const i = document.getElementById('cmdInput');
-            const val = i.value.trim();
-            if(val) {
-                // Add to history if unique at the end
-                if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== val) {
-                    commandHistory.push(val);
-                    if(commandHistory.length > 50) commandHistory.shift(); // Limit to 50
+                const report = reporter.handleLine(line);
+                if (report) {
+                    if (typeof report === 'string') term.writeln(report);
+                    return;
                 }
-                historyIndex = commandHistory.length; // Reset index to bottom
-
-                window.sendCmd(val);
-                i.value = '';
-            }
-        }
-
-        function navigateHistory(direction) {
-            if (commandHistory.length === 0) return;
-
-            historyIndex += direction;
-            if (historyIndex < 0) historyIndex = 0;
-            if (historyIndex > commandHistory.length) historyIndex = commandHistory.length;
-
-            const input = document.getElementById('cmdInput');
-            if (historyIndex < commandHistory.length) {
-                input.value = commandHistory[historyIndex];
-            } else {
-                input.value = '';
-            }
-        }
-
-        function initJogging() {
-            const btns = document.querySelectorAll('[data-jog]');
-            const toggle = document.getElementById('jogContinuous');
-
-            // Continuous Loop Timer
-            let jogInterval = null;
-            let currentJogCmd = null;
-
-            // Load Saved State
-            toggle.addEventListener('change', () => {
-                localStorage.setItem('grbl_jog_cont', toggle.checked);
-                document.getElementById('stepSize').disabled = toggle.checked; // Disabled in continuous mode
-            });
-
-            document.getElementById('stepSize').addEventListener('change', (e) => {
-                 localStorage.setItem('grbl_step_size', e.target.value);
-            });
-
-            document.getElementById('feedRate').addEventListener('change', (e) => {
-                 localStorage.setItem('grbl_feed_rate', e.target.value);
-            });
-
-            btns.forEach(btn => {
-                const dir = btn.dataset.jog;
-
-                // Mouse Down / Touch Start (Continuous)
-                const startJog = (e) => {
-                    if(!toggle.checked) return;
-                    e.preventDefault();
-                    if(jogInterval) return; // Already running
-
-                    const f = document.getElementById('feedRate').value;
-                    const isMm = document.getElementById('unitToggle').checked;
-                    const unit = isMm ? 'G21' : 'G20';
-                    const dist = isMm ? '1000' : '50'; // Large distance for continuous
-
-                    // Construct command
-                    let move = "";
-                    if(dir.includes('X')) move += `X${dir.includes('X-')?'-':''}${dist} `;
-                    if(dir.includes('Y')) move += `Y${dir.includes('Y-')?'-':''}${dist} `;
-                    if(dir.includes('Z')) move += `Z${dir.includes('Z-')?'-':''}${dist} `;
-                    if(dir.includes('A')) move += `A${dir.includes('A-')?'-':''}${dist} `;
-
-                    // Send initial long move
-                    ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
-                };
-
-                // Mouse Up / Leave (Stop Continuous)
-                const stopJog = (e) => {
-                    if(!toggle.checked) return;
-                    // Send Cancel immediately
-                    ws.sendRealtime('\x85');
-                };
-
-                // Click (Incremental)
-                const clickJog = () => {
-                    if(toggle.checked) return; // Ignore clicks in continuous mode
-                    const s = document.getElementById('stepSize').value;
-                    const f = document.getElementById('feedRate').value;
-                    const isMm = document.getElementById('unitToggle').checked;
-                    const unit = isMm ? 'G21' : 'G20';
-
-                    let move = "";
-                    if(dir.includes('X')) move += `X${dir.includes('X-')?'-':''}${s} `;
-                    if(dir.includes('Y')) move += `Y${dir.includes('Y-')?'-':''}${s} `;
-                    if(dir.includes('Z')) move += `Z${dir.includes('Z-')?'-':''}${s} `;
-                    if(dir.includes('A')) move += `A${dir.includes('A-')?'-':''}${s} `;
-
-                    ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
-                };
-
-                btn.addEventListener('mousedown', startJog);
-                btn.addEventListener('touchstart', startJog);
-
-                btn.addEventListener('mouseup', stopJog);
-                btn.addEventListener('mouseleave', stopJog);
-                btn.addEventListener('touchend', stopJog);
-
-                btn.addEventListener('click', clickJog);
-            });
-        }
-
-        function updateUIConnected(state) {
-            const btn = document.getElementById('btn-connect');
-            const resetBtn = document.getElementById('btn-reset');
-
-            // Elements to disable/enable based on connection
-            const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar'];
-
-            if(state) {
-                btn.textContent='Disconnect'; btn.className = "btn btn-danger h-8 text-xs shadow-none";
-                document.getElementById('connection-dot').classList.replace('bg-red-500','bg-green-500');
-                document.getElementById('connection-text').textContent='Online';
-
-                // Enable Reset Button
-                resetBtn.classList.remove('opacity-50', 'pointer-events-none');
-
-                // Enable controls
-                disabledIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) el.classList.remove('opacity-50', 'pointer-events-none');
-                });
-
-                setTimeout(() => ws.sendCommand('$EA'), 500);
-                setTimeout(() => ws.sendCommand('$EE'), 1000);
-                // Auto-refresh SD
-                setTimeout(() => sdHandler.refresh(), 1500);
-                setTimeout(() => ws.sendCommand('$EG'), 2000);
-                setTimeout(() => ws.sendCommand('$ES'), 2500);
-                statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
-            } else {
-                if(statusInterval) clearInterval(statusInterval);
-                btn.textContent='Connect'; btn.className = "btn btn-primary h-8 text-xs shadow-none border border-white/10";
-                document.getElementById('connection-dot').classList.replace('bg-green-500','bg-red-500');
-                document.getElementById('connection-text').textContent='Offline';
-
-                // Disable Reset Button
-                resetBtn.classList.add('opacity-50', 'pointer-events-none');
-
-                // Disable controls
-                disabledIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) el.classList.add('opacity-50', 'pointer-events-none');
-                });
-            }
-        }
-
-        // --- Console: Light Theme ---
-        function initTerminal() {
-            term = new Terminal({ cursorBlink: true, fontSize: 11, fontFamily: '"JetBrains Mono", monospace', theme: { background: '#FFFFFF', foreground: '#333333', cursor: '#333333', selectionBackground: '#E6F4F5' } });
-
-            // Allow Ctrl+C to copy
-            term.attachCustomKeyEventHandler((arg) => {
-                if (arg.ctrlKey && arg.code === "KeyC" && term.hasSelection()) {
-                    return false; // Force browser copy
+                if (line.startsWith('<')) {
+                    droHandler.parseStatus(line);
+                    // Update Viewer WCS for Ghost Box
+                    if(viewer) viewer.updateWCS(droHandler.wco);
+                    return;
                 }
-                return true;
-            });
-
-            fitAddon = new FitAddon.FitAddon(); term.loadAddon(fitAddon); term.open(document.getElementById('terminal-container')); fitAddon.fit();
-        }
-
-        function processLine(line) {
-            if(!line) return;
-            line = line.trim();
-
-            // 0. Delegate to Probe Handler (Catch [PRB:...] messages)
-            if (line.startsWith('[PRB:')) {
-                probeHandler.handleProbeResult(line);
-                // We also let it fall through to term.writeln so user sees it,
-                // or return if you want to hide it.
-                // term.writeln(line); // Optional: Print raw data
-                return;
-            }
-
-            // 1. Delegate to SD Handler
-            if (sdHandler.processLine(line)) return;
-
-            // 2. Delegate to Settings Handler
-            if (grblSettings.handleLine(line)) return;
-
-            // 3. Delegate to Alarms & Errors
-            const report = reporter.handleLine(line);
-            if (report) {
-                if (typeof report === 'string') term.writeln(report);
-                return;
-            }
-
-            // 4. Delegate to DRO (Status Parsing)
-            if (line.startsWith('<')) {
-                droHandler.parseStatus(line);
-                return;
-            }
-
-            // 5. G-Code Streaming Handler
-            if (gcodeStreamer.active && (line === 'ok' || line.toLowerCase().startsWith('error:'))) {
-                if (line.toLowerCase().startsWith('error:')) {
-                    abortGCodeStream(line);
-                } else {
-                    advanceGCodeStream();
+                if (gcodeStreamer.active && (line === 'ok' || line.toLowerCase().startsWith('error:'))) {
+                    if (line.toLowerCase().startsWith('error:')) abortGCodeStream(line);
+                    else advanceGCodeStream();
+                    return;
                 }
-                return;
+                term.writeln(line);
             }
 
-            // 6. Standard Output
-            term.writeln(line);
-        }
-
-        // --- G-CODE STREAMER ---
-        window.runCurrentJob = function() {
-            if (!currentGCodeContent || gcodeStreamer.active) {
-                alert("No G-Code loaded in the viewer to run!");
-                return;
-            }
-            if (!confirm("Are you sure you want to run the job currently loaded in the 3D viewer?")) return;
-
-            gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
-            gcodeStreamer.index = 0;
-            gcodeStreamer.active = true;
-
-            term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
-            document.getElementById('upload-progress-container').style.display = 'block';
-
-            // Start the stream
-            advanceGCodeStream();
-        }
-
-        function advanceGCodeStream() {
-            if (!gcodeStreamer.active) return;
-            if (gcodeStreamer.index >= gcodeStreamer.lines.length) {
-                finishGCodeStream();
-                return;
+            window.runCurrentJob = function() {
+                if (!currentGCodeContent || gcodeStreamer.active) {
+                    alert("No G-Code loaded in the viewer to run!");
+                    return;
+                }
+                if (!confirm("Are you sure you want to run the job currently loaded in the 3D viewer?")) return;
+                gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
+                gcodeStreamer.index = 0;
+                gcodeStreamer.active = true;
+                term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
+                document.getElementById('upload-progress-container').style.display = 'block';
+                advanceGCodeStream();
             }
 
-            const line = gcodeStreamer.lines[gcodeStreamer.index];
-            ws.sendCommand(line);
-            gcodeStreamer.index++;
+            function advanceGCodeStream() {
+                if (!gcodeStreamer.active) return;
+                if (gcodeStreamer.index >= gcodeStreamer.lines.length) {
+                    finishGCodeStream();
+                    return;
+                }
+                const line = gcodeStreamer.lines[gcodeStreamer.index];
+                ws.sendCommand(line);
+                gcodeStreamer.index++;
+                const pct = Math.round((gcodeStreamer.index / gcodeStreamer.lines.length) * 100);
+                document.getElementById('upload-progress-bar').style.width = `${pct}%`;
+                document.getElementById('upload-pct').textContent = `${pct}%`;
+            }
 
-            const pct = Math.round((gcodeStreamer.index / gcodeStreamer.lines.length) * 100);
-            document.getElementById('upload-progress-bar').style.width = `${pct}%`;
-            document.getElementById('upload-pct').textContent = `${pct}%`;
-        }
-
-        function finishGCodeStream() {
-            gcodeStreamer.active = false;
-            term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
-            document.getElementById('upload-progress-container').style.display = 'none';
-        }
-        function abortGCodeStream(error) {
-            gcodeStreamer.active = false;
-            term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
-            document.getElementById('upload-progress-container').style.display = 'none';
-        }
-    </script>
-</body>
-</html>
+            function finishGCodeStream() {
+                gcodeStreamer.active = false;
+                term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
+                document.getElementById('upload-progress-container').style.display = 'none';
+            }
+            function abortGCodeStream(error) {
+                gcodeStreamer.active = false;
+                term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
+                document.getElementById('upload-progress-container').style.display = 'none';
+            }
+        </script>
+    </body>
+    </html>

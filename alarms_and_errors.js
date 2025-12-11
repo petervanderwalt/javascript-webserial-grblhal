@@ -114,9 +114,110 @@ const STANDARD_ALARMS = {
 };
 
 export class AlarmsAndErrors {
-    constructor() {
+    /**
+     * @param {Object} ws - The WebSerial instance for sending Unlock/Reset commands
+     */
+    constructor(ws) {
+        this.ws = ws;
         this.errors = { ...STANDARD_ERRORS };
         this.alarms = { ...STANDARD_ALARMS };
+
+        // Initialize the DOM elements for the modal
+        this.initModal();
+    }
+
+    initModal() {
+        if (document.getElementById('cnc-modal-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'cnc-modal-overlay';
+        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center';
+
+        overlay.innerHTML = `
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 p-0 border border-grey-light">
+                <!-- Header -->
+                <div id="cnc-modal-header" class="px-6 py-4 border-b border-grey-light flex items-center gap-3">
+                    <i id="cnc-modal-icon" class="bi text-xl"></i>
+                    <h3 id="cnc-modal-title" class="font-bold text-lg text-secondary-dark">Title</h3>
+                </div>
+
+                <!-- Body -->
+                <div class="px-6 py-6">
+                    <p id="cnc-modal-body" class="text-sm font-bold text-grey-dark leading-relaxed"></p>
+                </div>
+
+                <!-- Footer -->
+                <div id="cnc-modal-footer" class="bg-grey-bg px-6 py-3 flex justify-end gap-2 border-t border-grey-light">
+                    <!-- Buttons injected via JS -->
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        this.overlay = overlay;
+        this.domTitle = overlay.querySelector('#cnc-modal-title');
+        this.domBody = overlay.querySelector('#cnc-modal-body');
+        this.domFooter = overlay.querySelector('#cnc-modal-footer');
+        this.domIcon = overlay.querySelector('#cnc-modal-icon');
+        this.domHeader = overlay.querySelector('#cnc-modal-header');
+    }
+
+    showModal(type, code, message) {
+        // Configure styles based on type
+        if (type === 'ERROR') {
+            this.domHeader.className = "px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-3";
+            this.domIcon.className = "bi bi-exclamation-octagon-fill text-red-500 text-xl";
+            this.domTitle.textContent = `Error ${code}`;
+            this.domTitle.className = "font-bold text-lg text-red-700";
+        } else {
+            this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+            this.domIcon.className = "bi bi-exclamation-triangle-fill text-primary-dark text-xl";
+            this.domTitle.textContent = `Alarm ${code}`;
+            this.domTitle.className = "font-bold text-lg text-secondary-dark";
+        }
+
+        this.domBody.textContent = message;
+        this.domFooter.innerHTML = ''; // Clear buttons
+
+        // Create Buttons
+        if (type === 'ERROR') {
+            const btnOk = this.createBtn('OK', 'bg-secondary text-white hover:bg-secondary-dark', () => this.closeModal());
+            this.domFooter.appendChild(btnOk);
+        } else {
+            // Alarm Buttons
+            const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', () => this.closeModal());
+            const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                this.performUnlock();
+                this.closeModal();
+            });
+
+            this.domFooter.appendChild(btnCancel);
+            this.domFooter.appendChild(btnClear);
+        }
+
+        this.overlay.classList.remove('hidden');
+    }
+
+    closeModal() {
+        this.overlay.classList.add('hidden');
+    }
+
+    createBtn(text, classes, onClick) {
+        const btn = document.createElement('button');
+        btn.className = `px-4 py-2 rounded-lg text-sm font-bold transition-colors ${classes}`;
+        btn.textContent = text;
+        btn.onclick = onClick;
+        return btn;
+    }
+
+    performUnlock() {
+        // Send Soft Reset then Unlock
+        if(this.ws) {
+            setTimeout(() => {
+                this.ws.sendCommand('$X'); // Unlock
+            }, 100);
+        }
     }
 
     /**
@@ -176,6 +277,9 @@ export class AlarmsAndErrors {
             const parts = line.split(':');
             const code = parts[1] ? parts[1].trim() : 'Unknown';
             const desc = this.errors[code] || "Unknown Error";
+            const msg = desc;
+
+            this.showModal('ERROR', code, msg);
             return `\x1b[31mError ${code}: ${desc}\x1b[0m`;
         }
 
@@ -184,6 +288,9 @@ export class AlarmsAndErrors {
             const parts = line.split(':');
             const code = parts[1] ? parts[1].trim() : 'Unknown';
             const desc = this.alarms[code] || "Unknown Alarm";
+            const msg = desc;
+
+            this.showModal('ALARM', code, msg);
             return `\x1b[33mAlarm ${code}: ${desc}\x1b[0m`;
         }
 

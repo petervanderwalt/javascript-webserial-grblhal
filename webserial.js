@@ -1,20 +1,5 @@
-
-
 /**
  * webserial.js - A robust wrapper for the Web Serial API.
- *
- * Features:
- * - Manages connection/disconnection state.
- * - robustWrite: Handles WriteStream locking and retries automatically.
- * - Read Loop: Automatically decodes text into lines.
- * - Raw Mode: Allows hijacking the read stream for binary protocols (YMODEM).
- * - Event System: Subscribe to 'connect', 'disconnect', 'line', 'raw', or 'sent'.
- *
- * Usage:
- *   const serial = new WebSerial();
- *   serial.on('line', (line) => console.log(line));
- *   await serial.connect(115200);
- *   serial.write("G0 X10\n");
  */
 
 export class WebSerial {
@@ -32,7 +17,8 @@ export class WebSerial {
             disconnect: [],
             line: [], // Standard text lines received
             raw: [],  // Raw Uint8Array chunks (for YMODEM)
-            sent: []  // Commands sent (for UI echo)
+            sent: [],  // Commands sent (for UI echo)
+            error: [] // New: Error reporting
         };
 
         // If set, this function receives raw bytes instead of the text decoder
@@ -41,7 +27,7 @@ export class WebSerial {
 
     /**
      * Subscribe to an event.
-     * @param {string} event - 'connect', 'disconnect', 'line', 'raw', 'sent'
+     * @param {string} event - 'connect', 'disconnect', 'line', 'raw', 'sent', 'error'
      * @param {function} callback
      */
     on(event, callback) {
@@ -50,12 +36,22 @@ export class WebSerial {
         }
     }
 
+    emit(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(cb => cb(data));
+        }
+    }
+
     /**
      * Request user to select a port and open it.
      * @param {number} baudRate
      */
     async connect(baudRate = 115200) {
-        if (!navigator.serial) throw new Error("Web Serial not supported");
+        if (!navigator.serial) {
+            const err = new Error("Web Serial is not supported in this browser.");
+            this.emit('error', err);
+            throw err;
+        }
 
         try {
             this.port = await navigator.serial.requestPort();
@@ -68,6 +64,10 @@ export class WebSerial {
             this.readLoop();
         } catch (err) {
             console.error("Serial Connect Error:", err);
+            // Ignore "NotFoundError" which happens when user clicks 'Cancel' in the browser dialog
+            if (err.name !== 'NotFoundError') {
+                this.emit('error', err);
+            }
             throw err;
         }
     }
@@ -138,6 +138,7 @@ export class WebSerial {
             await writer.write(data);
         } catch (e) {
             console.error("Serial Write Error:", e);
+            this.emit('error', e);
         } finally {
             writer.releaseLock();
         }
@@ -187,6 +188,8 @@ export class WebSerial {
             }
         } catch (err) {
             console.error("Read Error:", err);
+            // Emit error so UI can show "Connection Lost"
+            this.emit('error', new Error("Connection lost: " + err.message));
             this.disconnect();
         } finally {
             this.reader.releaseLock();
