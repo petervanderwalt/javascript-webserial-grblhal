@@ -426,7 +426,26 @@
                         <button id="run-job-btn" class="overlay-btn !bg-primary !text-secondary-dark hover:!bg-primary-dark shadow-lg opacity-50 pointer-events-none transition-opacity duration-200" onclick="runCurrentJob()">
                             <i class="bi bi-play-fill text-lg"></i> Run Job
                         </button>
-                        <button class="overlay-btn mt-4" onclick="resetCamera()">
+
+                        <!-- Job Running Controls (Pause/Stop) -->
+                        <div id="job-active-controls" class="hidden flex-col gap-2">
+                             <button id="pause-job-btn" class="overlay-btn !bg-yellow-100 !text-yellow-800 border-yellow-300 shadow-lg" onclick="pauseJob()">
+                                <i class="bi bi-pause-fill text-lg"></i> Pause
+                            </button>
+                            <button id="stop-job-btn" class="overlay-btn !bg-red-100 !text-red-800 border-red-300 shadow-lg" onclick="stopJob()">
+                                <i class="bi bi-stop-fill text-lg"></i> Stop
+                            </button>
+                        </div>
+
+                        <!-- Camera View Shortcuts -->
+                        <div class="flex gap-1 bg-white/90 p-1 rounded-lg shadow-md mt-4 backdrop-blur">
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8" onclick="window.viewer.setCameraView('Top')">Top</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8" onclick="window.viewer.setCameraView('Front')">Frt</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8" onclick="window.viewer.setCameraView('Left')">Lft</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8" onclick="window.viewer.setCameraView('Iso')">Iso</button>
+                        </div>
+
+                        <button class="overlay-btn" onclick="resetCamera()">
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
                         </button>
                         <button class="overlay-btn" onclick="toggleCamera()" id="cam-toggle-btn">
@@ -769,7 +788,7 @@
             let term, fitAddon, statusInterval;
 
             let currentGCodeContent = null;
-            let gcodeStreamer = { active: false, lines: [], index: 0 };
+            let gcodeStreamer = { active: false, lines: [], index: 0, paused: false };
             let commandHistory = [];
             let historyIndex = -1;
             let sdHandler = null;
@@ -841,7 +860,18 @@
                     }
                 });
 
-                document.getElementById('gcode-file-input').addEventListener('change', (e) => viewer.loadLocalFile(e.target.files[0]));
+                document.getElementById('gcode-file-input').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        currentGCodeContent = evt.target.result;
+                        viewer.processGCodeString(currentGCodeContent);
+                        // Reset input so same file can be selected again if needed
+                        e.target.value = '';
+                    };
+                    reader.readAsText(file);
+                });
                 document.getElementById('sd-upload-input').addEventListener('change', (e) => sdHandler.startUpload(e.target.files[0]));
 
                 window.addEventListener('resize', () => { fitAddon.fit(); viewer.resize(); });
@@ -1048,6 +1078,8 @@
                     droHandler.parseStatus(line);
                     // Update Viewer WCS for Ghost Box
                     if(viewer) viewer.updateWCS(droHandler.wco);
+                    // Update Tool Position
+                    if(viewer && droHandler.wpos) viewer.updateToolPosition(droHandler.wpos[0], droHandler.wpos[1], droHandler.wpos[2]);
                     return;
                 }
                 if (gcodeStreamer.active && (line === 'ok' || line.toLowerCase().startsWith('error:'))) {
@@ -1067,9 +1099,45 @@
                 gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
                 gcodeStreamer.index = 0;
                 gcodeStreamer.active = true;
+                gcodeStreamer.paused = false;
+
+                // Toggle UI
+                document.getElementById('run-job-btn').classList.add('hidden');
+                document.getElementById('job-active-controls').classList.remove('hidden');
+                document.getElementById('job-active-controls').classList.add('flex');
+
                 term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
                 document.getElementById('upload-progress-container').style.display = 'block';
                 advanceGCodeStream();
+            }
+
+            window.pauseJob = function() {
+                if (!gcodeStreamer.active) return;
+                const btn = document.getElementById('pause-job-btn');
+                gcodeStreamer.paused = !gcodeStreamer.paused;
+
+                if (gcodeStreamer.paused) {
+                    ws.sendRealtime('!'); // Feed Hold
+                    btn.innerHTML = '<i class="bi bi-play-fill text-lg"></i> Resume';
+                    btn.classList.replace('!bg-yellow-100', '!bg-green-100');
+                    btn.classList.replace('!text-yellow-800', '!text-green-800');
+                    btn.classList.replace('border-yellow-300', 'border-green-300');
+                    term.writeln("\x1b[33m[Job Stream] Paused.\x1b[0m");
+                } else {
+                    ws.sendRealtime('~'); // Cycle Start
+                    btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
+                    btn.classList.replace('!bg-green-100', '!bg-yellow-100');
+                    btn.classList.replace('!text-green-800', '!text-yellow-800');
+                    btn.classList.replace('border-green-300', 'border-yellow-300');
+                    term.writeln("\x1b[32m[Job Stream] Resuming...\x1b[0m");
+                }
+            }
+
+            window.stopJob = function() {
+                if (!gcodeStreamer.active) return;
+                if (!confirm("Stop Job? This will reset the machine.")) return;
+                ws.sendRealtime('\x18'); // Ctrl-x (Soft Reset)
+                abortGCodeStream("User Stopped");
             }
 
             function advanceGCodeStream() {
@@ -1089,12 +1157,24 @@
             function finishGCodeStream() {
                 gcodeStreamer.active = false;
                 term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
-                document.getElementById('upload-progress-container').style.display = 'none';
+                resetJobUI();
             }
             function abortGCodeStream(error) {
                 gcodeStreamer.active = false;
                 term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
+                resetJobUI();
+            }
+
+            function resetJobUI() {
                 document.getElementById('upload-progress-container').style.display = 'none';
+                document.getElementById('run-job-btn').classList.remove('hidden');
+                document.getElementById('job-active-controls').classList.add('hidden');
+                document.getElementById('job-active-controls').classList.remove('flex');
+
+                // Reset Pause Button State
+                const btn = document.getElementById('pause-job-btn');
+                btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
+                btn.className = "overlay-btn !bg-yellow-100 !text-yellow-800 border-yellow-300 shadow-lg";
             }
         </script>
     </body>
