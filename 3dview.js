@@ -113,7 +113,7 @@ export class GCodeViewer {
         // --- Tool Interpolation (Tweening) ---
         // Smoothly move currentToolPos towards targetToolPos
         // 0.5 factor gives a snappy response (closes 50% of the gap per frame)
-        this.currentToolPos.lerp(this.targetToolPos, 0.5);
+        this.currentToolPos.lerp(this.targetToolPos, 0.1);
         this.toolGroup.position.copy(this.currentToolPos);
 
         if (this.controls) this.controls.update();

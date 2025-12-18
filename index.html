@@ -819,7 +819,7 @@
                         if (statusInterval) clearInterval(statusInterval);
                     },
                     resumePolling: () => {
-                        statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
+                        statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
                     }
                 });
                 window.sdHandler = sdHandler;
@@ -1024,7 +1024,7 @@
                     setTimeout(() => ws.sendCommand('$EG'), 2000);
                     setTimeout(() => ws.sendCommand('$ES'), 2500);
                     setTimeout(() => ws.sendCommand('$$'), 3000); // Fetch Settings for Ghost Box
-                    statusInterval = setInterval(() => ws.sendRealtime('?'), 200);
+                    statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
                 } else {
                     if(statusInterval) clearInterval(statusInterval);
                     btn.textContent='Connect'; btn.className = "btn btn-primary h-8 text-xs shadow-none border border-white/10";
