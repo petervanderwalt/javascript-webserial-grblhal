@@ -398,6 +398,7 @@
             <div class="tab-nav p-0 m-0 bg-secondary-dark">
                 <button class="tab-btn active" onclick="switchTab('viewer-view', this)">3D Preview</button>
                 <button class="tab-btn" onclick="switchTab('probe-view', this)">Probe</button>
+                <button class="tab-btn" onclick="switchTab('surfacing-view', this)">Surfacing</button>
                 <button class="tab-btn" onclick="switchTab('sd-view', this)">
                     SD Card
                     <span id="sd-badge" class="hidden ml-2 bg-primary text-black text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
@@ -455,6 +456,92 @@
                             <i class="bi bi-folder2-open text-secondary"></i> Open File
                             <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
                         </label>
+                    </div>
+                </div>
+
+                <!-- Surfacing Wizard -->
+                <div id="surfacing-view" class="tab-pane hidden w-full h-full p-8 overflow-y-auto bg-grey-bg">
+                    <div class="max-w-5xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2"><i class="bi bi-layers-fill"></i> Surfacing Wizard</h2>
+                                <p class="text-sm text-grey">Generate G-code to flatten stock or spoilboards.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-primary shadow-soft" onclick="window.surfacing.loadToViewer()"><i class="bi bi-check-lg"></i> Generate G-Code</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Column 1: Specs -->
+                            <div class="space-y-6">
+                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Tool & Speeds</h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Tool Diameter (mm)</label><input type="number" id="surf-tool" class="input-field font-mono text-sm"></div>
+                                        <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Stepover (%)</label><input type="number" id="surf-stepover" class="input-field font-mono text-sm"></div>
+                                        <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Feed Rate (mm/min)</label><input type="number" id="surf-feed" class="input-field font-mono text-sm"></div>
+                                        <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Spindle RPM</label><input type="number" id="surf-rpm" class="input-field font-mono text-sm"></div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Dimensions</h3>
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Width (X)</label><input type="number" id="surf-x" class="input-field font-mono text-sm"></div>
+                                            <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Height (Y)</label><input type="number" id="surf-y" class="input-field font-mono text-sm"></div>
+                                        </div>
+                                        <div>
+                                            <label class="text-[11px] font-bold text-secondary-dark block mb-1">Cutting Direction</label>
+                                            <select id="surf-dir" class="input-field text-sm">
+                                                <option value="X">Along X-Axis</option>
+                                                <option value="Y">Along Y-Axis</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Depth & Options -->
+                            <div class="space-y-6">
+                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Depth Control</h3>
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Depth per Pass (mm)</label><input type="number" id="surf-z-step" class="input-field font-mono text-sm"></div>
+                                            <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Final Depth (mm)</label><input type="number" id="surf-z-final" class="input-field font-mono text-sm"></div>
+                                        </div>
+                                        <div><label class="text-[11px] font-bold text-secondary-dark block mb-1">Safe Z Clearance (mm)</label><input type="number" id="surf-z-safe" class="input-field font-mono text-sm"></div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Options</h3>
+
+                                    <div class="flex items-center justify-between bg-grey-bg/50 p-3 rounded-lg border border-grey-light mb-2">
+                                        <span class="text-xs font-bold text-secondary-dark">Use Coolant (M8)?</span>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="surf-coolant" class="sr-only peer">
+                                            <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="flex items-center justify-between bg-grey-bg/50 p-3 rounded-lg border border-grey-light">
+                                        <span class="text-xs font-bold text-secondary-dark">Add Framing Pass?</span>
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="surf-framing" class="sr-only peer">
+                                            <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+
+                                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-[11px] text-yellow-800">
+                                        <i class="bi bi-info-circle-fill mr-1"></i>
+                                        Ensure your spindle is trammed perpendicular to the bed. Start Z-Zero at the highest point of your stock.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -753,6 +840,7 @@
             import { DROHandler } from './DRO.js';
             import { GrblSettings } from './grbl_settings.js';
             import { AppStore } from './store.js';
+            import { SurfacingHandler } from './surfacing.js';
 
             // Globals
             const ws = new WebSerial();
@@ -795,6 +883,7 @@
             let droHandler = null;
             let grblSettings = null;
             let probeHandler = null;
+            let surfacingHandler = null;
 
 
             document.addEventListener('DOMContentLoaded', () => {
@@ -819,10 +908,23 @@
                         if (statusInterval) clearInterval(statusInterval);
                     },
                     resumePolling: () => {
-                        statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
+                        statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
                     }
                 });
                 window.sdHandler = sdHandler;
+
+                // Initialize Probe Handler with Store
+                probeHandler = new ProbeHandler(ws, term, store);
+                window.probeHandler = probeHandler;
+
+                // Initialize Surfacing Handler
+                surfacingHandler = new SurfacingHandler(viewer, sdHandler, term, store);
+                window.surfacing = surfacingHandler;
+
+                // Listen for generated gcode from surfacing
+                window.addEventListener('gcode-loaded', (e) => {
+                    currentGCodeContent = e.detail;
+                });
 
                 ws.on('connect', () => updateUIConnected(true));
                 ws.on('disconnect', () => updateUIConnected(false));
@@ -890,11 +992,6 @@
                 });
 
                 initJogging();
-
-                // Initialize Probe Handler with Store
-                probeHandler = new ProbeHandler(ws, term, store);
-                window.probeHandler = probeHandler;
-
             });
 
             window.toggleCamera = function() {
@@ -1024,7 +1121,7 @@
                     setTimeout(() => ws.sendCommand('$EG'), 2000);
                     setTimeout(() => ws.sendCommand('$ES'), 2500);
                     setTimeout(() => ws.sendCommand('$$'), 3000); // Fetch Settings for Ghost Box
-                    statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
+                    statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
                 } else {
                     if(statusInterval) clearInterval(statusInterval);
                     btn.textContent='Connect'; btn.className = "btn btn-primary h-8 text-xs shadow-none border border-white/10";

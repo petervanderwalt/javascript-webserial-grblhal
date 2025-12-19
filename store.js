@@ -23,6 +23,20 @@ export class AppStore {
                 bossW: 50,
                 bossH: 50,
                 usePlate: true
+            },
+            surfacing: {
+                toolDiameter: 6.35,
+                stepover: 40,
+                feed: 2000,
+                rpm: 16000,
+                width: 100,
+                height: 100,
+                direction: 'X',
+                depthPerPass: 1.0,
+                finalDepth: 3.0,
+                clearance: 5.0,
+                useCoolant: false,
+                useFraming: false // Default off, but available
             }
         };
 
