@@ -398,6 +398,7 @@
             <div class="tab-nav p-0 m-0 bg-secondary-dark">
                 <button class="tab-btn active" onclick="switchTab('viewer-view', this)">3D Preview</button>
                 <button class="tab-btn" onclick="switchTab('probe-view', this)">Probe</button>
+                <button class="tab-btn" onclick="switchTab('macros-view', this)">Macros</button>
                 <button class="tab-btn" onclick="switchTab('surfacing-view', this)">Surfacing</button>
                 <button class="tab-btn" onclick="switchTab('sd-view', this)">
                     SD Card
@@ -456,6 +457,28 @@
                             <i class="bi bi-folder2-open text-secondary"></i> Open File
                             <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
                         </label>
+                    </div>
+                </div>
+
+                <!-- Macros View -->
+                <div id="macros-view" class="tab-pane hidden w-full h-full p-8 overflow-y-auto bg-grey-bg">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
+                                    <i class="bi bi-lightning-charge-fill"></i> Custom Macros
+                                </h2>
+                                <p class="text-sm text-grey">Quickly execute predefined G-code sequences.</p>
+                            </div>
+                            <button class="btn btn-secondary shadow-soft" onclick="window.macroHandler.openModal(null)">
+                                <i class="bi bi-plus-lg"></i> Create New
+                            </button>
+                        </div>
+
+                        <!-- Macro Grid -->
+                        <div id="macro-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
                 </div>
 
@@ -811,6 +834,54 @@
         </main>
     </div>
 
+    <!-- Macro Modal -->
+    <div id="macro-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-[600px] overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-grey-light flex justify-between items-center bg-grey-bg">
+                <h3 class="text-lg font-bold text-secondary-dark flex items-center gap-2"><i class="bi bi-lightning-charge-fill"></i> <span id="macro-modal-title">Create New Macro</span></h3>
+                <button id="btn-close-macro" class="btn-ghost"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4">
+
+                <!-- Name & Color -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-2 space-y-1">
+                        <label class="text-[11px] font-bold text-grey uppercase">Macro Name</label>
+                        <input type="text" id="macro-name-input" class="input-field" placeholder="e.g. Probe Z">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[11px] font-bold text-grey uppercase">Color</label>
+                        <select id="macro-color-select" class="input-field">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Icon Selection -->
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-grey uppercase">Icon</label>
+                    <input type="hidden" id="macro-icon-input">
+                    <div id="macro-icon-grid" class="flex flex-wrap gap-2 p-2 border border-grey-light rounded-lg bg-grey-bg/30">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- G-Code Area -->
+                <div class="space-y-1 flex-1">
+                    <label class="text-[11px] font-bold text-grey uppercase">G-Code Sequence</label>
+                    <textarea id="macro-gcode-input" class="w-full h-40 font-mono text-sm border-2 border-grey-light rounded-lg p-3 bg-grey-bg focus:bg-white focus:border-secondary outline-none resize-none" placeholder="G21&#10;G91&#10;G0 Z10"></textarea>
+                    <p class="text-[10px] text-grey italic">Enter one G-code command per line.</p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-grey-light bg-grey-bg flex justify-end gap-2">
+                <button class="btn btn-secondary" onclick="document.getElementById('macro-modal').classList.add('hidden')">Cancel</button>
+                <button class="btn btn-primary" id="btn-save-macro">Save Macro</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
@@ -828,6 +899,9 @@
                 window.dispatchEvent(new Event('resize'));
                 window.dispatchEvent(new CustomEvent('tab-shown', { detail: { id: targetId } }));
             }
+            if(targetId === 'macros-view') {
+                if(window.macroHandler) window.macroHandler.render();
+            }
         }
     </script>
 
@@ -841,6 +915,7 @@
             import { GrblSettings } from './grbl_settings.js';
             import { AppStore } from './store.js';
             import { SurfacingHandler } from './surfacing.js';
+            import { MacroHandler } from './macros.js'; // Import the new module
 
             // Globals
             const ws = new WebSerial();
@@ -884,6 +959,7 @@
             let grblSettings = null;
             let probeHandler = null;
             let surfacingHandler = null;
+            let macroHandler = null;
 
 
             document.addEventListener('DOMContentLoaded', () => {
@@ -920,6 +996,10 @@
                 // Initialize Surfacing Handler
                 surfacingHandler = new SurfacingHandler(viewer, sdHandler, term, store);
                 window.surfacing = surfacingHandler;
+
+                // Initialize Macro Handler
+                macroHandler = new MacroHandler(ws, term);
+                window.macroHandler = macroHandler;
 
                 // Listen for generated gcode from surfacing
                 window.addEventListener('gcode-loaded', (e) => {
