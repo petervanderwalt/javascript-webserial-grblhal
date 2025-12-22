@@ -267,28 +267,30 @@ export class GrblSettings {
         const sortedGroups = Object.values(this.groups).sort((a, b) => parseInt(a.id) - parseInt(b.id));
 
         // --- Build HTML ---
-        let html = `<div class="flex h-[calc(100vh-220px)] border border-grey-light rounded-lg bg-white overflow-hidden shadow-sm">`;
+        // Layout: Side-by-side on all screens
+        let html = `<div class="flex flex-row h-[calc(100vh-220px)] border border-grey-light rounded-lg bg-white overflow-hidden shadow-sm">`;
 
         // --- Left Sidebar ---
-        html += `<div id="settings-sidebar" class="w-1/4 bg-grey-bg border-r border-grey-light flex flex-col">`;
+        // Width: 110px on mobile, 25% on desktop
+        html += `<div id="settings-sidebar" class="w-[110px] md:w-1/4 bg-grey-bg border-r border-grey-light flex flex-col shrink-0">`;
 
         // Search Box
         html += `
             <div class="p-2 border-b border-grey-light bg-white sticky top-0 z-20">
                 <div class="relative">
-                    <i class="bi bi-search absolute left-2 top-1.5 text-grey text-xs"></i>
+                    <i class="bi bi-search absolute left-1.5 top-1.5 text-grey text-[10px] md:text-xs"></i>
                     <input type="text" id="settings-search-input"
-                        class="w-full pl-7 pr-2 py-1 text-xs border border-grey-light rounded bg-grey-bg focus:bg-white focus:border-primary outline-none transition-colors"
-                        placeholder="Search settings..."
+                        class="w-full pl-6 pr-1 py-1 text-[10px] md:text-xs border border-grey-light rounded bg-grey-bg focus:bg-white focus:border-primary outline-none transition-colors"
+                        placeholder="Search..."
                         value="${this.searchQuery}"
                         oninput="window.grblSettings.setSearchQuery(this.value)">
                 </div>
             </div>
-            <div class="overflow-y-auto flex-1 p-2 space-y-1">
+            <div class="overflow-y-auto flex-1 p-1 md:p-2 space-y-0.5 md:space-y-1">
         `;
 
         if (sortedGroups.length === 0) {
-            html += `<div class="text-xs text-grey p-2">No groups found</div>`;
+            html += `<div class="text-xs text-grey p-2">No groups</div>`;
         } else {
             sortedGroups.forEach(g => {
                 const isActive = (g.id == this.activeGroupId) && (this.searchQuery === "");
@@ -296,35 +298,35 @@ export class GrblSettings {
                     ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm'
                     : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
 
-                // Indentation logic based on parentId
                 const isSubGroup = g.parentId && g.parentId !== '0';
-                const indent = isSubGroup ? 'ml-4 text-[11px]' : '';
+                const indent = isSubGroup ? 'ml-2 md:ml-4' : '';
 
+                // Compact button style
                 html += `
                     <button onclick="window.grblSettings.setActiveGroup('${g.id}')"
-                        class="w-full text-left px-3 py-2 text-xs font-bold rounded-r transition-all ${activeClass} ${indent}">
+                        class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all truncate ${activeClass} ${indent}" title="${g.label}">
                         ${g.label}
                     </button>
                 `;
             });
         }
 
-        // Add "Ungrouped"
+        // Ungrouped
         const hasUngrouped = Object.values(this.settings).some(s => !this.groups[s.groupId]);
         if(hasUngrouped) {
              const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
              const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
              html += `
                 <button onclick="window.grblSettings.setActiveGroup('ungrouped')"
-                    class="w-full text-left px-3 py-2 text-xs font-bold rounded-r transition-all ${activeClass} border-t border-grey-light mt-2">
-                    <i class="bi bi-question-circle"></i> Ungrouped / Legacy
+                    class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all ${activeClass} border-t border-grey-light mt-1">
+                    Other
                 </button>
             `;
         }
-        html += `</div></div>`; // End Sidebar content & div
+        html += `</div></div>`; // End Sidebar
 
         // --- Right Panel ---
-        html += `<div id="settings-main-panel" class="w-3/4 overflow-y-auto bg-white relative">`;
+        html += `<div id="settings-main-panel" class="flex-1 overflow-y-auto bg-white relative w-0">`; // w-0 to allow flex grow
 
         if (settingsToDisplay.length === 0) {
             html += `
@@ -333,22 +335,22 @@ export class GrblSettings {
                     <p class="text-sm">No settings found</p>
                 </div>`;
         } else {
-            // Group Header (Sticky)
+            // Header
             html += `
-                <div class="bg-grey-bg px-4 py-2 border-b border-grey-light font-bold text-secondary-dark sticky top-0 z-20 shadow-sm flex items-center gap-2">
+                <div class="bg-grey-bg px-2 md:px-4 py-2 border-b border-grey-light font-bold text-secondary-dark sticky top-0 z-20 shadow-sm flex items-center gap-2 text-xs md:text-sm">
                     ${this.searchQuery ? '<i class="bi bi-search"></i>' : '<i class="bi bi-folder2-open"></i>'}
-                    <span>${displayTitle}</span>
+                    <span class="truncate">${displayTitle}</span>
                 </div>
             `;
 
             html += `
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-surface text-grey uppercase text-[10px] tracking-wider border-b border-grey-light sticky top-8 z-10 shadow-sm">
+                <table class="w-full text-left text-sm table-fixed">
+                    <thead class="bg-surface text-grey uppercase text-[9px] md:text-[10px] tracking-wider border-b border-grey-light sticky top-8 z-10 shadow-sm">
                         <tr>
-                            <th class="px-4 py-2 w-16 bg-surface">$ID</th>
-                            <th class="px-4 py-2 bg-surface">Description</th>
-                            <th class="px-4 py-2 w-1/3 bg-surface">Value</th>
-                            <th class="px-4 py-2 w-20 bg-surface">Unit</th>
+                            <th class="px-1 md:px-4 py-2 w-8 md:w-16 bg-surface text-center md:text-left">$</th>
+                            <th class="px-1 md:px-4 py-2 bg-surface w-auto">Description</th>
+                            <th class="px-1 md:px-4 py-2 w-16 md:w-1/3 bg-surface">Val</th>
+                            <th class="px-1 md:px-4 py-2 w-8 md:w-20 bg-surface">Unit</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-grey-light">`;
@@ -360,16 +362,23 @@ export class GrblSettings {
 
                 html += `
                     <tr class="${rowClass} transition-colors group">
-                        <td class="px-4 py-3 font-mono text-secondary-dark font-bold text-xs align-top pt-4">$${s.id}</td>
-                        <td class="px-4 py-3 align-top">
-                            <div class="text-grey-dark font-bold text-xs">${s.label}</div>
-                            ${s.desc ? `<div class="text-[10px] text-grey mt-1 leading-tight max-w-md">${s.desc.replace(/\\n/g, '<br>')}</div>` : ''}
+                        <!-- ID: Fixed 32px width -->
+                        <td class="px-0.5 md:px-4 py-2 md:py-3 font-mono text-secondary-dark font-bold text-[10px] md:text-xs align-top pt-3 md:pt-4 text-center md:text-left break-all">$${s.id}</td>
+
+                        <!-- Desc: Auto width -->
+                        <td class="px-1 md:px-4 py-2 md:py-3 align-top">
+                            <div class="text-grey-dark font-bold text-[11px] md:text-xs leading-tight">${s.label}</div>
+                            ${s.desc ? `<div class="hidden md:block text-[10px] text-grey mt-1 leading-tight max-w-md">${s.desc.replace(/\\n/g, '<br>')}</div>` : ''}
                         </td>
-                        <td class="px-4 py-3 align-top">
+
+                        <!-- Value: Fixed 64px on mobile, dynamic on desktop -->
+                        <td class="px-0.5 md:px-4 py-2 md:py-3 align-top">
                             ${this._renderInput(s, displayValue)}
-                            ${isModified ? '<div class="text-[10px] text-primary-dark font-bold mt-1 text-right animate-pulse">Pending Save</div>' : ''}
+                            ${isModified ? '<div class="text-[9px] md:text-[10px] text-primary-dark font-bold mt-0.5 text-right animate-pulse">Save?</div>' : ''}
                         </td>
-                        <td class="px-4 py-3 text-xs text-grey align-top pt-4">${s.unit || '-'}</td>
+
+                        <!-- Unit: Fixed 32px width -->
+                        <td class="px-0.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs text-grey align-top pt-3 md:pt-4 break-all leading-tight">${s.unit || '-'}</td>
                     </tr>
                 `;
             });
@@ -383,19 +392,10 @@ export class GrblSettings {
 
         // Restore Scroll Positions
         const newSidebar = document.getElementById('settings-sidebar');
-        const newMain = document.getElementById('settings-main-panel');
-
-        // We only restore sidebar scroll if we are NOT searching (search resets list view)
-        // Actually, if we type, the list doesn't change length much, but if we filter it might.
-        // It's generally safe to restore sidebar scroll.
         if (newSidebar && !this.searchQuery) {
             const sbContainer = newSidebar.querySelector('.overflow-y-auto');
             if(sbContainer) sbContainer.scrollTop = prevSidebarScroll;
         }
-
-        // Do NOT restore main panel scroll if query changed length significantly,
-        // but if just updating a value, we should.
-        // For simplicity, we usually let Main Panel reset to top on group change/search.
     }
 
     _renderInput(s, val) {
@@ -403,12 +403,12 @@ export class GrblSettings {
         if (s.type === 0 || s.type === 'bool') {
             const checked = (val == '1' || val === 'on' || val === true);
             return `
-                <div class="flex justify-end">
+                <div class="flex justify-end md:justify-start">
                 <label class="inline-flex items-center cursor-pointer">
                     <input type="checkbox" class="sr-only peer"
                         onchange="window.grblSettings.update('${s.id}', this.checked ? 1 : 0)"
                         ${checked ? 'checked' : ''}>
-                    <div class="relative w-9 h-5 bg-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                    <div class="relative w-7 md:w-9 h-4 md:h-5 bg-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 md:after:h-4 after:w-3 md:after:w-4 after:transition-all peer-checked:bg-green-600"></div>
                 </label>
                 </div>
             `;
@@ -417,10 +417,11 @@ export class GrblSettings {
         // 1: Bitmask (Checkbox List)
         if (s.type === 1 || s.type === 'mask') {
             const intVal = parseInt(val) || 0;
-            if (!s.format) return `<input type="number" class="input-field" value="${val}" onchange="window.grblSettings.update('${s.id}', this.value)">`;
+            if (!s.format) return `<input type="number" class="input-field h-7 md:h-8 px-1 text-xs" value="${val}" onchange="window.grblSettings.update('${s.id}', this.value)">`;
 
             const options = s.format.split(',');
-            let html = `<div class="flex flex-col gap-1.5 border border-grey-light rounded p-2 bg-grey-bg/30">`;
+            // Stacked vertical on mobile
+            let html = `<div class="flex flex-col gap-1 border border-grey-light rounded p-1 bg-grey-bg/30">`;
 
             options.forEach((label, index) => {
                 if(!label || label.toUpperCase() === 'N/A') return;
@@ -428,11 +429,11 @@ export class GrblSettings {
                 const isSet = (intVal & bitMask) !== 0;
 
                 html += `
-                    <label class="inline-flex items-center gap-2 cursor-pointer hover:bg-white rounded px-1 transition-colors">
-                        <input type="checkbox" class="rounded text-primary focus:ring-primary h-3.5 w-3.5 border-grey-light"
+                    <label class="inline-flex items-center gap-1 cursor-pointer hover:bg-white rounded px-0.5 transition-colors">
+                        <input type="checkbox" class="rounded text-primary focus:ring-primary h-3 w-3 border-grey-light"
                             onchange="window.grblSettings.updateMask('${s.id}', ${bitMask}, this.checked)"
                             ${isSet ? 'checked' : ''}>
-                        <span class="text-[11px] text-grey-dark leading-none pt-0.5">${label}</span>
+                        <span class="text-[9px] md:text-[11px] text-grey-dark leading-none pt-0.5 truncate">${label}</span>
                     </label>
                 `;
             });
@@ -443,7 +444,7 @@ export class GrblSettings {
         // 3: Enum (Select)
         if (s.type === 3 && s.format) {
             const options = s.format.split(',');
-            let html = `<select class="input-field h-8 text-xs w-full bg-white border-grey-light shadow-sm" onchange="window.grblSettings.update('${s.id}', this.value)">`;
+            let html = `<select class="input-field h-7 md:h-8 text-[10px] md:text-xs w-full bg-white border-grey-light shadow-sm px-0.5" onchange="window.grblSettings.update('${s.id}', this.value)">`;
 
             options.forEach((label, index) => {
                 html += `<option value="${index}" ${val == index ? 'selected' : ''}>${label}</option>`;
@@ -455,7 +456,7 @@ export class GrblSettings {
         // 5: Float / Integer
         if (s.type === 5 || s.type === 'float' || !s.type) {
             return `
-                <input type="number" class="input-field h-8 text-xs font-mono w-full"
+                <input type="number" class="input-field h-7 md:h-8 text-[11px] md:text-xs font-mono w-full px-1"
                     value="${val}"
                     step="any"
                     ${s.min ? `min="${s.min}"` : ''}
@@ -466,7 +467,7 @@ export class GrblSettings {
 
         // Fallback String
         return `
-            <input type="text" class="input-field h-8 text-xs font-mono w-full"
+            <input type="text" class="input-field h-7 md:h-8 text-[11px] md:text-xs font-mono w-full px-1"
                 value="${val}"
                 onchange="window.grblSettings.update('${s.id}', this.value)">
         `;

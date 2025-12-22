@@ -38,6 +38,10 @@ export class GCodeViewer {
         this.renderer = null;
         this.controls = null;
 
+        // Unit State
+        this.nativeUnits = 'mm';   // Units of the loaded G-code (Scene coordinates)
+        this.displayUnits = 'mm';  // Units user wants to see (Grid/Labels)
+
         // Groups
         this.gcodeGroup = new THREE.Group();
         this.gridGroup = new THREE.Group();
@@ -45,8 +49,9 @@ export class GCodeViewer {
         this.wcsGroup = new THREE.Group();
         this.labelsGroup = new THREE.Group();
         this.statsGroup = new THREE.Group();
-        this.toolGroup = new THREE.Group(); // Tool Group
+        this.toolGroup = new THREE.Group();
 
+        // Defaults
         this.gridBounds = { xmin: -100, ymin: -100, xmax: 100, ymax: 100 };
         this.machineLimits = { x: 200, y: 200, z: 100 };
         this.wco = { x: 0, y: 0, z: 0 };
@@ -87,7 +92,7 @@ export class GCodeViewer {
         // Controls
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.1;
+        this.controls.dampingFactor = 0.05;
 
         // Add Groups
         this.scene.add(this.gridGroup);
@@ -96,26 +101,36 @@ export class GCodeViewer {
         this.scene.add(this.statsGroup);
         this.scene.add(this.machineGroup);
         this.scene.add(this.wcsGroup);
-        this.scene.add(this.toolGroup); // Add Tool to scene
+        this.scene.add(this.toolGroup);
 
         // Initial Renders
         this.renderCoolGrid();
         this.renderWCSOrigin();
         this.renderMachineBox();
-        this.renderTool(); // Initialize Tool
+        this.renderTool();
 
         this.animate();
     }
 
+    // Public method to switch display units (called from UI)
+    setUnits(units) {
+        if (this.displayUnits === units) return;
+        this.displayUnits = units;
+
+        this.renderCoolGrid();
+
+        // Update stats if job is loaded
+        const box = new THREE.Box3().setFromObject(this.gcodeGroup);
+        if(!box.isEmpty()) this.renderJobStats(box);
+
+        // Notify main app to update UI checkboxes (syncs if set via code/load)
+        window.dispatchEvent(new CustomEvent('viewer-units-changed', { detail: { units: this.displayUnits } }));
+    }
+
     animate() {
         requestAnimationFrame(() => this.animate());
-
-        // --- Tool Interpolation (Tweening) ---
-        // Smoothly move currentToolPos towards targetToolPos
-        // 0.5 factor gives a snappy response (closes 50% of the gap per frame)
         this.currentToolPos.lerp(this.targetToolPos, 0.1);
         this.toolGroup.position.copy(this.currentToolPos);
-
         if (this.controls) this.controls.update();
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);
@@ -126,7 +141,6 @@ export class GCodeViewer {
         if (!this.container || this.container.clientWidth === 0) return;
         const w = this.container.clientWidth;
         const h = this.container.clientHeight;
-
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
@@ -135,11 +149,11 @@ export class GCodeViewer {
     // --- Text Helpers ---
 
     createTextSprite(text) {
-        // Sprites for Grid Labels (Face Camera)
         const fontsize = 18;
         const canvas = document.createElement('canvas');
-        const width = text.length * (fontsize * 0.6) + 20;
-        const height = fontsize + 10;
+        // Add extra padding to prevent clipping
+        const width = (text.length * (fontsize * 0.6)) + 40;
+        const height = fontsize + 20;
 
         canvas.width = width;
         canvas.height = height;
@@ -156,13 +170,13 @@ export class GCodeViewer {
 
         const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
         const sprite = new THREE.Sprite(mat);
+        // Scale down sprite in 3D space
         const scale = 0.25;
         sprite.scale.set(width * scale, height * scale, 1);
         return sprite;
     }
 
     createTextPlane(text) {
-        // Meshes for Job Stats (Flat on grid/wall)
         const fontsize = 60;
         const border = 10;
         const textWidthEstimate = text.length * (fontsize * 0.6) + (border * 4);
@@ -197,47 +211,96 @@ export class GCodeViewer {
         return new THREE.Mesh(geometry, material);
     }
 
-    // --- Custom Grid Logic ---
+    // --- Grid Logic (Scaled) ---
 
     renderCoolGrid() {
         this.gridGroup.clear();
         this.labelsGroup.clear();
 
         const { xmin, xmax, ymin, ymax } = this.gridBounds;
-        const step = 10;
+
+        const isDisplayInch = this.displayUnits === 'inch';
+        const isNativeInch = this.nativeUnits === 'inch';
+
+        // 1. Calculate Conversion Factor (Scene Units per Display Unit)
+        // If Native is MM, 1 Inch Display = 25.4 Scene Units
+        // If Native is Inch, 1 MM Display = 1/25.4 Scene Units
+        let unitsPerDisplayUnit = 1;
+        if (!isNativeInch && isDisplayInch) {
+            unitsPerDisplayUnit = 25.4; // Displaying Inch grid on MM geometry
+        } else if (isNativeInch && !isDisplayInch) {
+            unitsPerDisplayUnit = 1 / 25.4; // Displaying MM grid on Inch geometry
+        }
+
+        // 2. Define Grid Density (In Display Units)
+        const stepDisplay = isDisplayInch ? 0.25 : 10;
+        const majorDisplay = isDisplayInch ? 1.0 : 50;
+
+        // 3. Convert to Scene Coordinate Deltas
+        const stepScene = stepDisplay * unitsPerDisplayUnit;
+        const majorScene = majorDisplay * unitsPerDisplayUnit;
+
+        const epsilon = 0.0001;
+
+        // Helper to check for major lines using Scene Coords
+        const isMajor = (val) => {
+            // Normalize value relative to major interval to avoid floating point modulo issues near zero
+            const rem = Math.abs(val / majorScene);
+            const distToInt = Math.abs(rem - Math.round(rem));
+            return distToInt < epsilon;
+        };
 
         const vertices = [];
         const colors = [];
         const cMajor = new THREE.Color(COLORS.gridMajor);
         const cMinor = new THREE.Color(COLORS.gridMinor);
 
-        const xStart = Math.floor(xmin / step) * step;
-        const xEnd = Math.ceil(xmax / step) * step;
-        const yStart = Math.floor(ymin / step) * step;
-        const yEnd = Math.ceil(ymax / step) * step;
+        // Align start to the grid
+        const xStart = Math.floor(xmin / stepScene) * stepScene;
+        const xEnd = Math.ceil(xmax / stepScene) * stepScene;
+        const yStart = Math.floor(ymin / stepScene) * stepScene;
+        const yEnd = Math.ceil(ymax / stepScene) * stepScene;
 
-        for (let x = xStart; x <= xEnd; x += step) {
+        // Draw Vertical Lines (X moving)
+        for (let x = xStart; x <= xEnd + epsilon; x += stepScene) {
              vertices.push(x, ymin, 0, x, ymax, 0);
-             const isMajor = (x % 100 === 0);
-             const c = isMajor ? cMajor : cMinor;
+             const major = isMajor(x);
+             const c = major ? cMajor : cMinor;
              colors.push(c.r, c.g, c.b, c.r, c.g, c.b);
 
-             if (isMajor) {
-                 const s = this.createTextSprite(`${x}`);
-                 s.position.set(x, ymin - 8, 0);
+             if (major) {
+                 // Label Value: Convert Scene Coord back to Display Unit
+                 const val = x / unitsPerDisplayUnit;
+                 // Fix rounding errors (e.g. 0.99999 -> 1)
+                 const labelVal = Math.round(val * 1000) / 1000;
+                 const labelText = isDisplayInch ? labelVal.toFixed(0) : labelVal.toString();
+
+                 const s = this.createTextSprite(labelText);
+                 // Label offset in Scene Units
+                 const yOffset = isDisplayInch ? (0.5 * unitsPerDisplayUnit) : (8 * unitsPerDisplayUnit);
+
+                 // Cap offset to reasonable visual limits so labels don't fly away in zoomed mm views
+                 const visualOffset = Math.min(yOffset, (ymax - ymin) * 0.1);
+
+                 s.position.set(x, ymin - (isDisplayInch && !isNativeInch ? 15 : 8), 0); // Fixed offset for consistency
                  this.labelsGroup.add(s);
              }
         }
 
-        for (let y = yStart; y <= yEnd; y += step) {
+        // Draw Horizontal Lines (Y moving)
+        for (let y = yStart; y <= yEnd + epsilon; y += stepScene) {
              vertices.push(xmin, y, 0, xmax, y, 0);
-             const isMajor = (y % 100 === 0);
-             const c = isMajor ? cMajor : cMinor;
+             const major = isMajor(y);
+             const c = major ? cMajor : cMinor;
              colors.push(c.r, c.g, c.b, c.r, c.g, c.b);
 
-             if (isMajor) {
-                 const s = this.createTextSprite(`${y}`);
-                 s.position.set(xmin - 10, y, 0);
+             if (major) {
+                 const val = y / unitsPerDisplayUnit;
+                 const labelVal = Math.round(val * 1000) / 1000;
+                 const labelText = isDisplayInch ? labelVal.toFixed(0) : labelVal.toString();
+
+                 const s = this.createTextSprite(labelText);
+                 s.position.set(xmin - (isDisplayInch && !isNativeInch ? 15 : 10), y, 0);
                  this.labelsGroup.add(s);
              }
         }
@@ -249,6 +312,7 @@ export class GCodeViewer {
         const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent:true, opacity:0.4 });
         this.gridGroup.add(new THREE.LineSegments(geometry, material));
 
+        // Draw Axes (X/Y)
         if (xStart <= 0 && xEnd >= 0) {
             const yAxisGeo = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, ymin, 0.05), new THREE.Vector3(0, ymax, 0.05)
@@ -263,8 +327,6 @@ export class GCodeViewer {
             this.gridGroup.add(new THREE.LineSegments(xAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisX, linewidth: 2 })));
         }
     }
-
-    // --- Machine & WCS ---
 
     setMachineLimits(x, y, z) {
         if (x && y && z) {
@@ -322,44 +384,28 @@ export class GCodeViewer {
         this.machineGroup.add(homeSphere);
     }
 
-    // --- TOOL VISUALIZATION ---
-
     renderTool() {
         this.toolGroup.clear();
-
-        // Single Cone (V-Bit style)
         const coneHeight = 15;
         const coneRadius = 5;
         const coneGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
-
         const coneMat = new THREE.MeshStandardMaterial({
             color: COLORS.tool,
             roughness: 0.4,
             metalness: 0.6
         });
         const cone = new THREE.Mesh(coneGeo, coneMat);
-
-        // Orient the cone so the TIP is at (0,0,0) and it expands upwards (+Z)
-        // 1. THREE.ConeGeometry default: Points +Y. Center at (0,0,0). Tip at (0, H/2, 0). Base at (0, -H/2, 0).
-        // 2. Rotate X -90deg: Tip becomes -Z. Base becomes +Z.
         cone.geometry.rotateX(-Math.PI / 2);
-        // 3. Now Tip is at -Height/2. Translate Z +Height/2 to bring Tip to 0.
         cone.geometry.translate(0, 0, coneHeight / 2);
-
         this.toolGroup.add(cone);
-
         this.updateToolPosition(0,0,0);
     }
 
-    // Updates the TARGET position. The animate loop handles smooth interpolation.
     updateToolPosition(x, y, z) {
         if(x !== undefined && y !== undefined && z !== undefined) {
             this.targetToolPos.set(x, y, z);
         }
     }
-
-
-    // --- Parsing ---
 
     processGCodeString(gcode) {
         if (this.loadingOverlay) this.loadingOverlay.classList.remove('hidden');
@@ -379,7 +425,20 @@ export class GCodeViewer {
         worker.onmessage = (msg) => {
             const payload = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
             if (payload.linePoints) {
+                // Determine Native Units from File
+                if (payload.inch) {
+                    this.nativeUnits = 'inch';
+                    // NOTE: We do NOT auto-switch display units here.
+                } else {
+                    this.nativeUnits = 'mm';
+                    // NOTE: We do NOT auto-switch display units here.
+                }
+
                 this.renderLines(payload.linePoints);
+
+                // Force grid update to respect current display units but with new native scaling
+                this.renderCoolGrid();
+
                 if (this.loadingOverlay) this.loadingOverlay.classList.add('hidden');
                 worker.terminate();
             }
@@ -426,8 +485,6 @@ export class GCodeViewer {
         }
     }
 
-    // --- Job Stats (Meshes) ---
-
     renderJobStats(box) {
         this.statsGroup.clear();
         if(box.isEmpty()) return;
@@ -447,19 +504,31 @@ export class GCodeViewer {
 
         const margin = 5;
 
-        // 2. X Dimension (Flat on Floor)
-        const xMesh = this.createTextPlane(`X: ${size.x.toFixed(1)}mm`);
+        // Convert Dimensions for Display
+        const isDisplayInch = this.displayUnits === 'inch';
+        const isNativeInch = this.nativeUnits === 'inch';
+        let unitsPerDisplayUnit = 1;
+        if (!isNativeInch && isDisplayInch) unitsPerDisplayUnit = 25.4;
+        else if (isNativeInch && !isDisplayInch) unitsPerDisplayUnit = 1 / 25.4;
+
+        const dimX = size.x / unitsPerDisplayUnit;
+        const dimY = size.y / unitsPerDisplayUnit;
+        const dimZ = size.z / unitsPerDisplayUnit;
+        const unitLabel = isDisplayInch ? 'in' : 'mm';
+
+        // 2. X Dimension
+        const xMesh = this.createTextPlane(`X: ${dimX.toFixed(2)}${unitLabel}`);
         xMesh.position.set(center.x, box.min.y - margin, box.min.z);
         this.statsGroup.add(xMesh);
 
-        // 3. Y Dimension (Flat on Floor, Rotated)
-        const yMesh = this.createTextPlane(`Y: ${size.y.toFixed(1)}mm`);
+        // 3. Y Dimension
+        const yMesh = this.createTextPlane(`Y: ${dimY.toFixed(2)}${unitLabel}`);
         yMesh.position.set(box.min.x - margin, center.y, box.min.z);
         yMesh.rotation.z = Math.PI / 2;
         this.statsGroup.add(yMesh);
 
-        // 4. Z Dimension (Vertical Wall)
-        const zMesh = this.createTextPlane(`Z: ${size.z.toFixed(1)}mm`);
+        // 4. Z Dimension
+        const zMesh = this.createTextPlane(`Z: ${dimZ.toFixed(2)}${unitLabel}`);
         zMesh.position.set(box.min.x, box.max.y + margin, center.z);
         zMesh.rotation.x = Math.PI / 2;
         this.statsGroup.add(zMesh);
@@ -481,7 +550,6 @@ export class GCodeViewer {
     }
 
     setCameraView(view) {
-        // Calculate appropriate distance based on job size or default
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
         let center = new THREE.Vector3(0,0,0);
         let dist = 200;
@@ -492,30 +560,26 @@ export class GCodeViewer {
             const maxDim = Math.max(size.x, size.y, size.z || 1);
             dist = maxDim * 2;
         }
-
-        // Keep target at center of job (or 0,0,0)
         this.controls.target.copy(center);
 
-        // Position camera
         switch (view) {
             case 'Top':
                 this.camera.position.set(center.x, center.y, center.z + dist);
-                this.camera.up.set(0, 1, 0); // Y is up in 2D top view style
+                this.camera.up.set(0, 1, 0);
                 break;
             case 'Front':
                 this.camera.position.set(center.x, center.y - dist, center.z);
-                this.camera.up.set(0, 0, 1); // Z is up
+                this.camera.up.set(0, 0, 1);
                 break;
             case 'Left':
                 this.camera.position.set(center.x - dist, center.y, center.z);
-                this.camera.up.set(0, 0, 1); // Z is up
+                this.camera.up.set(0, 0, 1);
                 break;
             case 'Iso':
                 this.camera.position.set(center.x + dist, center.y - dist, center.z + dist);
-                this.camera.up.set(0, 0, 1); // Z is up
+                this.camera.up.set(0, 0, 1);
                 break;
         }
-
         this.controls.update();
     }
 

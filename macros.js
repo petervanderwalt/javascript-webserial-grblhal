@@ -1,4 +1,4 @@
-export class MacroHandler {
+ export class MacroHandler {
     constructor(ws, term) {
         this.ws = ws;
         this.term = term;

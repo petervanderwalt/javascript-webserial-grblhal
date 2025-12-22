@@ -5,6 +5,8 @@ export class SurfacingHandler {
         this.term = term;
         this.store = store;
 
+        this.units = 'mm'; // Default to mm
+
         this.initUI();
     }
 
@@ -16,6 +18,59 @@ export class SurfacingHandler {
         inputs.forEach(input => {
             input.addEventListener('change', () => this.saveSettings());
         });
+
+        // Listen for Unit Changes from global event
+        window.addEventListener('viewer-units-changed', (e) => {
+            if (e.detail && e.detail.units) {
+                this.setUnits(e.detail.units);
+            }
+        });
+    }
+
+    setUnits(newUnits) {
+        if (this.units === newUnits) return;
+
+        // Determine conversion factor
+        // If switching TO mm: inches * 25.4
+        // If switching TO inch: mm / 25.4
+        const toMM = (newUnits === 'mm');
+        const factor = toMM ? 25.4 : (1 / 25.4);
+        const precision = toMM ? 2 : 4; // 2 decimals for mm, 4 for inches
+
+        // Fields that represent linear dimensions/speeds
+        const fields = [
+            'surf-tool',
+            'surf-feed',
+            'surf-x',
+            'surf-y',
+            'surf-z-step',
+            'surf-z-final',
+            'surf-z-safe'
+        ];
+
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const currentVal = parseFloat(el.value) || 0;
+                const newVal = currentVal * factor;
+                el.value = Number(newVal.toFixed(precision)); // Remove trailing zeros
+            }
+        });
+
+        // Update Labels (Search and Replace text in labels)
+        const labels = document.querySelectorAll('#surfacing-view label');
+        labels.forEach(lbl => {
+            if (toMM) {
+                lbl.innerHTML = lbl.innerHTML.replace('(in)', '(mm)');
+                lbl.innerHTML = lbl.innerHTML.replace('(in/min)', '(mm/min)');
+            } else {
+                lbl.innerHTML = lbl.innerHTML.replace('(mm)', '(in)');
+                lbl.innerHTML = lbl.innerHTML.replace('(mm/min)', '(in/min)');
+            }
+        });
+
+        this.units = newUnits;
+        this.saveSettings(); // Persist converted values to store
     }
 
     saveSettings() {
@@ -78,7 +133,8 @@ export class SurfacingHandler {
         const s = this.store.data.surfacing;
 
         // --- VALIDATION ---
-        if (s.toolDiameter <= 0.1) { alert("Tool Diameter must be greater than 0.1mm"); return null; }
+        const minDim = this.units === 'mm' ? 0.1 : 0.004;
+        if (s.toolDiameter <= minDim) { alert(`Tool Diameter must be greater than ${minDim}`); return null; }
         if (s.stepover <= 1) { alert("Stepover must be greater than 1%"); return null; }
         if (s.depthPerPass <= 0) { alert("Depth per pass must be greater than 0"); return null; }
         if (s.width <= 0 || s.height <= 0) { alert("Dimensions must be greater than 0"); return null; }
@@ -87,25 +143,32 @@ export class SurfacingHandler {
         let gcode = [];
         const comment = (msg) => gcode.push(`; ${msg}`);
         const cmd = (c) => gcode.push(c);
+        const unitLabel = this.units === 'mm' ? 'mm' : 'in';
 
         // --- Header ---
         const d = new Date();
         comment(`Surfacing Job Generated: ${d.toLocaleTimeString()}`);
-        comment(`Area: ${s.width}x${s.height}mm, Depth: ${s.finalDepth}mm`);
-        comment(`Tool: ${s.toolDiameter}mm, Stepover: ${s.stepover}%`);
+        comment(`Area: ${s.width}x${s.height}${unitLabel}, Depth: ${s.finalDepth}${unitLabel}`);
+        comment(`Tool: ${s.toolDiameter}${unitLabel}, Stepover: ${s.stepover}%`);
         comment(`Direction: ${s.direction === 'X' ? 'Along X' : 'Along Y'}`);
+        comment(`Units: ${this.units.toUpperCase()}`);
 
-        cmd('G21 G90 G17');
+        // Set G21 (mm) or G20 (inch) based on current state
+        const unitCmd = this.units === 'mm' ? 'G21' : 'G20';
+        cmd(`${unitCmd} G90 G17`);
         cmd('G54');
 
         if(s.rpm > 0) cmd(`M3 S${s.rpm}`);
         if(s.useCoolant) cmd('M8');
 
-        cmd(`G0 Z${s.clearance}`);
+        // Fmt helper for coordinate precision
+        const fmt = (n) => n.toFixed(this.units === 'mm' ? 3 : 4);
+
+        cmd(`G0 Z${fmt(s.clearance)}`);
         cmd('G0 X0 Y0');
 
         // --- Calculations ---
-        const stepoverMm = s.toolDiameter * (s.stepover / 100.0);
+        const stepoverVal = s.toolDiameter * (s.stepover / 100.0);
 
         const isXDir = (s.direction === 'X');
 
@@ -133,13 +196,13 @@ export class SurfacingHandler {
             // Clamp to target
             if(currentZ < targetZ) currentZ = targetZ;
 
-            comment(`--- Pass Z: ${currentZ.toFixed(3)} ---`);
+            comment(`--- Pass Z: ${fmt(currentZ)} ---`);
 
             // 1. Move to Start (0,0)
-            if(isXDir) cmd(`G0 X${minMain.toFixed(3)} Y${minCross.toFixed(3)}`);
-            else       cmd(`G0 X${minCross.toFixed(3)} Y${minMain.toFixed(3)}`);
+            if(isXDir) cmd(`G0 X${fmt(minMain)} Y${fmt(minCross)}`);
+            else       cmd(`G0 X${fmt(minCross)} Y${fmt(minMain)}`);
 
-            cmd(`G1 Z${currentZ.toFixed(3)} F${s.feed / 2}`);
+            cmd(`G1 Z${fmt(currentZ)} F${s.feed / 2}`);
 
             // 2. Zig Zag Routine
             let posCross = minCross;
@@ -147,25 +210,25 @@ export class SurfacingHandler {
             let xySafety = 0;
 
             // Loop until cross position reaches the end dimension
-            while(posCross <= maxCross + 0.001) {
+            while(posCross <= maxCross + 0.0001) {
                 xySafety++;
                 if(xySafety > 10000) { alert("XY Loop safety limit reached."); break; }
 
                 // Cut Main Axis
                 const endMain = goingForward ? maxMain : minMain;
-                if(isXDir) cmd(`G1 X${endMain.toFixed(3)} F${s.feed}`);
-                else       cmd(`G1 Y${endMain.toFixed(3)} F${s.feed}`);
+                if(isXDir) cmd(`G1 X${fmt(endMain)} F${s.feed}`);
+                else       cmd(`G1 Y${fmt(endMain)} F${s.feed}`);
 
                 // Check done
-                if(posCross >= maxCross - 0.001) break;
+                if(posCross >= maxCross - 0.0001) break;
 
                 // Step Over
-                posCross += stepoverMm;
+                posCross += stepoverVal;
                 if(posCross > maxCross) posCross = maxCross; // Clamp last step
 
                 // Move Cross Axis
-                if(isXDir) cmd(`G1 Y${posCross.toFixed(3)}`);
-                else       cmd(`G1 X${posCross.toFixed(3)}`);
+                if(isXDir) cmd(`G1 Y${fmt(posCross)}`);
+                else       cmd(`G1 X${fmt(posCross)}`);
 
                 goingForward = !goingForward;
             }
@@ -173,17 +236,17 @@ export class SurfacingHandler {
             // 3. Optional Framing Pass
             if (s.useFraming) {
                 comment("Framing Pass");
-                cmd(`G0 Z${s.clearance}`);
+                cmd(`G0 Z${fmt(s.clearance)}`);
                 cmd(`G0 X0 Y0`);
-                cmd(`G1 Z${currentZ.toFixed(3)} F${s.feed / 2}`);
+                cmd(`G1 Z${fmt(currentZ)} F${s.feed / 2}`);
 
-                cmd(`G1 X${s.width.toFixed(3)} Y0 F${s.feed}`);
-                cmd(`G1 X${s.width.toFixed(3)} Y${s.height.toFixed(3)}`);
-                cmd(`G1 X0 Y${s.height.toFixed(3)}`);
+                cmd(`G1 X${fmt(s.width)} Y0 F${s.feed}`);
+                cmd(`G1 X${fmt(s.width)} Y${fmt(s.height)}`);
+                cmd(`G1 X0 Y${fmt(s.height)}`);
                 cmd(`G1 X0 Y0`);
             }
 
-            cmd(`G0 Z${s.clearance}`);
+            cmd(`G0 Z${fmt(s.clearance)}`);
 
             // Break if we just finished the final depth pass
             if (currentZ <= targetZ + 0.0001) break;

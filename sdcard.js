@@ -36,29 +36,22 @@ constructor(ws, term, viewer, callbacks) {
    processLine(line) {
      // 1. Download Mode
      if (this.isDownloading) {
-         // --- NEW LOGIC ---
-         // The 'ok' signals the end of the stream. When we see it, and we have
-         // already received data, we can finalize the download immediately.
          if (line.trim() === 'ok' && this.downloadBuffer.length > 0) {
-             if (this.downloadTimeout) clearTimeout(this.downloadTimeout); // Clean up the timer
-             this._finishDownload(); // Finalize immediately
-             return true; // Consume the 'ok' line and stop processing
+             if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
+             this._finishDownload();
+             return true;
          }
-         // --- END NEW LOGIC ---
 
-         // This handles an edge case where an 'ok' might be the very first response.
          if (line === 'ok' && this.downloadBuffer.length === 0) return true;
 
-         // Add the current line to our buffer
          this.downloadBuffer += line + "\n";
          this.downloadLineCount++;
 
-         // Reset the timeout. It now acts as a safety net in case the 'ok' never arrives.
          if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
          this.downloadTimeout = setTimeout(() => {
              console.warn("Download finished due to timeout. The 'ok' confirmation was not received.");
              this._finishDownload();
-         }, 1000); // Increased timeout to 1 sec for safety.
+         }, 1000);
 
          if (this.downloadLineCount % 100 === 0) {
              this.term.writeln(`\x1b[33mDownloading... (${this.downloadLineCount} lines)\x1b[0m`);
@@ -82,7 +75,25 @@ constructor(ws, term, viewer, callbacks) {
   // --- Actions ---
 
   refresh() {
+      // Clean Body
       document.querySelector('#sd-table tbody').innerHTML = '';
+
+      const table = document.getElementById('sd-table');
+      // FORCE table to fit screen: Remove min-width and add table-fixed
+      table.classList.remove('min-w-[500px]');
+      table.classList.add('w-full', 'table-fixed');
+
+      // Configure Headers for Fixed Layout
+      const headers = document.querySelectorAll('#sd-table thead th');
+      if (headers.length >= 3) {
+          // Header 0 (Filename): Auto width
+          headers[0].className = 'px-4 py-3 font-bold text-left w-auto';
+          // Header 1 (Size): Hidden on mobile
+          headers[1].className = 'hidden md:table-cell px-6 py-4 font-bold w-32';
+          // Header 2 (Actions): Fixed width on mobile (120px) to ensure buttons fit
+          headers[2].className = 'px-2 py-3 font-bold text-right w-[120px] md:w-auto';
+      }
+
       document.getElementById('sd-current-path').textContent = this.path;
       this.fileCount = 0;
       document.getElementById('sd-badge').classList.add('hidden');
@@ -106,7 +117,6 @@ constructor(ws, term, viewer, callbacks) {
       if (confirm(`Delete ${fileName}?`)) {
           const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
           this.ws.sendCommand(`$FD=${fullPath}`);
-          // Small delay to allow delete to process
           setTimeout(() => this.refresh(), 1000);
       }
   }
@@ -126,14 +136,9 @@ constructor(ws, term, viewer, callbacks) {
 
   runFile(fileName) {
       const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
-      // Usually running a file directly from SD on Grbl is done via $F=
       this.ws.sendCommand(`$F=${fullPath}`);
   }
 
-  /**
-   * Executes a specific G65 Macro
-   * @param {string} pNum - The macro number (e.g., "100" for P100.macro)
-   */
   runMacro(pNum) {
       this.ws.sendCommand(`G65 P${pNum}`);
       this.term.writeln(`\x1b[36m> Executing Macro: P${pNum}\x1b[0m`);
@@ -160,31 +165,54 @@ constructor(ws, term, viewer, callbacks) {
       badge.textContent = this.fileCount;
       badge.classList.remove('hidden');
 
-      // Check for Macro Pattern (P<digits>.macro)
       const macroMatch = name.match(/^P(\d+)\.macro$/i);
       let runActionBtn = '';
 
-      // Fixed width buttons for alignment
       if (macroMatch) {
           const pNum = macroMatch[1];
-          // Grey button for Macros, Width 36
-          runActionBtn = `<button class="btn-ghost w-36 flex items-center justify-end gap-2 text-grey-dark hover:text-black" onclick="window.sdHandler.runMacro('${pNum}')" title="Run macro"><i class="bi bi-gear-wide-connected"></i> Run macro</button>`;
+          runActionBtn = `
+            <button class="btn-ghost p-1.5 md:px-3 md:w-36 flex items-center justify-center md:justify-end gap-2 text-grey-dark hover:text-black" onclick="window.sdHandler.runMacro('${pNum}')" title="Run macro">
+                <i class="bi bi-gear-wide-connected text-lg md:text-base"></i>
+                <span class="hidden md:inline">Run macro</span>
+            </button>`;
       } else {
-          // Green button for normal G-code, Width 36
-          runActionBtn = `<button class="btn-ghost w-36 flex items-center justify-end gap-2 text-green-600 hover:text-green-800" onclick="window.sdHandler.runFile('${name}')" title="Run"><i class="bi bi-play-fill"></i> Run File</button>`;
+          runActionBtn = `
+            <button class="btn-ghost p-1.5 md:px-3 md:w-36 flex items-center justify-center md:justify-end gap-2 text-green-600 hover:text-green-800" onclick="window.sdHandler.runFile('${name}')" title="Run">
+                <i class="bi bi-play-fill text-xl md:text-base"></i>
+                <span class="hidden md:inline">Run File</span>
+            </button>`;
       }
 
-      // Create HTML Row
+      // Changes:
+      // 1. Table is table-fixed (from refresh())
+      // 2. Filename cell: truncate (ellipsis), w-auto (takes remaining space)
+      // 3. Actions cell: w-[120px] (fixed), text-right
       const row = `
-          <tr class="hover:bg-grey-light/30 border-b border-grey-light last:border-b-0 transition-colors">
-              <td class="px-6 py-3 font-medium text-grey-dark flex items-center gap-2">
-                  <i class="bi bi-file-earmark-code text-grey"></i>${name}
+          <tr class="hover:bg-grey-light/30 border-b border-grey-light last:border-b-0 transition-colors group">
+              <td class="px-4 py-2 md:px-6 md:py-3 font-medium text-grey-dark align-middle truncate overflow-hidden">
+                  <div class="flex flex-col justify-center">
+                      <div class="flex items-center gap-2 truncate">
+                          <i class="bi bi-file-earmark-code text-grey shrink-0"></i>
+                          <span class="truncate" title="${name}">${name}</span>
+                      </div>
+                      <span class="text-[10px] text-grey/80 font-mono mt-0.5 md:hidden ml-6">${sizeDisplay}</span>
+                  </div>
               </td>
-              <td class="px-6 py-3 text-grey font-mono text-xs">${sizeDisplay}</td>
-              <td class="px-6 py-3 text-right">
-                  <div class="flex justify-end gap-2">
-                      <button class="btn-ghost w-24 flex items-center justify-end gap-2" onclick="window.sdHandler.delete('${name}')" title="Delete"><i class="bi bi-trash"></i> Delete</button>
-                      <button class="btn-ghost w-24 flex items-center justify-end gap-2" onclick="window.sdHandler.preview('${name}')" title="Preview"><i class="bi bi-eye"></i> Preview</button>
+
+              <td class="hidden md:table-cell px-6 py-3 text-grey font-mono text-xs whitespace-nowrap w-32">${sizeDisplay}</td>
+
+              <td class="px-1 md:px-6 py-2 md:py-3 text-right align-middle w-[120px] md:w-auto">
+                  <div class="flex justify-end gap-0 md:gap-2">
+                      <button class="btn-ghost p-1.5 md:w-24 flex items-center justify-center md:justify-end gap-2 text-grey-dark hover:text-red-600" onclick="window.sdHandler.delete('${name}')" title="Delete">
+                        <i class="bi bi-trash text-lg md:text-base"></i>
+                        <span class="hidden md:inline">Delete</span>
+                      </button>
+
+                      <button class="btn-ghost p-1.5 md:w-24 flex items-center justify-center md:justify-end gap-2 text-grey-dark" onclick="window.sdHandler.preview('${name}')" title="Preview">
+                        <i class="bi bi-eye text-lg md:text-base"></i>
+                        <span class="hidden md:inline">Preview</span>
+                      </button>
+
                       ${runActionBtn}
                   </div>
               </td>
@@ -195,13 +223,10 @@ constructor(ws, term, viewer, callbacks) {
 
   _formatBytes(bytes, decimals = 2) {
       if (!+bytes) return '0 Bytes';
-
       const k = 1024;
       const dm = decimals < 0 ? 0 : decimals;
       const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-
       const i = Math.floor(Math.log(bytes) / Math.log(k));
-
       return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
   }
 
@@ -211,56 +236,47 @@ constructor(ws, term, viewer, callbacks) {
       const tbody = document.querySelector('#sd-table tbody');
 
       const row = document.createElement('tr');
-      row.className = "hover:bg-grey-light/30 border-b border-grey-light cursor-pointer transition-colors";
+      row.className = "hover:bg-grey-light/30 border-b border-grey-light cursor-pointer transition-colors group";
       row.onclick = (e) => {
-          // Prevent triggering when clicking buttons
-          if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'I') {
+          if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'I' && e.target.tagName !== 'SPAN') {
               this.enterDir(name);
           }
       };
 
       row.innerHTML = `
-          <td class="px-6 py-3 font-bold text-grey-dark flex items-center gap-2">
-              <i class="bi bi-folder-fill text-primary/70 mr-2"></i>${name}
+          <td class="px-4 py-3 md:px-6 md:py-3 font-bold text-grey-dark align-middle truncate overflow-hidden">
+              <div class="flex items-center gap-2 truncate">
+                  <i class="bi bi-folder-fill text-primary/70 shrink-0"></i>
+                  <span class="truncate" title="${name}">${name}</span>
+              </div>
           </td>
-          <td class="px-6 py-3 text-grey text-xs">-</td>
-          <td class="px-6 py-3 text-right">
+
+          <td class="hidden md:table-cell px-6 py-3 text-grey text-xs w-32">-</td>
+
+          <td class="px-2 md:px-6 py-3 text-right align-middle w-[120px] md:w-auto">
               <div class="flex justify-end">
                   <button class="btn btn-secondary text-xs py-1 px-3" onclick="window.sdHandler.enterDir('${name}')">Open</button>
               </div>
           </td>`;
 
-      // Insert directories at the top
       tbody.insertBefore(row, tbody.firstChild);
   }
 
   _finishDownload() {
-    console.log("finishDownload")
       this.isDownloading = false;
       if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
 
-      // Strip Grbl response codes from file content if necessary (usually they are clean or need simple cleaning)
-      // Here assuming raw G-code + 'ok' lines occasionally mixed in stream if not careful,
-      // but $F< dumps pure content usually.
-      // Simple cleanup: remove <...> status reports if they snuck in
-
       const cleanContent = this.downloadBuffer.replace(/<.*>/g, '').trim();
       const lines = cleanContent.split('\n').filter(l => l.trim().length > 0 && l.trim() !== 'ok');
-
 
       if (lines.length === 0) {
           this.term.writeln(`\x1b[31mDownload Failed: No data.\x1b[0m`);
       } else {
           this.term.writeln(`\x1b[32mDownloaded ${lines.length} lines.\x1b[0m`);
-
-          // Invoke callback to update main app state
           if (this.callbacks.onDownloadComplete) {
               this.callbacks.onDownloadComplete(cleanContent);
           }
-
-          // Update 3D viewer
           this.viewer.processGCodeString(cleanContent);
-
           if (this.callbacks.switchToViewer) {
               this.callbacks.switchToViewer();
           }
@@ -271,19 +287,13 @@ constructor(ws, term, viewer, callbacks) {
 
   async startUpload(file) {
       if (!file) return;
-
-      // Sanitize filename
       const name = file.name.replace(/\s/g, '_');
-
       if (!confirm(`Upload ${name} (${this._formatBytes(file.size)})?`)) return;
 
       const ab = await file.arrayBuffer();
       const bytes = new Uint8Array(ab);
 
-      // Pause status polling
       if (this.callbacks.pausePolling) this.callbacks.pausePolling();
-
-      // Hijack serial input
       this.ws.setRawHandler((data) => this._handleYmodemInput(data));
 
       this.ymodem = {
@@ -296,12 +306,10 @@ constructor(ws, term, viewer, callbacks) {
           offset: 0
       };
 
-      // UI Updates
       document.getElementById('upload-progress-container').style.display = 'block';
       document.getElementById('upload-progress-bar').style.width = '0%';
       this.term.writeln('\x1b[35m[YMODEM] Start...\x1b[0m');
 
-      // Initiate upload command
       const fp = this.path === '/' ? name : `${this.path}/${name}`;
       await this.ws.writeRaw(new TextEncoder().encode(`$FY=${fp}\n`));
   }
@@ -314,24 +322,18 @@ constructor(ws, term, viewer, callbacks) {
 
   async _processYmodemByte(b) {
       const y = this.ymodem;
-
       if (y.state === 1) {
-          // Wait for 'C' to start filename packet
           if (b === C_CHAR) {
               await this._sendPacket0();
               y.state = 2;
           }
-      }
-      else if (y.state === 2) {
-          // Wait for ACK then 'C' for data
+      } else if (y.state === 2) {
           if (b === C_CHAR) {
               y.packetNum = 1;
               await this._sendNextDataPacket();
               y.state = 3;
           }
-      }
-      else if (y.state === 3) {
-          // Sending Data
+      } else if (y.state === 3) {
           if (b === ACK) {
               y.offset += 1024;
               const pct = Math.round((y.offset / y.fileSize) * 100);
@@ -346,28 +348,22 @@ constructor(ws, term, viewer, callbacks) {
                   y.state = 4;
               }
           } else if (b === NAK) {
-              await this._sendNextDataPacket(); // Retry
+              await this._sendNextDataPacket();
           } else if (b === CAN) {
               this._abortYmodem('Cancelled');
           }
-      }
-      else if (y.state === 4) {
-          // EOT Handshake
+      } else if (y.state === 4) {
           if (b === NAK) {
               await this.ws.writeRaw(new Uint8Array([EOT]));
           } else if (b === ACK) {
               y.state = 5;
           }
-      }
-      else if (y.state === 5) {
-          // Wait for 'C' to send null packet (end)
+      } else if (y.state === 5) {
           if (b === C_CHAR) {
               await this._sendNullPacket();
               y.state = 6;
           }
-      }
-      else if (y.state === 6) {
-          // Final ACK
+      } else if (y.state === 6) {
           if (b === ACK) {
               this._finishYmodem();
           }
@@ -380,7 +376,6 @@ constructor(ws, term, viewer, callbacks) {
       const packet = new Uint8Array(128);
       packet.fill(0);
       packet.set(nameEnc, 0);
-      // Null terminator implicitly at packet[nameEnc.length] because of fill(0)
       packet.set(sizeEnc, nameEnc.length + 1);
       await this._sendPacket(0, packet);
   }
@@ -388,7 +383,7 @@ constructor(ws, term, viewer, callbacks) {
   async _sendNextDataPacket() {
       const remaining = this.ymodem.fileSize - this.ymodem.offset;
       const packet = new Uint8Array(1024);
-      packet.fill(0x1A); // padding
+      packet.fill(0x1A);
       const chunk = this.ymodem.fileBytes.subarray(this.ymodem.offset, this.ymodem.offset + Math.min(remaining, 1024));
       packet.set(chunk, 0);
       await this._sendPacket(this.ymodem.packetNum & 0xFF, packet);
@@ -401,20 +396,16 @@ constructor(ws, term, viewer, callbacks) {
   }
 
   async _sendPacket(seq, data) {
-      // YMODEM packet structure: [STX/SOH] [SEQ] [~SEQ] [DATA] [CRC16]
       const header = new Uint8Array(3);
       header[0] = data.length > 128 ? STX : SOH;
       header[1] = seq & 0xFF;
       header[2] = (~seq) & 0xFF;
-
       const crc = this._crc16(data);
       const footer = new Uint8Array([(crc >> 8) & 0xFF, crc & 0xFF]);
-
       const fullPacket = new Uint8Array(3 + data.length + 2);
       fullPacket.set(header, 0);
       fullPacket.set(data, 3);
       fullPacket.set(footer, 3 + data.length);
-
       await this.ws.writeRaw(fullPacket);
   }
 
@@ -438,7 +429,6 @@ constructor(ws, term, viewer, callbacks) {
       this.ws.setRawHandler(null);
       this.term.writeln('\x1b[32m[YMODEM] Done.\x1b[0m');
       document.getElementById('upload-progress-container').classList.add('hidden');
-
       if (this.callbacks.resumePolling) this.callbacks.resumePolling();
       setTimeout(() => this.refresh(), 1000);
   }
@@ -448,8 +438,6 @@ constructor(ws, term, viewer, callbacks) {
       this.ws.setRawHandler(null);
       this.term.writeln(`\x1b[31m[YMODEM] Error: ${reason}\x1b[0m`);
       document.getElementById('upload-progress-container').classList.add('hidden');
-
       if (this.callbacks.resumePolling) this.callbacks.resumePolling();
   }
-
 }
