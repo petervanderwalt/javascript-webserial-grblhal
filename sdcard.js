@@ -5,7 +5,7 @@ constructor(ws, term, viewer, callbacks) {
   this.term = term;
   this.viewer = viewer;
 
-  // Callbacks: { onDownloadComplete(content), pausePolling(), resumePolling(), switchToViewer() }
+  // Callbacks: { onDownloadComplete(content, filename), pausePolling(), resumePolling(), switchToViewer() }
       this.callbacks = callbacks;
 
       this.path = "/";
@@ -318,6 +318,7 @@ constructor(ws, term, viewer, callbacks) {
       }
 
       this.isDownloading = false;
+      const filename = this.downloadingFile; // Capture name
       this.downloadingFile = null;
       this.downloadTotal = 0;
 
@@ -331,7 +332,8 @@ constructor(ws, term, viewer, callbacks) {
       } else {
           this.term.writeln(`\x1b[32mDownloaded ${lines.length} lines.\x1b[0m`);
           if (this.callbacks.onDownloadComplete) {
-              this.callbacks.onDownloadComplete(cleanContent);
+              // Pass filename as second arg
+              this.callbacks.onDownloadComplete(cleanContent, filename);
           }
           this.viewer.processGCodeString(cleanContent);
           if (this.callbacks.switchToViewer) {

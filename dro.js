@@ -12,6 +12,8 @@ export class DROHandler {
         this.wpos = [0, 0, 0, 0];
         this.mpos = [0, 0, 0, 0];
 
+        this.spindleSpeed = 0;
+
         // Initial UI Render
         this.updateUIUnits();
     }
@@ -114,34 +116,50 @@ export class DROHandler {
     }
 
     parseStatus(line) {
-        const content = line.substring(1, line.length - 1);
-        const parts = content.split('|');
+       const content = line.substring(1, line.length - 1);
+       const parts = content.split('|');
 
-        this._updateStateBadge(parts[0]);
+       this._updateStateBadge(parts[0]);
 
-        let rawWPos = null;
-        let rawMPos = null;
+       // --- NEW: Reset spindle speed to 0 before each parse. ---
+       // If the 'FS:' field isn't in the report, the spindle is off.
+       this.spindleSpeed = 0;
 
-        parts.forEach(part => {
-            if (part.startsWith('WCO:')) {
-                this.wco = part.split(':')[1].split(',').map(Number);
-            } else if (part.startsWith('WPos:')) {
-                rawWPos = part.split(':')[1].split(',').map(Number);
-            } else if (part.startsWith('MPos:')) {
-                rawMPos = part.split(':')[1].split(',').map(Number);
-            }
-        });
+       let rawWPos = null;
+       let rawMPos = null;
 
-        if (rawMPos) {
-            this.mpos = rawMPos;
-            this.wpos = this.mpos.map((v, i) => v - (this.wco[i] || 0));
-        } else if (rawWPos) {
-            this.wpos = rawWPos;
-            this.mpos = this.wpos.map((v, i) => v + (this.wco[i] || 0));
-        }
+       parts.forEach(part => {
+           if (part.startsWith('WCO:')) {
+               this.wco = part.split(':')[1].split(',').map(Number);
+           } else if (part.startsWith('WPos:')) {
+               rawWPos = part.split(':')[1].split(',').map(Number);
+           } else if (part.startsWith('MPos:')) {
+               rawMPos = part.split(':')[1].split(',').map(Number);
+           }
+           // --- NEW: Add the logic to parse the Feed/Speed part ---
+           else if (part.startsWith('FS:')) {
+               const speeds = part.substring(3).split(',');
+               // grblHAL provides: Feed, Programmed RPM, Actual RPM
+               if (speeds.length === 3) {
+                   this.spindleSpeed = parseFloat(speeds[2]);
+               } else if (speeds.length === 2) {
+                   // Fallback to programmed speed if actual is not reported
+                   this.spindleSpeed = parseFloat(speeds[1]);
+               }
+           }
+       });
 
-        this._updateAxisDisplay();
-    }
+       if (rawMPos) {
+           this.mpos = rawMPos;
+           this.wpos = this.mpos.map((v, i) => v - (this.wco[i] || 0));
+       } else if (rawWPos) {
+           this.wpos = rawWPos;
+           this.mpos = this.wpos.map((v, i) => v + (this.wco[i] || 0));
+       }
+
+       this._updateAxisDisplay();
+   }
+
 
     _updateStateBadge(state) {
         const stateEl = document.getElementById('machine-state');
