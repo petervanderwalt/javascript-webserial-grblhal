@@ -5,9 +5,41 @@ export class SurfacingHandler {
         this.term = term;
         this.store = store;
 
-        this.units = 'mm'; // Default to mm
+        // Ensure store values match current global units before UI render
+        this.syncStoreUnits();
+
+        // Initialize local unit state from Global Config
+        this.units = this.store.get('general.units') || 'mm';
 
         this.initUI();
+    }
+
+    // New method: Convert stored numbers if the unit system changed while app was closed
+    syncStoreUnits() {
+        const globalUnits = this.store.get('general.units') || 'mm';
+        const storedUnits = this.store.get('surfacing.units') || 'mm'; // Default to mm if missing
+
+        if (storedUnits !== globalUnits) {
+            console.log(`[Surfacing] converting stored values from ${storedUnits} to ${globalUnits}`);
+            const toMM = (globalUnits === 'mm');
+            const factor = toMM ? 25.4 : (1 / 25.4);
+            const precision = toMM ? 2 : 4;
+
+            const s = this.store.data.surfacing;
+
+            // Convert dimensional fields
+            const fields = ['toolDiameter', 'feed', 'width', 'height', 'depthPerPass', 'finalDepth', 'clearance'];
+
+            fields.forEach(key => {
+                if (typeof s[key] === 'number') {
+                    s[key] = Number((s[key] * factor).toFixed(precision));
+                }
+            });
+
+            // Update stored unit tag
+            s.units = globalUnits;
+            this.store.save();
+        }
     }
 
     initUI() {
@@ -99,10 +131,30 @@ export class SurfacingHandler {
 
         this.store.set('surfacing.useCoolant', val('surf-coolant'));
         this.store.set('surfacing.useFraming', val('surf-framing'));
+
+        // Save the current units context
+        this.store.set('surfacing.units', this.units);
     }
 
     renderSettings() {
         const s = this.store.data.surfacing;
+
+        // Apply Unit Labels based on store state (or just current state)
+        // Since we synced in constructor, s.units should match this.units.
+        // But we need to ensure labels match what's in the input boxes.
+        const isMM = (this.units === 'mm');
+        const labels = document.querySelectorAll('#surfacing-view label');
+        labels.forEach(lbl => {
+            // Reset to base state then apply
+            const hasMM = lbl.innerHTML.includes('(mm)');
+            const hasIN = lbl.innerHTML.includes('(in)');
+
+            if (isMM && hasIN) {
+                lbl.innerHTML = lbl.innerHTML.replace('(in)', '(mm)').replace('(in/min)', '(mm/min)');
+            } else if (!isMM && hasMM) {
+                lbl.innerHTML = lbl.innerHTML.replace('(mm)', '(in)').replace('(mm/min)', '(in/min)');
+            }
+        });
 
         const setVal = (id, v) => {
             const el = document.getElementById(id);

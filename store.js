@@ -25,6 +25,7 @@ export class AppStore {
                 usePlate: true
             },
             surfacing: {
+                units: 'mm', // TRACK UNITS for stored values
                 toolDiameter: 6.35,
                 stepover: 40,
                 feed: 2000,

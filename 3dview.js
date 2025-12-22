@@ -5,11 +5,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const COLORS = {
     background: 0xf8f9fa,
 
-    // Grid (Darker Slate for better visibility on light bg)
-    gridMajor: 0x94a3b8,  // Slate 400
-    gridMinor: 0xcbd5e1,  // Slate 300
+    // Grid
+    gridMajor: 0x94a3b8,
+    gridMinor: 0xcbd5e1,
 
-    text: '#64748b',      // Slate 500
+    text: '#64748b',
 
     axisX: 0xef4444,
     axisY: 0x22c55e,
@@ -24,7 +24,7 @@ const COLORS = {
     statsBg: '#383838',
 
     // Tool
-    tool: 0xffd949, // Solar Yellow
+    tool: 0xffd949,
     toolShadow: 0xd7b232
 };
 
@@ -39,8 +39,8 @@ export class GCodeViewer {
         this.controls = null;
 
         // Unit State
-        this.nativeUnits = 'mm';   // Units of the loaded G-code (Scene coordinates)
-        this.displayUnits = 'mm';  // Units user wants to see (Grid/Labels)
+        this.nativeUnits = 'mm';
+        this.displayUnits = 'mm';
 
         // Groups
         this.gcodeGroup = new THREE.Group();
@@ -52,7 +52,7 @@ export class GCodeViewer {
         this.toolGroup = new THREE.Group();
 
         // Defaults
-        this.gridBounds = { xmin: -100, ymin: -100, xmax: 100, ymax: 100 };
+        this.gridBounds = { xmin: -100, ymin: -100, xmax: 100, ymax: 100, zmin: 0 };
         this.machineLimits = { x: 200, y: 200, z: 100 };
         this.wco = { x: 0, y: 0, z: 0 };
 
@@ -72,16 +72,48 @@ export class GCodeViewer {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(COLORS.background);
 
-        // Lighting
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const light = new THREE.DirectionalLight(0xffffff, 0.8);
-        light.position.set(50, 50, 100);
-        this.scene.add(light);
+        // --- GRAPHICS UPGRADE: Lighting ---
+        // 1. Hemisphere Light: Natural gradient (Sky vs Ground reflection)
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        hemiLight.position.set(0, 0, 200);
+        this.scene.add(hemiLight);
 
-        // Renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // 2. Directional Light with Shadows
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        dirLight.position.set(50, 100, 150);
+        dirLight.castShadow = true;
+
+        // Optimize Shadow Map
+        dirLight.shadow.mapSize.width = 2048; // High res shadows
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 5000;
+        // Widen the shadow camera to cover typical CNC bed sizes
+        const d = 500;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        dirLight.shadow.bias = -0.0001; // Reduce shadow acne
+
+        this.scene.add(dirLight);
+
+        // --- GRAPHICS UPGRADE: Renderer ---
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true, // MSAA
+            alpha: true,
+            powerPreference: "high-performance" // Hint GPU to perform better
+        });
         this.renderer.setSize(w, h);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(window.devicePixelRatio); // Crisp on Retina/HighDPI
+
+        // Modern Lighting Physics
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer, nicer shadows
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace; // Accurate colors
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping; // Cinematic contrast
+        this.renderer.toneMappingExposure = 1.0;
+
         this.container.appendChild(this.renderer.domElement);
 
         // Camera (Z-Up)
@@ -112,18 +144,12 @@ export class GCodeViewer {
         this.animate();
     }
 
-    // Public method to switch display units (called from UI)
     setUnits(units) {
         if (this.displayUnits === units) return;
         this.displayUnits = units;
-
         this.renderCoolGrid();
-
-        // Update stats if job is loaded
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
         if(!box.isEmpty()) this.renderJobStats(box);
-
-        // Notify main app to update UI checkboxes (syncs if set via code/load)
         window.dispatchEvent(new CustomEvent('viewer-units-changed', { detail: { units: this.displayUnits } }));
     }
 
@@ -149,9 +175,8 @@ export class GCodeViewer {
     // --- Text Helpers ---
 
     createTextSprite(text) {
-        const fontsize = 18;
+        const fontsize = 24; // Increased resolution
         const canvas = document.createElement('canvas');
-        // Add extra padding to prevent clipping
         const width = (text.length * (fontsize * 0.6)) + 40;
         const height = fontsize + 20;
 
@@ -167,10 +192,11 @@ export class GCodeViewer {
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.minFilter = THREE.LinearFilter;
+        // Anisotropy helps text stay crisp at oblique angles
+        tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
         const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
         const sprite = new THREE.Sprite(mat);
-        // Scale down sprite in 3D space
         const scale = 0.25;
         sprite.scale.set(width * scale, height * scale, 1);
         return sprite;
@@ -200,7 +226,7 @@ export class GCodeViewer {
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.minFilter = THREE.LinearFilter;
-        tex.anisotropy = 16;
+        tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
         const material = new THREE.MeshBasicMaterial({
             map: tex, transparent: true, opacity: 1, side: THREE.DoubleSide, depthWrite: false
@@ -211,40 +237,52 @@ export class GCodeViewer {
         return new THREE.Mesh(geometry, material);
     }
 
-    // --- Grid Logic (Scaled) ---
+    // --- Grid Logic ---
 
     renderCoolGrid() {
         this.gridGroup.clear();
         this.labelsGroup.clear();
+
+        // 1. Calculate Floor Position
+        // Use the lowest point of the G-code (zmin), or 0 if nothing is loaded.
+        // We buffer it by -1.0 unit to ensure the tool shadow is always visible even at the deepest cut.
+        let floorZ = (this.gridBounds.zmin !== undefined) ? Math.min(0, this.gridBounds.zmin) : 0;
+        floorZ -= 1.0;
+
+        // 2. Shadow Receiver Plane
+        const shadowPlaneGeo = new THREE.PlaneGeometry(2000, 2000);
+        const shadowPlaneMat = new THREE.ShadowMaterial({
+            opacity: 0.1, // Light shadow
+            color: 0x000000
+        });
+        const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
+        shadowPlane.receiveShadow = true;
+        // Position at the calculated floor
+        shadowPlane.position.z = floorZ;
+        this.gridGroup.add(shadowPlane);
+
 
         const { xmin, xmax, ymin, ymax } = this.gridBounds;
 
         const isDisplayInch = this.displayUnits === 'inch';
         const isNativeInch = this.nativeUnits === 'inch';
 
-        // 1. Calculate Conversion Factor (Scene Units per Display Unit)
-        // If Native is MM, 1 Inch Display = 25.4 Scene Units
-        // If Native is Inch, 1 MM Display = 1/25.4 Scene Units
         let unitsPerDisplayUnit = 1;
         if (!isNativeInch && isDisplayInch) {
-            unitsPerDisplayUnit = 25.4; // Displaying Inch grid on MM geometry
+            unitsPerDisplayUnit = 25.4;
         } else if (isNativeInch && !isDisplayInch) {
-            unitsPerDisplayUnit = 1 / 25.4; // Displaying MM grid on Inch geometry
+            unitsPerDisplayUnit = 1 / 25.4;
         }
 
-        // 2. Define Grid Density (In Display Units)
         const stepDisplay = isDisplayInch ? 0.25 : 10;
         const majorDisplay = isDisplayInch ? 1.0 : 50;
 
-        // 3. Convert to Scene Coordinate Deltas
         const stepScene = stepDisplay * unitsPerDisplayUnit;
         const majorScene = majorDisplay * unitsPerDisplayUnit;
 
         const epsilon = 0.0001;
 
-        // Helper to check for major lines using Scene Coords
         const isMajor = (val) => {
-            // Normalize value relative to major interval to avoid floating point modulo issues near zero
             const rem = Math.abs(val / majorScene);
             const distToInt = Math.abs(rem - Math.round(rem));
             return distToInt < epsilon;
@@ -255,13 +293,11 @@ export class GCodeViewer {
         const cMajor = new THREE.Color(COLORS.gridMajor);
         const cMinor = new THREE.Color(COLORS.gridMinor);
 
-        // Align start to the grid
         const xStart = Math.floor(xmin / stepScene) * stepScene;
         const xEnd = Math.ceil(xmax / stepScene) * stepScene;
         const yStart = Math.floor(ymin / stepScene) * stepScene;
         const yEnd = Math.ceil(ymax / stepScene) * stepScene;
 
-        // Draw Vertical Lines (X moving)
         for (let x = xStart; x <= xEnd + epsilon; x += stepScene) {
              vertices.push(x, ymin, 0, x, ymax, 0);
              const major = isMajor(x);
@@ -269,25 +305,17 @@ export class GCodeViewer {
              colors.push(c.r, c.g, c.b, c.r, c.g, c.b);
 
              if (major) {
-                 // Label Value: Convert Scene Coord back to Display Unit
                  const val = x / unitsPerDisplayUnit;
-                 // Fix rounding errors (e.g. 0.99999 -> 1)
                  const labelVal = Math.round(val * 1000) / 1000;
                  const labelText = isDisplayInch ? labelVal.toFixed(0) : labelVal.toString();
 
                  const s = this.createTextSprite(labelText);
-                 // Label offset in Scene Units
                  const yOffset = isDisplayInch ? (0.5 * unitsPerDisplayUnit) : (8 * unitsPerDisplayUnit);
-
-                 // Cap offset to reasonable visual limits so labels don't fly away in zoomed mm views
-                 const visualOffset = Math.min(yOffset, (ymax - ymin) * 0.1);
-
-                 s.position.set(x, ymin - (isDisplayInch && !isNativeInch ? 15 : 8), 0); // Fixed offset for consistency
+                 s.position.set(x, ymin - (isDisplayInch && !isNativeInch ? 15 : 8), 0);
                  this.labelsGroup.add(s);
              }
         }
 
-        // Draw Horizontal Lines (Y moving)
         for (let y = yStart; y <= yEnd + epsilon; y += stepScene) {
              vertices.push(xmin, y, 0, xmax, y, 0);
              const major = isMajor(y);
@@ -312,7 +340,6 @@ export class GCodeViewer {
         const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent:true, opacity:0.4 });
         this.gridGroup.add(new THREE.LineSegments(geometry, material));
 
-        // Draw Axes (X/Y)
         if (xStart <= 0 && xEnd >= 0) {
             const yAxisGeo = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, ymin, 0.05), new THREE.Vector3(0, ymax, 0.05)
@@ -389,14 +416,21 @@ export class GCodeViewer {
         const coneHeight = 15;
         const coneRadius = 5;
         const coneGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
+
+        // --- GRAPHICS UPGRADE: Material ---
+        // Metallic, shiny material for the tool
         const coneMat = new THREE.MeshStandardMaterial({
             color: COLORS.tool,
-            roughness: 0.4,
-            metalness: 0.6
+            roughness: 0.3, // Smoother
+            metalness: 0.7, // More metallic
         });
         const cone = new THREE.Mesh(coneGeo, coneMat);
         cone.geometry.rotateX(-Math.PI / 2);
         cone.geometry.translate(0, 0, coneHeight / 2);
+
+        // Enable shadow casting
+        cone.castShadow = true;
+
         this.toolGroup.add(cone);
         this.updateToolPosition(0,0,0);
     }
@@ -425,18 +459,13 @@ export class GCodeViewer {
         worker.onmessage = (msg) => {
             const payload = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
             if (payload.linePoints) {
-                // Determine Native Units from File
                 if (payload.inch) {
                     this.nativeUnits = 'inch';
-                    // NOTE: We do NOT auto-switch display units here.
                 } else {
                     this.nativeUnits = 'mm';
-                    // NOTE: We do NOT auto-switch display units here.
                 }
 
                 this.renderLines(payload.linePoints);
-
-                // Force grid update to respect current display units but with new native scaling
                 this.renderCoolGrid();
 
                 if (this.loadingOverlay) this.loadingOverlay.classList.add('hidden');
@@ -477,7 +506,8 @@ export class GCodeViewer {
         if (!box.isEmpty()) {
             this.gridBounds = {
                 xmin: box.min.x - 20, ymin: box.min.y - 20,
-                xmax: box.max.x + 20, ymax: box.max.y + 20
+                xmax: box.max.x + 20, ymax: box.max.y + 20,
+                zmin: box.min.z // Track lowest point
             };
             this.renderCoolGrid();
             this.renderJobStats(box);

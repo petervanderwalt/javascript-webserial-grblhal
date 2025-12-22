@@ -83,12 +83,13 @@
 
             btn.className = `relative group cursor-pointer rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center p-4 h-32 ${colorDef.bg} ${colorDef.text} ${colorDef.border}`;
 
+            // MODIFIED: Changed opacity classes to be visible by default (mobile), hidden on md+ unless hovered
             btn.innerHTML = `
                 <i class="bi ${macro.icon} text-3xl mb-2"></i>
                 <span class="font-bold text-sm text-center leading-tight select-none">${macro.name}</span>
 
-                <!-- Hover Edit Controls -->
-                <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <!-- Edit Controls (Always visible on mobile, Hover only on Desktop) -->
+                <div class="absolute top-1 right-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
                     <button class="edit-btn p-1 bg-black/20 hover:bg-black/40 rounded text-white text-xs" title="Edit">
                         <i class="bi bi-pencil-fill"></i>
                     </button>

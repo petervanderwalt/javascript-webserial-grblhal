@@ -10,9 +10,12 @@ constructor(ws, term, viewer, callbacks) {
 
       this.path = "/";
       this.fileCount = 0;
+      this.files = {}; // Map filename -> size (bytes)
 
       // Download State
       this.isDownloading = false;
+      this.downloadingFile = null; // Track current file being downloaded
+      this.downloadTotal = 0;      // Total bytes expected
       this.downloadBuffer = "";
       this.downloadTimeout = null;
       this.downloadLineCount = 0;
@@ -47,15 +50,17 @@ constructor(ws, term, viewer, callbacks) {
          this.downloadBuffer += line + "\n";
          this.downloadLineCount++;
 
+         // Update UI Progress (throttle slightly)
+         if (this.downloadLineCount % 10 === 0) {
+             this._updateDownloadProgress();
+         }
+
          if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
          this.downloadTimeout = setTimeout(() => {
              console.warn("Download finished due to timeout. The 'ok' confirmation was not received.");
              this._finishDownload();
          }, 1000);
 
-         if (this.downloadLineCount % 100 === 0) {
-             this.term.writeln(`\x1b[33mDownloading... (${this.downloadLineCount} lines)\x1b[0m`);
-         }
          return true;
      }
 
@@ -96,6 +101,7 @@ constructor(ws, term, viewer, callbacks) {
 
       document.getElementById('sd-current-path').textContent = this.path;
       this.fileCount = 0;
+      this.files = {}; // Clear cache
       document.getElementById('sd-badge').classList.add('hidden');
       this.ws.sendCommand('$F+');
   }
@@ -126,8 +132,13 @@ constructor(ws, term, viewer, callbacks) {
       if (!confirm(`Download ${fileName}?`)) return;
 
       this.isDownloading = true;
+      this.downloadingFile = fileName;
+      this.downloadTotal = this.files[fileName] || 0; // Get size from cache
       this.downloadBuffer = "";
       this.downloadLineCount = 0;
+
+      // Show Progress Bar in UI
+      this._toggleProgressUI(fileName, true);
 
       const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
       this.term.writeln(`\x1b[33mDownloading ${fullPath}...\x1b[0m`);
@@ -135,11 +146,15 @@ constructor(ws, term, viewer, callbacks) {
   }
 
   runFile(fileName) {
+      if (!confirm(`Run file ${fileName} on machine?`)) return;
+
       const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
       this.ws.sendCommand(`$F=${fullPath}`);
   }
 
   runMacro(pNum) {
+      if (!confirm(`Execute Macro P${pNum}?`)) return;
+
       this.ws.sendCommand(`G65 P${pNum}`);
       this.term.writeln(`\x1b[36m> Executing Macro: P${pNum}\x1b[0m`);
   }
@@ -154,9 +169,12 @@ constructor(ws, term, viewer, callbacks) {
       // Parse Size
       const sizePart = content.find(p => p.startsWith('SIZE:'));
       let sizeDisplay = '-';
+      let bytes = 0;
+
       if (sizePart) {
-          const bytes = parseInt(sizePart.split(':')[1]);
+          bytes = parseInt(sizePart.split(':')[1]);
           sizeDisplay = this._formatBytes(bytes);
+          this.files[name] = bytes; // Store for progress calculation
       }
 
       // Update Badge
@@ -183,18 +201,23 @@ constructor(ws, term, viewer, callbacks) {
             </button>`;
       }
 
-      // Changes:
-      // 1. Table is table-fixed (from refresh())
-      // 2. Filename cell: truncate (ellipsis), w-auto (takes remaining space)
-      // 3. Actions cell: w-[120px] (fixed), text-right
+      // Generate Safe ID for progress selection (base64 encoded to handle special chars)
+      const safeId = btoa(name).replace(/=/g, '');
+
       const row = `
-          <tr class="hover:bg-grey-light/30 border-b border-grey-light last:border-b-0 transition-colors group">
+          <tr class="hover:bg-grey-light/30 border-b border-grey-light last:border-b-0 transition-colors group" data-filename="${name}">
               <td class="px-4 py-2 md:px-6 md:py-3 font-medium text-grey-dark align-middle truncate overflow-hidden">
-                  <div class="flex flex-col justify-center">
+                  <div class="flex flex-col justify-center w-full">
                       <div class="flex items-center gap-2 truncate">
                           <i class="bi bi-file-earmark-code text-grey shrink-0"></i>
                           <span class="truncate" title="${name}">${name}</span>
                       </div>
+
+                      <!-- Progress Bar (Hidden by default) -->
+                      <div id="sd-prog-${safeId}" class="hidden w-full max-w-[200px] mt-1.5 ml-6 md:ml-0 bg-grey-light/50 rounded-full h-1">
+                        <div class="bg-primary h-1 rounded-full transition-all duration-200" style="width: 0%"></div>
+                      </div>
+
                       <span class="text-[10px] text-grey/80 font-mono mt-0.5 md:hidden ml-6">${sizeDisplay}</span>
                   </div>
               </td>
@@ -219,6 +242,32 @@ constructor(ws, term, viewer, callbacks) {
           </tr>`;
 
       document.querySelector('#sd-table tbody').insertAdjacentHTML('beforeend', row);
+  }
+
+  _toggleProgressUI(fileName, show) {
+      const safeId = btoa(fileName).replace(/=/g, '');
+      const container = document.getElementById(`sd-prog-${safeId}`);
+      if (container) {
+          if (show) {
+              container.classList.remove('hidden');
+              container.firstElementChild.style.width = '0%';
+          } else {
+              container.classList.add('hidden');
+          }
+      }
+  }
+
+  _updateDownloadProgress() {
+      if (!this.downloadingFile || this.downloadTotal <= 0) return;
+
+      const currentBytes = this.downloadBuffer.length;
+      const pct = Math.min(100, Math.round((currentBytes / this.downloadTotal) * 100));
+
+      const safeId = btoa(this.downloadingFile).replace(/=/g, '');
+      const bar = document.querySelector(`#sd-prog-${safeId} > div`);
+      if (bar) {
+          bar.style.width = `${pct}%`;
+      }
   }
 
   _formatBytes(bytes, decimals = 2) {
@@ -263,7 +312,15 @@ constructor(ws, term, viewer, callbacks) {
   }
 
   _finishDownload() {
+      // Hide progress before resetting state
+      if (this.downloadingFile) {
+          this._toggleProgressUI(this.downloadingFile, false);
+      }
+
       this.isDownloading = false;
+      this.downloadingFile = null;
+      this.downloadTotal = 0;
+
       if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
 
       const cleanContent = this.downloadBuffer.replace(/<.*>/g, '').trim();
