@@ -206,16 +206,44 @@ export class GrblSettings {
     setSearchQuery(query) {
         this.searchQuery = query;
         this.render();
-        // Restore focus to input after render
         setTimeout(() => {
             const input = document.getElementById('settings-search-input');
             if(input) {
                 input.focus();
-                // Move cursor to end
                 const len = input.value.length;
                 input.setSelectionRange(len, len);
             }
         }, 0);
+    }
+
+    // --- Helpers ---
+
+    getGroupStats(groupId) {
+        // Recursive search with cycle detection
+        const getAllChildGroupIds = (pid, visited = new Set()) => {
+            // Prevent infinite recursion if cycles exist
+            if (visited.has(pid)) return [];
+            visited.add(pid);
+
+            let ids = [pid];
+            // Filter children: must match parentId AND NOT be the parentId itself
+            const children = Object.values(this.groups).filter(g => g.parentId == pid && g.id != pid);
+
+            children.forEach(c => {
+                ids = ids.concat(getAllChildGroupIds(c.id, visited));
+            });
+            return ids;
+        };
+
+        const allDescendants = getAllChildGroupIds(groupId);
+
+        // Count direct subgroups (excluding self)
+        const subgroupCount = Object.values(this.groups).filter(g => g.parentId == groupId && g.id != groupId).length;
+
+        // Count all settings that belong to any group in the descendant tree
+        const totalSettings = Object.values(this.settings).filter(s => allDescendants.includes(s.groupId)).length;
+
+        return { subgroups: subgroupCount, settings: totalSettings };
     }
 
     // --- Rendering ---
@@ -234,14 +262,13 @@ export class GrblSettings {
 
         // Restore Scroll Position Logic
         const sidebar = document.getElementById('settings-sidebar');
-        const mainPanel = document.getElementById('settings-main-panel');
-        const prevSidebarScroll = sidebar ? sidebar.scrollTop : 0;
-        const prevMainScroll = mainPanel ? mainPanel.scrollTop : 0;
+        const prevSidebarScroll = sidebar ? sidebar.querySelector('.overflow-y-auto').scrollTop : 0;
 
         // --- Prepare Data ---
 
         let settingsToDisplay = [];
         let displayTitle = "";
+        let childGroups = [];
 
         if (this.searchQuery.trim().length > 0) {
             // SEARCH MODE
@@ -255,26 +282,26 @@ export class GrblSettings {
             displayTitle = `Search Results (${settingsToDisplay.length})`;
         } else {
             // GROUP MODE
-            settingsToDisplay = Object.values(this.settings).filter(s => s.groupId == this.activeGroupId);
             const activeGroup = this.groups[this.activeGroupId];
-            displayTitle = activeGroup ? activeGroup.label : 'Unknown Group';
+            displayTitle = activeGroup ? activeGroup.label : (this.activeGroupId === 'ungrouped' ? 'Other' : 'Settings');
+
+            // 1. Direct Settings
+            settingsToDisplay = Object.values(this.settings).filter(s => s.groupId == this.activeGroupId);
+
+            // 2. Subgroups
+            childGroups = Object.values(this.groups)
+                .filter(g => g.parentId == this.activeGroupId)
+                .sort((a, b) => parseInt(a.id) - parseInt(b.id));
         }
 
-        // Sort Settings
         settingsToDisplay.sort((a, b) => parseFloat(a.id) - parseFloat(b.id));
-
-        // Sort Groups for Sidebar
         const sortedGroups = Object.values(this.groups).sort((a, b) => parseInt(a.id) - parseInt(b.id));
 
         // --- Build HTML ---
-        // Layout: Side-by-side on all screens
         let html = `<div class="flex flex-row h-[calc(100vh-220px)] border border-grey-light rounded-lg bg-white overflow-hidden shadow-sm">`;
 
         // --- Left Sidebar ---
-        // Width: 110px on mobile, 25% on desktop
         html += `<div id="settings-sidebar" class="w-[110px] md:w-1/4 bg-grey-bg border-r border-grey-light flex flex-col shrink-0">`;
-
-        // Search Box
         html += `
             <div class="p-2 border-b border-grey-light bg-white sticky top-0 z-20">
                 <div class="relative">
@@ -297,11 +324,8 @@ export class GrblSettings {
                 const activeClass = isActive
                     ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm'
                     : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
-
                 const isSubGroup = g.parentId && g.parentId !== '0';
                 const indent = isSubGroup ? 'ml-2 md:ml-4' : '';
-
-                // Compact button style
                 html += `
                     <button onclick="window.grblSettings.setActiveGroup('${g.id}')"
                         class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all truncate ${activeClass} ${indent}" title="${g.label}">
@@ -311,7 +335,6 @@ export class GrblSettings {
             });
         }
 
-        // Ungrouped
         const hasUngrouped = Object.values(this.settings).some(s => !this.groups[s.groupId]);
         if(hasUngrouped) {
              const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
@@ -323,29 +346,54 @@ export class GrblSettings {
                 </button>
             `;
         }
-        html += `</div></div>`; // End Sidebar
+        html += `</div></div>`;
 
         // --- Right Panel ---
-        html += `<div id="settings-main-panel" class="flex-1 overflow-y-auto bg-white relative w-0">`; // w-0 to allow flex grow
+        html += `<div id="settings-main-panel" class="flex-1 overflow-y-auto bg-white relative w-0">`;
 
-        if (settingsToDisplay.length === 0) {
-            html += `
-                <div class="flex flex-col items-center justify-center h-full text-grey opacity-50">
-                    <i class="bi bi-inbox text-4xl mb-2"></i>
-                    <p class="text-sm">No settings found</p>
-                </div>`;
-        } else {
-            // Header
-            html += `
-                <div class="bg-grey-bg px-2 md:px-4 py-2 border-b border-grey-light font-bold text-secondary-dark sticky top-0 z-20 shadow-sm flex items-center gap-2 text-xs md:text-sm">
-                    ${this.searchQuery ? '<i class="bi bi-search"></i>' : '<i class="bi bi-folder2-open"></i>'}
-                    <span class="truncate">${displayTitle}</span>
-                </div>
-            `;
+        // Header
+        html += `
+            <div class="bg-grey-bg px-2 md:px-4 py-2 border-b border-grey-light font-bold text-secondary-dark sticky top-0 z-20 shadow-sm flex items-center gap-2 text-xs md:text-sm">
+                ${this.searchQuery ? '<i class="bi bi-search"></i>' : '<i class="bi bi-folder2-open"></i>'}
+                <span class="truncate">${displayTitle}</span>
+            </div>
+        `;
 
+        // Content Area
+        let hasContent = false;
+
+        // 1. Render Subgroups (if any)
+        if (childGroups.length > 0) {
+            hasContent = true;
+            html += `<div class="p-4 bg-grey-bg/30 border-b border-grey-light">`;
+            html += `<h4 class="text-[10px] font-bold text-grey uppercase tracking-wider mb-2">Subcategories</h4>`;
+            html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">`;
+
+            childGroups.forEach(g => {
+                const stats = this.getGroupStats(g.id);
+                // "3 Subgroups • 45 Settings" or just "12 Settings"
+                let metaText = `${stats.settings} Settings`;
+                if (stats.subgroups > 0) metaText = `${stats.subgroups} Subgroups • ` + metaText;
+
+                html += `
+                    <button onclick="window.grblSettings.setActiveGroup('${g.id}')"
+                        class="flex flex-col items-start p-3 bg-white border border-grey-light rounded-lg hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all text-left group">
+                        <span class="font-bold text-secondary-dark group-hover:text-primary-dark text-xs flex items-center gap-2">
+                            <i class="bi bi-folder-fill text-primary"></i> ${g.label}
+                        </span>
+                        <span class="text-[9px] font-bold text-grey uppercase mt-1">${metaText}</span>
+                    </button>
+                `;
+            });
+            html += `</div></div>`;
+        }
+
+        // 2. Render Settings Table (if any)
+        if (settingsToDisplay.length > 0) {
+            hasContent = true;
             html += `
                 <table class="w-full text-left text-sm table-fixed">
-                    <thead class="bg-surface text-grey uppercase text-[9px] md:text-[10px] tracking-wider border-b border-grey-light sticky top-8 z-10 shadow-sm">
+                    <thead class="bg-surface text-grey uppercase text-[9px] md:text-[10px] tracking-wider border-b border-grey-light sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th class="px-1 md:px-4 py-2 w-8 md:w-16 bg-surface text-center md:text-left">$</th>
                             <th class="px-1 md:px-4 py-2 bg-surface w-auto">Description</th>
@@ -362,22 +410,15 @@ export class GrblSettings {
 
                 html += `
                     <tr class="${rowClass} transition-colors group">
-                        <!-- ID: Fixed 32px width -->
                         <td class="px-0.5 md:px-4 py-2 md:py-3 font-mono text-secondary-dark font-bold text-[10px] md:text-xs align-top pt-3 md:pt-4 text-center md:text-left break-all">$${s.id}</td>
-
-                        <!-- Desc: Auto width -->
                         <td class="px-1 md:px-4 py-2 md:py-3 align-top">
                             <div class="text-grey-dark font-bold text-[11px] md:text-xs leading-tight">${s.label}</div>
                             ${s.desc ? `<div class="hidden md:block text-[10px] text-grey mt-1 leading-tight max-w-md">${s.desc.replace(/\\n/g, '<br>')}</div>` : ''}
                         </td>
-
-                        <!-- Value: Fixed 64px on mobile, dynamic on desktop -->
                         <td class="px-0.5 md:px-4 py-2 md:py-3 align-top">
                             ${this._renderInput(s, displayValue)}
                             ${isModified ? '<div class="text-[9px] md:text-[10px] text-primary-dark font-bold mt-0.5 text-right animate-pulse">Save?</div>' : ''}
                         </td>
-
-                        <!-- Unit: Fixed 32px width -->
                         <td class="px-0.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs text-grey align-top pt-3 md:pt-4 break-all leading-tight">${s.unit || '-'}</td>
                     </tr>
                 `;
@@ -385,8 +426,16 @@ export class GrblSettings {
             html += `</tbody></table>`;
         }
 
-        html += `</div>`; // End Right Panel
-        html += `</div>`; // End Main Flex
+        // 3. True Empty State
+        if (!hasContent) {
+            html += `
+                <div class="flex flex-col items-center justify-center h-64 text-grey opacity-50">
+                    <i class="bi bi-inbox-fill text-4xl mb-2"></i>
+                    <p class="text-sm">No settings or subcategories found here.</p>
+                </div>`;
+        }
+
+        html += `</div></div>`; // End Panel & Main Flex
 
         this.tableContainer.innerHTML = html;
 

@@ -136,7 +136,8 @@ export class GCodeViewer {
         if (this.displayUnits === units) return;
         this.displayUnits = units;
         this.renderCoolGrid();
-        const box = new THREE.Box3().setFromObject(this.gcodeGroup);
+        // Use Local Box for stats to ensure they align with the gcode inside the group
+        const box = this.getLocalGCodeBox();
         if(!box.isEmpty()) this.renderJobStats(box);
         window.dispatchEvent(new CustomEvent('viewer-units-changed', { detail: { units: this.displayUnits } }));
     }
@@ -236,11 +237,22 @@ export class GCodeViewer {
         return new THREE.Mesh(geometry, material);
     }
 
+    // New Helper to get box in Local Space (relative to workOffsetsGroup)
+    getLocalGCodeBox() {
+        const box = new THREE.Box3();
+        this.gcodeGroup.children.forEach(child => {
+            if (child.geometry) {
+                if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+                box.union(child.geometry.boundingBox);
+            }
+        });
+        return box;
+    }
+
     updateGridBounds(forceJobBox = null) {
         if (this.gridMode === 'machine' && this.machineLimits) {
             // Machine Limits are in Machine Coordinates (MPos) relative to Home (0,0,0)
             // But the Grid is drawn inside workOffsetsGroup, which is shifted by WCO.
-            // We need to transform the machine bounds into the Local Space of workOffsetsGroup.
 
             const mx = this.machineLimits.x;
             const my = this.machineLimits.y;
@@ -255,10 +267,11 @@ export class GCodeViewer {
                 zmin: 0
             };
         } else {
-            // Job Mode (already in WPos, so no transform needed)
+            // Job Mode
             let box = forceJobBox;
             if (!box) {
-                box = new THREE.Box3().setFromObject(this.gcodeGroup);
+                // Use Local Box for Grid Job Mode (Grid is inside WorkGroup)
+                box = this.getLocalGCodeBox();
             }
 
             if (!box.isEmpty()) {
@@ -586,7 +599,8 @@ export class GCodeViewer {
             })));
         }
 
-        const box = new THREE.Box3().setFromObject(this.gcodeGroup);
+        // Use Local Box for Grid and Stats
+        const box = this.getLocalGCodeBox();
         if (!box.isEmpty()) {
             this.updateGridBounds(box);
             this.renderCoolGrid();
@@ -632,7 +646,7 @@ export class GCodeViewer {
     }
 
     resetCamera() {
-        // 1. Try GCode Box (Job Focus)
+        // 1. Try GCode Box (Job Focus) - using WORLD coordinates for Camera
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
 
         if (!box.isEmpty()) {
