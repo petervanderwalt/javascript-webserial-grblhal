@@ -119,8 +119,9 @@
             .dro-zero-btn { @apply w-10 md:w-10 border-l border-grey-light bg-grey-bg/30 hover:bg-primary hover:text-black hover:border-primary text-[9px] md:text-[9px] font-bold text-grey uppercase transition-colors flex items-center justify-center active:bg-primary; }
 
             /* Sub-Controls (G28/G30) */
-            .dro-sub-btn { @apply flex-1 bg-white border border-grey-light hover:border-secondary rounded text-[10px] font-bold text-grey-dark py-2 md:py-1 shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 touch-manipulation; }
-
+            .dro-sub-btn {
+                @apply flex-1 bg-white border border-grey-light hover:border-secondary rounded text-xs font-bold text-grey-dark py-2 md:py-1 shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 touch-manipulation;
+            }
             /* Jog Styles - Touch Friendly */
             .jog-wrapper { @apply flex gap-3 justify-center; }
             .jog-pad { @apply grid grid-cols-3 gap-1.5; }
@@ -183,7 +184,7 @@
                     <!-- Reset Button -->
                     <button id="btn-reset"
                         class="btn h-8 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0"
-                        onclick="sendRealtime('\x18')" title="Soft Reset"><i class="bi bi-exclamation-octagon-fill"></i>
+                        onclick="sendRealtime('\x18')" title="Soft Reset"><i class="bi bi-exclamation-octagon-fill"></i>Reset
                         </button>
                     <!-- Connect Button -->
                     <button id="btn-connect"
@@ -207,7 +208,8 @@
                             <!-- Units Toggle -->
                             <label
                                 class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
-                                <span class="text-[10px] font-black text-grey uppercase" id="unitLabel">MM</span>
+                                <!-- UPDATED: text-[10px] -> text-xs -->
+                                <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
                                 <input type="checkbox" id="unitToggle" class="sr-only peer" checked
                                     onchange="window.dro.toggleUnits()">
                                 <div
@@ -218,9 +220,10 @@
                             <!-- WCS Select -->
                             <div
                                 class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
-                                <span class="text-[10px] font-black text-grey uppercase">WCS</span>
+                                <!-- UPDATED: text-[10px] -> text-xs -->
+                                <span class="text-xs font-black text-grey uppercase">WCS</span>
                                 <select
-                                    class="text-[11px] font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
+                                    class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
                                     onchange="window.dro.setWCS(this.value)">
                                     <option value="G54" selected>G54</option>
                                     <option value="G55">G55</option>
@@ -288,7 +291,7 @@
                                     <i class="bi bi-house-door-fill"></i> HOME
                                 </button>
                                 <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
-                                <button class="dro-sub-btn" onclick="window.dro.goXY0()">SET XY 0</button>
+                                <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
                             </div>
                         </div>
 
@@ -297,7 +300,8 @@
 
                             <!-- Row 1: Feed (Full Width) -->
                             <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <span class="text-[9px] font-bold text-grey-dark w-12 shrink-0">
+                                <!-- UPDATED: text-[9px] -> text-[11px] -->
+                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0">
                                   <i class="bi bi-speedometer2"></i> Feed</span>
                                 <div class="flex gap-1 flex-1">
                                   <button
@@ -313,8 +317,9 @@
 
                             <!-- Row 2: Spindle (Full Width) -->
                             <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <span class="text-[9px] font-bold text-grey-dark w-12 shrink-0">
-                                  <i class="bi bi-fan"></i> Spindle</span>
+                                <!-- UPDATED: text-[9px] -> text-[11px] -->
+                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0">
+                                  <i class="bi bi-fan"></i> Spin</span>
                                 <div class="flex gap-1 flex-1">
                                   <button
                                       class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100"
@@ -329,7 +334,8 @@
 
                             <!-- Row 3: Rapids (Full Width) -->
                             <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <span class="text-[9px] font-bold text-grey-dark w-12 shrink-0"><i
+                                <!-- UPDATED: text-[9px] -> text-[11px] -->
+                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0"><i
                                         class="bi bi-lightning-charge-fill"></i> Rapid</span>
                                 <div class="flex gap-1 flex-1">
                                     <button class="btn-ovr h-6 md:h-5 flex-1" onclick="sendRealtime('\x97')">25%</button>
@@ -345,8 +351,9 @@
                         <div class="grid grid-cols-2 gap-2 mt-2">
                             <!-- G28 -->
                             <div class="flex gap-1 bg-white p-0">
+                                <!-- UPDATED: text-[9px] -> text-xs, w-6 -> w-8 -->
                                 <span
-                                    class="text-[9px] font-black text-grey w-6 flex items-center justify-center">G28</span>
+                                    class="text-xs font-black text-grey w-8 flex items-center justify-center">G28</span>
                                 <button class="dro-sub-btn" onclick="window.dro.goToPredefined(28)" title="Go To"><i
                                         class="bi bi-play-fill"></i> Go</button>
                                 <button class="dro-sub-btn" onclick="window.dro.setPredefined(28)" title="Set Here"><i
@@ -354,8 +361,9 @@
                             </div>
                             <!-- G30 -->
                             <div class="flex gap-1 bg-white p-0">
+                                <!-- UPDATED: text-[9px] -> text-xs, w-6 -> w-8 -->
                                 <span
-                                    class="text-[9px] font-black text-grey w-6 flex items-center justify-center">G30</span>
+                                    class="text-xs font-black text-grey w-8 flex items-center justify-center">G30</span>
                                 <button class="dro-sub-btn" onclick="window.dro.goToPredefined(30)" title="Go To"><i
                                         class="bi bi-play-fill"></i> Go</button>
                                 <button class="dro-sub-btn" onclick="window.dro.setPredefined(30)" title="Set Here"><i
@@ -368,82 +376,98 @@
 
 
                     <!-- Jog Controls (Compact) -->
-                    <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
+                    <!-- Jog Controls (Compact) -->
+                                        <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
 
-                        <div class="jog-wrapper">
-                            <!-- XY Pad -->
-                            <div class="jog-pad">
-                                <button class="jog-btn rounded-tl-xl" data-jog="X-Y+"><i
-                                        class="bi bi-arrow-up-left"></i></button>
-                                <button class="jog-btn" data-jog="Y+"><i
-                                        class="bi bi-caret-up-fill text-2xl"></i></button>
-                                <button class="jog-btn rounded-tr-xl" data-jog="X+Y+"><i
-                                        class="bi bi-arrow-up-right"></i></button>
+                                            <div class="jog-wrapper">
+                                                <!-- XY Pad -->
+                                                <div class="jog-pad">
+                                                    <!-- Row 1 -->
+                                                    <button class="jog-btn rounded-tl-xl" data-jog="X-Y+"><i
+                                                            class="bi bi-arrow-up-left"></i></button>
 
-                                <button class="jog-btn" data-jog="X-"><i
-                                        class="bi bi-caret-left-fill text-2xl"></i></button>
-                                <div class="w-12 h-12 flex items-center justify-center">
-                                    <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
-                                </div>
-                                <button class="jog-btn" data-jog="X+"><i
-                                        class="bi bi-caret-right-fill text-2xl"></i></button>
+                                                    <!-- Y+ (Green, Top Border) -->
+                                                    <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50" data-jog="Y+"><i
+                                                            class="bi bi-caret-up-fill text-2xl"></i></button>
 
-                                <button class="jog-btn rounded-bl-xl" data-jog="X-Y-"><i
-                                        class="bi bi-arrow-down-left"></i></button>
-                                <button class="jog-btn" data-jog="Y-"><i
-                                        class="bi bi-caret-down-fill text-2xl"></i></button>
-                                <button class="jog-btn rounded-br-xl" data-jog="X+Y-"><i
-                                        class="bi bi-arrow-down-right"></i></button>
-                            </div>
+                                                    <button class="jog-btn rounded-tr-xl" data-jog="X+Y+"><i
+                                                            class="bi bi-arrow-up-right"></i></button>
 
-                            <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
-                            <div class="flex flex-col gap-2 w-28">
-                                <!-- Unlock Button -->
-                                <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
-                                    onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
-                                    Unlock</button>
+                                                    <!-- Row 2 -->
+                                                    <!-- X- (Red, Left Border) -->
+                                                    <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50" data-jog="X-"><i
+                                                            class="bi bi-caret-left-fill text-2xl"></i></button>
 
-                                <!-- Z & A Buttons -->
-                                <div class="flex gap-1.5 justify-center">
-                                    <!-- Z Pad -->
-                                    <div class="jog-extra-col">
-                                        <button class="jog-btn-extra rounded-t-xl" data-jog="Z+">Z+</button>
-                                        <button class="jog-btn-extra rounded-b-xl" data-jog="Z-">Z-</button>
-                                    </div>
-                                    <!-- A Pad -->
-                                    <div class="jog-extra-col">
-                                        <button class="jog-btn-extra rounded-t-xl" data-jog="A+">A+</button>
-                                        <button class="jog-btn-extra rounded-b-xl" data-jog="A-">A-</button>
-                                    </div>
-                                </div>
+                                                    <div class="w-12 h-12 flex items-center justify-center">
+                                                        <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
+                                                    </div>
 
-                                <!-- Continuous Toggle -->
-                                <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
-                                    <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
-                                    <input type="checkbox" id="jogContinuous" class="sr-only peer">
-                                    <div
-                                        class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
-                                    </div>
-                                    <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
-                                </label>
-                            </div>
-                        </div>
+                                                    <!-- X+ (Red, Right Border) -->
+                                                    <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50" data-jog="X+"><i
+                                                            class="bi bi-caret-right-fill text-2xl"></i></button>
 
-                        <!-- Step/Feed -->
-                        <div class="grid grid-cols-2 gap-2 mt-3">
-                            <div class="relative">
-                                <span class="absolute left-2 top-2 text-[9px] font-bold text-grey uppercase">Dist</span>
-                                <select id="stepSize" class="input-field pl-8 text-right h-8 py-0">
-                                    <!-- Populated by JS -->
-                                </select>
-                            </div>
-                            <div class="relative">
-                                <span class="absolute left-2 top-2 text-[9px] font-bold text-grey uppercase">Feed</span>
-                                <input type="number" id="feedRate" class="input-field pl-8 text-right h-8 py-0">
-                            </div>
-                        </div>
-                    </div>
-                </div> <!-- End Machine Controls -->
+                                                    <!-- Row 3 -->
+                                                    <button class="jog-btn rounded-bl-xl" data-jog="X-Y-"><i
+                                                            class="bi bi-arrow-down-left"></i></button>
+
+                                                    <!-- Y- (Green, Bottom Border) -->
+                                                    <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50" data-jog="Y-"><i
+                                                            class="bi bi-caret-down-fill text-2xl"></i></button>
+
+                                                    <button class="jog-btn rounded-br-xl" data-jog="X+Y-"><i
+                                                            class="bi bi-arrow-down-right"></i></button>
+                                                </div>
+
+                                                <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
+                                                <div class="flex flex-col gap-2 w-28">
+                                                    <!-- Unlock Button -->
+                                                    <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
+                                                        onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
+                                                        Unlock</button>
+
+                                                    <!-- Z & A Buttons -->
+                                                    <div class="flex gap-1.5 justify-center">
+                                                        <!-- Z Pad (Blue) -->
+                                                        <div class="jog-extra-col">
+                                                            <button class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50" data-jog="Z+">Z+</button>
+                                                            <button class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50" data-jog="Z-">Z-</button>
+                                                        </div>
+                                                        <!-- A Pad (Orange) -->
+                                                        <div class="jog-extra-col">
+                                                            <button class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50" data-jog="A+">A+</button>
+                                                            <button class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50" data-jog="A-">A-</button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Continuous Toggle -->
+                                                    <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
+                                                        <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
+                                                        <input type="checkbox" id="jogContinuous" class="sr-only peer">
+                                                        <div
+                                                            class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                                                        </div>
+                                                        <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <!-- Step/Feed -->
+                                            <div class="grid grid-cols-2 gap-2 mt-3">
+                                                <div class="relative">
+                                                    <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
+                                                    <select id="stepSize" class="input-field pl-10 text-right h-8 py-0">
+                                                        <!-- Populated by JS -->
+                                                    </select>
+                                                </div>
+                                                <div class="relative">
+                                                    <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
+                                                    <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
+                                                </div>
+                                            </div>
+                                        </div>
+                    <!-- End Jog Controls  -->
+
+                </div>
 
                 <!-- Console (Light Mode) -->
                 <div class="flex-1 flex flex-col min-h-[150px] mb-20 md:mb-0">
@@ -557,9 +581,17 @@
                         <button class="overlay-btn" onclick="resetCamera()">
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
                         </button>
+
+                        <!-- Renamed Camera Toggle Button -->
                         <button class="overlay-btn" onclick="toggleCamera()" id="cam-toggle-btn">
-                            <i class="bi bi-box-fill text-secondary"></i> Ortho
+                            <i class="bi bi-eye-fill text-secondary"></i> Perspective
                         </button>
+
+                        <!-- New Grid Mode Toggle -->
+                        <button class="overlay-btn" onclick="toggleGridMode()" id="grid-toggle-btn">
+                            <i class="bi bi-grid-3x3 text-secondary"></i> Grid: Job
+                        </button>
+
                         <label class="overlay-btn cursor-pointer">
                             <i class="bi bi-folder2-open text-secondary"></i> Open
                             <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
@@ -1065,10 +1097,8 @@
 
                                                 <!-- Internal Tabs -->
                                                 <div class="flex border-b border-grey-light mb-4 overflow-x-auto no-scrollbar">
-                                                    <button class="px-4 py-2 text-sm font-bold text-primary-dark border-b-2 border-primary transition-colors hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-tlo" onclick="window.probeHandler.switchProbeTab('tab-tlo', this)">
-                                                        Tool Length Offset
-                                                    </button>
-                                                    <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-edges" onclick="window.probeHandler.switchProbeTab('tab-edges', this)">
+
+                                                    <button class="px-4 py-2 text-sm font-bold text-primary-dark border-b-2 border-primary transition-colors hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-edges" onclick="window.probeHandler.switchProbeTab('tab-edges', this)">
                                                         Edge & Corners
                                                     </button>
                                                     <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-centers" onclick="window.probeHandler.switchProbeTab('tab-centers', this)">
@@ -1077,10 +1107,13 @@
                                                     <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-rotation" onclick="window.probeHandler.switchProbeTab('tab-rotation', this)">
                                                         Rotation
                                                     </button>
+                                                    <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-tlo" onclick="window.probeHandler.switchProbeTab('tab-tlo', this)">
+                                                        Tool Length Offset
+                                                    </button>
                                                 </div>
 
                                                 <!-- TAB CONTENT: Tool Length Offset -->
-                                                <div id="tab-tlo" class="probe-tab-content block">
+                                                <div id="tab-tlo" class="probe-tab-content hidden">
                                                     <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light">
                                                         <h3 class="font-bold text-lg text-secondary-dark mb-4">Tool Length Offset (TLO)</h3>
 
@@ -1113,8 +1146,6 @@
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Actions -->
-                                                            <!-- START OF FILE index.html (Partial Update inside #tab-tlo) -->
 
                                                               <!-- Actions -->
                                                               <div class="flex flex-col gap-3 justify-center">
@@ -1146,7 +1177,7 @@
                                                 </div>
 
                                                 <!-- TAB CONTENT: Edges & Corners (Existing logic refined) -->
-                                                <div id="tab-edges" class="probe-tab-content hidden space-y-4">
+                                                <div id="tab-edges" class="probe-tab-content space-y-4 block">
 
                                                     <!-- Corners -->
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1482,7 +1513,7 @@
             }
         });
 
-        const viewer = new GCodeViewer('viewer-container', 'loading-overlay');
+        const viewer = new GCodeViewer('viewer-container', 'loading-overlay', store); // Added store
         const reporter = new AlarmsAndErrors(ws);
         window.viewer = viewer;
 
@@ -1514,6 +1545,13 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initTerminal();
+
+            // Sync Grid Toggle Button Text on Init
+            const gridBtn = document.getElementById('grid-toggle-btn');
+            if(gridBtn && viewer.gridMode === 'machine') {
+               gridBtn.innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> Grid: Machine`;
+            }
+
 
             // Initialize Editor
             editor = new GCodeEditor('gcode-editor');
@@ -1676,9 +1714,17 @@
         });
 
         window.toggleCamera = function () {
-            const mode = viewer.toggleCamera();
-            document.getElementById('cam-toggle-btn').innerHTML = mode === 'Persp' ? '<i class="bi bi-eye-fill text-secondary"></i> Persp' : '<i class="bi bi-box-fill text-secondary"></i> Ortho';
+              const mode = viewer.toggleCamera();
+              const icon = mode === 'Perspective' ? 'bi-eye-fill' : 'bi-box-fill';
+              document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${mode}`;
         };
+
+        // New Grid Toggle Function
+        window.toggleGridMode = function() {
+             const label = viewer.toggleGridMode();
+             document.getElementById('grid-toggle-btn').innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> ${label}`;
+        };
+
         window.resetCamera = function () { viewer.resetCamera(); };
         window.sendCmd = function (cmd) { ws.sendCommand(cmd); };
         window.sendRealtime = function (c) { ws.sendRealtime(c); };
@@ -1719,9 +1765,6 @@
             switchTab('sd-view');
             sdHandler.startUpload(file);
         };
-
-        // ... existing sendFromInput, navigateHistory, initJogging, updateUIConnected, initTerminal, processLine, runCurrentJob, pauseJob, stopJob ...
-        // (Copy those functions from your original file, they remain unchanged except they are part of the module scope)
 
         function sendFromInput() {
             const i = document.getElementById('cmdInput');
@@ -1856,6 +1899,7 @@
             if (!line) return;
             line = line.trim();
             if (line.startsWith('[PRB:')) {
+                term.writeln(line);
                 probeHandler.handleProbeResult(line);
                 return;
             }
@@ -1867,6 +1911,7 @@
                         parseFloat(grblSettings.settings['131'].val),
                         parseFloat(grblSettings.settings['132'].val)
                     );
+                    viewer.resetCamera();
                 }
                 return;
             }
@@ -1876,15 +1921,14 @@
                 return;
             }
 
-            // --- MODIFY THIS BLOCK ---
             if (line.startsWith('<')) {
+
                 droHandler.parseStatus(line);
                 if (viewer) {
                     viewer.updateWCS(droHandler.wco);
                     if (droHandler.wpos) {
                          viewer.updateToolPosition(droHandler.wpos[0], droHandler.wpos[1], droHandler.wpos[2]);
                     }
-                    // --- ADD THIS LINE ---
                     // Pass the parsed spindle speed (if available) to the viewer for animation.
                     if (droHandler.spindleSpeed !== undefined) {
                         viewer.setSpindleSpeed(droHandler.spindleSpeed);
@@ -1892,7 +1936,6 @@
                 }
                 return;
             }
-            // --- END OF MODIFICATION ---
 
             if (gcodeStreamer.active && (line === 'ok' || line.toLowerCase().startsWith('error:'))) {
                 if (line.toLowerCase().startsWith('error:')) abortGCodeStream(line);

@@ -5,6 +5,9 @@ export class AppStore {
             general: {
                 units: 'mm', // 'mm' or 'in'
             },
+            viewer: {
+                gridMode: 'job' // 'job' or 'machine'
+            },
             jog: {
                 continuous: false,
                 step: 10,

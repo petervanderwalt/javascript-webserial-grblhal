@@ -145,7 +145,7 @@ export class ProbeHandler {
         const success = parts[1] === '1';
 
         if (!success) {
-            this.term.writeln('\x1b[31mProbe Failed: No Contact.\x1b[0m');
+            // this.term.writeln('\x1b[31mProbe Failed: No Contact.\x1b[0m');
             this.activeRoutine = null;
             return;
         }

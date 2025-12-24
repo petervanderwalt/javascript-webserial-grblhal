@@ -4,8 +4,6 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 // --- Theme Colors ---
 const COLORS = {
-    background: 0xf8f9fa,
-    // ... (rest of COLORS object is unchanged)
     gridMajor: 0x94a3b8,
     gridMinor: 0xcbd5e1,
     text: '#64748b',
@@ -13,18 +11,18 @@ const COLORS = {
     axisY: 0x22c55e,
     feed: 0x383838,
     rapid: 0xffa500,
-    machineBox: 0xffd949,
+    machineBox: 0x555555, // Dark Grey
     statsBox: 0x94a3b8,
     statsText: '#ffffff',
     statsBg: '#383838',
-    tool: 0xffd949,
-    toolShadow: 0xd7b232
+    tool: 0xffd949
 };
 
 export class GCodeViewer {
-    constructor(containerId, loadingOverlayId) {
+    constructor(containerId, loadingOverlayId, store) { // Added store
         this.container = document.getElementById(containerId);
         this.loadingOverlay = document.getElementById(loadingOverlayId);
+        this.store = store; // Save store reference
 
         this.scene = null;
         this.camera = null;
@@ -35,17 +33,24 @@ export class GCodeViewer {
         this.nativeUnits = 'mm';
         this.displayUnits = 'mm';
 
+        // Grid State - Load from Store
+        this.gridMode = this.store ? (this.store.get('viewer.gridMode') || 'job') : 'job';
+
         // Groups
+        // Root groups attached to Scene
+        this.machineGroup = new THREE.Group(); // Fixed at World (0,0,0) = Machine Home
+        this.workOffsetsGroup = new THREE.Group(); // Moves based on WCO
+
+        // Child groups attached to workOffsetsGroup
         this.gcodeGroup = new THREE.Group();
         this.gridGroup = new THREE.Group();
-        this.machineGroup = new THREE.Group();
         this.wcsGroup = new THREE.Group();
         this.labelsGroup = new THREE.Group();
         this.statsGroup = new THREE.Group();
         this.toolGroup = new THREE.Group();
 
         // Defaults
-        this.gridBounds = { xmin: -100, ymin: -100, xmax: 100, ymax: 100, zmin: 0 };
+        this.gridBounds = null; // Force calculation on first render
         this.machineLimits = { x: 200, y: 200, z: 100 };
         this.wco = { x: 0, y: 0, z: 0 };
 
@@ -53,46 +58,31 @@ export class GCodeViewer {
         this.targetToolPos = new THREE.Vector3(0, 0, 0);
         this.currentToolPos = new THREE.Vector3(0, 0, 0);
 
-        // --- NEW: Spindle Animation State ---
-        this.spindleSpeed = 0; // Current RPM from controller
-        this.clock = new THREE.Clock(); // For frame-rate independent animation
+        // Spindle Animation State
+        this.spindleSpeed = 0;
+        this.clock = new THREE.Clock();
 
         this.init();
     }
 
     init() {
-        // ... (init method is unchanged)
         if (!this.container) return;
         const w = this.container.clientWidth;
         const h = this.container.clientHeight || 400;
 
         // Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(COLORS.background);
 
-        // --- GRAPHICS UPGRADE: Lighting ---
+        // Lighting
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
         hemiLight.position.set(0, 0, 200);
         this.scene.add(hemiLight);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
         dirLight.position.set(50, 100, 150);
-        dirLight.castShadow = true;
-
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
-        dirLight.shadow.camera.near = 0.5;
-        dirLight.shadow.camera.far = 5000;
-        const d = 1000;
-        dirLight.shadow.camera.left = -d;
-        dirLight.shadow.camera.right = d;
-        dirLight.shadow.camera.top = d;
-        dirLight.shadow.camera.bottom = -d;
-        dirLight.shadow.bias = -0.0001;
-
         this.scene.add(dirLight);
 
-        // --- GRAPHICS UPGRADE: Renderer ---
+        // Renderer
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
             alpha: true,
@@ -100,7 +90,6 @@ export class GCodeViewer {
         });
         this.renderer.setSize(w, h);
         this.renderer.setPixelRatio(window.devicePixelRatio);
-
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -119,14 +108,20 @@ export class GCodeViewer {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
-        // Add Groups
-        this.scene.add(this.gridGroup);
-        this.scene.add(this.labelsGroup);
-        this.scene.add(this.gcodeGroup);
-        this.scene.add(this.statsGroup);
+        // Scene Hierarchy Construction
+        // 1. Machine Group (Static)
         this.scene.add(this.machineGroup);
-        this.scene.add(this.wcsGroup);
-        this.scene.add(this.toolGroup);
+
+        // 2. Work Offsets Group (Dynamic Position)
+        this.scene.add(this.workOffsetsGroup);
+
+        // 3. Children of Work Offsets
+        this.workOffsetsGroup.add(this.gridGroup);
+        this.workOffsetsGroup.add(this.labelsGroup);
+        this.workOffsetsGroup.add(this.gcodeGroup);
+        this.workOffsetsGroup.add(this.statsGroup);
+        this.workOffsetsGroup.add(this.wcsGroup);
+        this.workOffsetsGroup.add(this.toolGroup);
 
         // Initial Renders
         this.renderCoolGrid();
@@ -138,7 +133,6 @@ export class GCodeViewer {
     }
 
     setUnits(units) {
-        // ... (setUnits method is unchanged)
         if (this.displayUnits === units) return;
         this.displayUnits = units;
         this.renderCoolGrid();
@@ -147,48 +141,33 @@ export class GCodeViewer {
         window.dispatchEvent(new CustomEvent('viewer-units-changed', { detail: { units: this.displayUnits } }));
     }
 
-    // --- UPDATED: animate() method ---
     animate() {
         requestAnimationFrame(() => this.animate());
-        const delta = this.clock.getDelta(); // Get time since last frame in seconds
+        const delta = this.clock.getDelta();
 
-        // Smoothly interpolate tool position
+        // Tool position is in WPos (local to workOffsetsGroup)
         this.currentToolPos.lerp(this.targetToolPos, 0.1);
         this.toolGroup.position.copy(this.currentToolPos);
 
-        // --- Spindle Rotation Logic (Corrected and Stabilized) ---
-        const elapsedTime = this.clock.getElapsedTime(); // Time in seconds
-        console.log(this.spindleSpeed);
+        const elapsedTime = this.clock.getElapsedTime();
 
         if (this.spindleSpeed > 0) {
-             // 1. Convert Revolutions Per Minute (RPM) to Radians Per Second
-             // (RPM / 60) gives revolutions per second.
-             // (RPS * 2 * PI) gives radians per second.
-             // Simplified: RPM * (PI / 30)
              const radiansPerSecond = this.spindleSpeed * (Math.PI / 30);
-
-             // 2. Calculate the TARGET rotation based on the total elapsed time.
-             // This is an absolute calculation, not incremental, which prevents error accumulation.
              const targetRotationZ = elapsedTime * radiansPerSecond;
-
-             // 3. Set the tool group's rotation directly to this calculated value.
              this.toolGroup.rotation.z = -targetRotationZ;
         }
-         // --- NEW: If speed is zero, we don't do anything, so the rotation stops and holds its last position ---
-        // Update controls and render the scene
+
         if (this.controls) this.controls.update();
         if (this.renderer && this.scene && this.camera) {
             this.renderer.render(this.scene, this.camera);
         }
     }
 
-    // --- NEW: Method to update spindle speed from external source ---
     setSpindleSpeed(rpm) {
         this.spindleSpeed = rpm || 0;
     }
 
     resize() {
-        // ... (resize method is unchanged)
         if (!this.container || this.container.clientWidth === 0) return;
         const w = this.container.clientWidth;
         const h = this.container.clientHeight;
@@ -197,8 +176,6 @@ export class GCodeViewer {
         this.renderer.setSize(w, h);
     }
 
-    // ... (The rest of the file is unchanged)
-    // --- Text Helpers ---
     createTextSprite(text) {
         const resMult = 4;
         const fontsize = 24 * resMult;
@@ -247,32 +224,79 @@ export class GCodeViewer {
         tex.minFilter = THREE.LinearFilter;
         tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
         const material = new THREE.MeshBasicMaterial({
-            map: tex, transparent: true, opacity: 1, side: THREE.DoubleSide, depthWrite: false
+            map: tex,
+            transparent: true,
+            opacity: 1,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            depthTest: false
         });
         const scaleFactor = 0.15;
         const geometry = new THREE.PlaneGeometry(canvasWidth * scaleFactor, canvasHeight * scaleFactor);
         return new THREE.Mesh(geometry, material);
     }
 
+    updateGridBounds(forceJobBox = null) {
+        if (this.gridMode === 'machine' && this.machineLimits) {
+            // Machine Limits are in Machine Coordinates (MPos) relative to Home (0,0,0)
+            // But the Grid is drawn inside workOffsetsGroup, which is shifted by WCO.
+            // We need to transform the machine bounds into the Local Space of workOffsetsGroup.
+
+            const mx = this.machineLimits.x;
+            const my = this.machineLimits.y;
+            const ox = -this.wco.x; // Origin X (Machine Home in Local space)
+            const oy = -this.wco.y; // Origin Y (Machine Home in Local space)
+
+            this.gridBounds = {
+                xmin: ox - mx, // Left/South edge
+                ymin: oy - my, // Bottom/South edge
+                xmax: ox,      // Right/North edge (Home)
+                ymax: oy,      // Top/North edge (Home)
+                zmin: 0
+            };
+        } else {
+            // Job Mode (already in WPos, so no transform needed)
+            let box = forceJobBox;
+            if (!box) {
+                box = new THREE.Box3().setFromObject(this.gcodeGroup);
+            }
+
+            if (!box.isEmpty()) {
+                this.gridBounds = {
+                    xmin: box.min.x - 20,
+                    ymin: box.min.y - 20,
+                    xmax: box.max.x + 20,
+                    ymax: box.max.y + 20,
+                    zmin: box.min.z
+                };
+            } else {
+                this.gridBounds = { xmin: -100, ymin: -100, xmax: 100, ymax: 100, zmin: 0 };
+            }
+        }
+    }
+
+    toggleGridMode() {
+        this.gridMode = (this.gridMode === 'job') ? 'machine' : 'job';
+        if (this.store) this.store.set('viewer.gridMode', this.gridMode); // Save to Store
+        this.updateGridBounds();
+        this.renderCoolGrid();
+        return this.gridMode === 'machine' ? 'Grid: Machine' : 'Grid: Job';
+    }
+
     renderCoolGrid() {
         this.gridGroup.clear();
         this.labelsGroup.clear();
+
+        if (!this.gridBounds) this.updateGridBounds();
+
         const { xmin, xmax, ymin, ymax, zmin } = this.gridBounds;
-        let floorZ = (zmin !== undefined) ? Math.min(0, zmin) : 0;
-        floorZ -= 1.0;
-        const shadowPlaneGeo = new THREE.PlaneGeometry(Math.max(2000, (xmax-xmin)*2), Math.max(2000, (ymax-ymin)*2));
-        const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.1, color: 0x000000 });
-        const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
-        shadowPlane.receiveShadow = true;
-        shadowPlane.position.z = floorZ;
-        shadowPlane.position.x = (xmin + xmax) / 2;
-        shadowPlane.position.y = (ymin + ymax) / 2;
-        this.gridGroup.add(shadowPlane);
+
         const isDisplayInch = this.displayUnits === 'inch';
         const isNativeInch = this.nativeUnits === 'inch';
         let scaleFactor = 1.0;
         if (isNativeInch && !isDisplayInch) scaleFactor = 1 / 25.4;
         else if (!isNativeInch && isDisplayInch) scaleFactor = 25.4;
+
         const widthDisplay = (xmax - xmin) / scaleFactor;
         const heightDisplay = (ymax - ymin) / scaleFactor;
         const maxDimDisplay = Math.max(widthDisplay, heightDisplay);
@@ -294,54 +318,68 @@ export class GCodeViewer {
             const distToInt = Math.abs(rem - Math.round(rem));
             return distToInt < epsilon;
         };
+
         const vertices = [];
         const colors = [];
         const cMajor = new THREE.Color(COLORS.gridMajor);
         const cMinor = new THREE.Color(COLORS.gridMinor);
+
         const xStart = Math.floor(xmin / majorScene) * majorScene;
         const xEnd = Math.ceil(xmax / majorScene) * majorScene;
         const yStart = Math.floor(ymin / majorScene) * majorScene;
         const yEnd = Math.ceil(ymax / majorScene) * majorScene;
+
         for (let x = xStart; x <= xEnd + epsilon; x += stepScene) {
-             vertices.push(x, yStart, 0, x, yEnd, 0);
+             if (x < xmin - epsilon || x > xmax + epsilon) continue;
+             vertices.push(x, ymin, 0, x, ymax, 0);
+
              if (isMajor(x)) {
                  colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
                  const valDisplay = x / scaleFactor;
                  const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
                  const s = this.createTextSprite(labelText);
                  const yOffset = isDisplayInch ? (0.5 * scaleFactor) : (10 * scaleFactor);
-                 s.position.set(x, yStart - yOffset, 0);
+                 s.position.set(x, ymin - yOffset, 0);
                  this.labelsGroup.add(s);
              } else {
                  colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
              }
         }
+
         for (let y = yStart; y <= yEnd + epsilon; y += stepScene) {
-             vertices.push(xStart, y, 0, xEnd, y, 0);
+             if (y < ymin - epsilon || y > ymax + epsilon) continue;
+             vertices.push(xmin, y, 0, xmax, y, 0);
+
              if (isMajor(y)) {
                  colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
                  const valDisplay = y / scaleFactor;
                  const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
                  const s = this.createTextSprite(labelText);
                  const xOffset = isDisplayInch ? (0.8 * scaleFactor) : (15 * scaleFactor);
-                 s.position.set(xStart - xOffset, y, 0);
+                 s.position.set(xmin - xOffset, y, 0);
                  this.labelsGroup.add(s);
              } else {
                  colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
              }
         }
+
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent:true, opacity:0.5 });
         this.gridGroup.add(new THREE.LineSegments(geometry, material));
+
         if (xStart <= 0 && xEnd >= 0) {
-            const yAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0, yStart, 0.05), new THREE.Vector3(0, yEnd, 0.05) ]);
-            this.gridGroup.add(new THREE.LineSegments(yAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisY, linewidth: 2 })));
+            if (0 >= xmin && 0 <= xmax) {
+                 const yAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0, ymin, 0.05), new THREE.Vector3(0, ymax, 0.05) ]);
+                 this.gridGroup.add(new THREE.LineSegments(yAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisY, linewidth: 2 })));
+            }
         }
         if (yStart <= 0 && yEnd >= 0) {
-             const xAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(xStart, 0, 0.05), new THREE.Vector3(xEnd, 0, 0.05) ]);
-            this.gridGroup.add(new THREE.LineSegments(xAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisX, linewidth: 2 })));
+             if (0 >= ymin && 0 <= ymax) {
+                 const xAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(xmin, 0, 0.05), new THREE.Vector3(xmax, 0, 0.05) ]);
+                 this.gridGroup.add(new THREE.LineSegments(xAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisX, linewidth: 2 })));
+             }
         }
     }
 
@@ -349,17 +387,44 @@ export class GCodeViewer {
         if (x && y && z) {
             this.machineLimits = { x, y, z };
             this.renderMachineBox();
+            if (this.gridMode === 'machine') {
+                this.updateGridBounds();
+                this.renderCoolGrid();
+            }
         }
     }
 
     updateWCS(wcoArray) {
         if (!wcoArray || wcoArray.length < 3) return;
         const newWco = { x: wcoArray[0], y: wcoArray[1], z: wcoArray[2] };
+
+        // Check delta
         if (Math.abs(newWco.x - this.wco.x) > 0.01 ||
             Math.abs(newWco.y - this.wco.y) > 0.01 ||
             Math.abs(newWco.z - this.wco.z) > 0.01) {
+
+            // Calculate shift vector
+            const diffX = newWco.x - this.wco.x;
+            const diffY = newWco.y - this.wco.y;
+            const diffZ = newWco.z - this.wco.z;
+
             this.wco = newWco;
-            this.renderMachineBox();
+
+            // Move the Work Group to the new WCO world position
+            this.workOffsetsGroup.position.set(this.wco.x, this.wco.y, this.wco.z);
+
+            // Compensate the tool position so it stays static in World Space
+            // NewLocalPos = OldLocalPos - ShiftVector
+            // This prevents the visual "jump" while the new coordinate logic syncs
+            this.currentToolPos.x -= diffX;
+            this.currentToolPos.y -= diffY;
+            this.currentToolPos.z -= diffZ;
+
+            // If in machine grid mode, limits relative to WCS change, so redraw grid
+            if (this.gridMode === 'machine') {
+                this.updateGridBounds();
+                this.renderCoolGrid();
+            }
         }
     }
 
@@ -370,28 +435,46 @@ export class GCodeViewer {
 
     renderMachineBox() {
         this.machineGroup.clear();
-        const mzX = this.wco.x; const mzY = this.wco.y; const mzZ = this.wco.z;
+
+        // Machine Box is now static at World (0,0,0) -> Machine Home
         const { x, y, z } = this.machineLimits;
-        const vertices = [];
+
+        // Standard CNC: Home is (0,0,0). Travel is negative.
+        // x,y,z passed here are magnitudes (e.g. 300, 300, 80).
         const xMin = -x; const xMax = 0;
         const yMin = -y; const yMax = 0;
         const zMin = -z; const zMax = 0;
+
+        const vertices = [];
         const addLine = (a, b) => vertices.push(...a, ...b);
         const p = [
             [xMin, yMin, zMin], [xMax, yMin, zMin], [xMax, yMax, zMin], [xMin, yMax, zMin],
             [xMin, yMin, zMax], [xMax, yMin, zMax], [xMax, yMax, zMax], [xMin, yMax, zMax]
         ];
+
+        // Top and Bottom Loops
         addLine(p[0], p[1]); addLine(p[1], p[2]); addLine(p[2], p[3]); addLine(p[3], p[0]);
         addLine(p[4], p[5]); addLine(p[5], p[6]); addLine(p[6], p[7]); addLine(p[7], p[4]);
+        // Pillars
         addLine(p[0], p[4]); addLine(p[1], p[5]); addLine(p[2], p[6]); addLine(p[3], p[7]);
+
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        const dashedMat = new THREE.LineDashedMaterial({ color: COLORS.machineBox, dashSize: 5, gapSize: 3, opacity: 0.9, transparent: true, depthWrite: false });
+        const dashedMat = new THREE.LineDashedMaterial({
+            color: COLORS.machineBox,
+            dashSize: 10,
+            gapSize: 5,
+            opacity: 0.8,
+            transparent: true,
+            depthWrite: false
+        });
         const lines = new THREE.LineSegments(geometry, dashedMat);
         lines.computeLineDistances();
-        this.machineGroup.position.set(mzX, mzY, mzZ);
+
         this.machineGroup.add(lines);
-        const homeSphere = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 16), new THREE.MeshBasicMaterial({ color: COLORS.machineBox, transparent: true, opacity: 0.8 }));
+
+        // Machine Home Sphere (Fixed at World 0,0,0)
+        const homeSphere = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), new THREE.MeshBasicMaterial({ color: COLORS.machineBox, transparent: true, opacity: 0.8 }));
         this.machineGroup.add(homeSphere);
     }
 
@@ -420,18 +503,15 @@ export class GCodeViewer {
         const loader = new STLLoader();
         loader.load('./endmill.stl', (geometry) => {
             const mesh = new THREE.Mesh(geometry, endmillMat);
-            mesh.castShadow = true;
             this.toolGroup.add(mesh);
         }, undefined, (error) => console.warn('Could not load endmill.stl', error));
         loader.load('./collet-nut.stl', (geometry) => {
             const mesh = new THREE.Mesh(geometry, colletNutMat);
-            mesh.castShadow = true;
             mesh.position.z = 30;
             this.toolGroup.add(mesh);
         }, undefined, (error) => console.warn('Could not load collet-nut.stl', error));
         loader.load('./collet-shaft.stl', (geometry) => {
             const mesh = new THREE.Mesh(geometry, colletShaftMat);
-            mesh.castShadow = true;
             mesh.position.z = 30;
             this.toolGroup.add(mesh);
         }, undefined, (error) => console.warn('Could not load collet-shaft.stl', error));
@@ -488,20 +568,27 @@ export class GCodeViewer {
         if (feedGeo.length) {
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(feedGeo, 3));
-            this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: COLORS.feed, linewidth: 2 })));
+            this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+                color: COLORS.feed,
+                linewidth: 2,
+                depthTest: false
+            })));
         }
         if (rapidGeo.length) {
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(rapidGeo, 3));
-            this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: COLORS.rapid, linewidth: 1, transparent: true, opacity: 0.5 })));
+            this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+                color: COLORS.rapid,
+                linewidth: 1,
+                transparent: true,
+                opacity: 0.5,
+                depthTest: false
+            })));
         }
+
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
         if (!box.isEmpty()) {
-            this.gridBounds = {
-                xmin: box.min.x - 20, ymin: box.min.y - 20,
-                xmax: box.max.x + 20, ymax: box.max.y + 20,
-                zmin: box.min.z
-            };
+            this.updateGridBounds(box);
             this.renderCoolGrid();
             this.renderJobStats(box);
             this.resetCamera();
@@ -545,18 +632,36 @@ export class GCodeViewer {
     }
 
     resetCamera() {
+        // 1. Try GCode Box (Job Focus)
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
-        if (box.isEmpty()) {
-            this.camera.position.set(0, -200, 200);
-            this.controls.target.set(0, 0, 0);
-        } else {
+
+        if (!box.isEmpty()) {
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y);
             this.controls.target.copy(center);
             this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
+            this.controls.update();
+        } else {
+            // 2. Try Machine Limits (Machine Focus)
+            const machineBox = new THREE.Box3().setFromObject(this.machineGroup);
+
+            if (!machineBox.isEmpty()) {
+                const center = machineBox.getCenter(new THREE.Vector3());
+                const size = machineBox.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z || 100);
+
+                this.controls.target.copy(center);
+                // Position camera to see the full machine bed
+                this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
+                this.controls.update();
+            } else {
+                // 3. Fallback (Default)
+                this.camera.position.set(0, -200, 200);
+                this.controls.target.set(0, 0, 0);
+                this.controls.update();
+            }
         }
-        this.controls.update();
     }
 
     setCameraView(view) {
@@ -569,6 +674,12 @@ export class GCodeViewer {
             const maxDim = Math.max(size.x, size.y, size.z || 1);
             dist = maxDim * 2;
         }
+
+        // Use Work Zero (workOffsetsGroup position) if no gcode
+        if (box.isEmpty() && this.workOffsetsGroup) {
+            center.copy(this.workOffsetsGroup.position);
+        }
+
         this.controls.target.copy(center);
         switch (view) {
             case 'Top':
@@ -605,14 +716,14 @@ export class GCodeViewer {
             this.camera.zoom = 1;
             this.controls.object = this.camera;
             this.controls.target.copy(currentTarget);
-            return 'Ortho';
+            return 'Orthographic';
         } else {
             this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
             this.camera.up.set(0,0,1);
             this.camera.position.copy(currentPos);
             this.controls.object = this.camera;
             this.controls.target.copy(currentTarget);
-            return 'Persp';
+            return 'Perspective';
         }
     }
 }
