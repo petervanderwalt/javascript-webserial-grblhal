@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { ViewCube } from './viewcube.js';
 
 // --- Theme Colors ---
 const COLORS = {
@@ -108,6 +109,9 @@ export class GCodeViewer {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
+        // ViewCube
+        this.viewCube = new ViewCube(this.camera, this.controls, this.container);
+
         // Scene Hierarchy Construction
         // 1. Machine Group (Static)
         this.scene.add(this.machineGroup);
@@ -138,7 +142,7 @@ export class GCodeViewer {
         this.renderCoolGrid();
         // Use Local Box for stats to ensure they align with the gcode inside the group
         const box = this.getLocalGCodeBox();
-        if(!box.isEmpty()) this.renderJobStats(box);
+        if (!box.isEmpty()) this.renderJobStats(box);
         window.dispatchEvent(new CustomEvent('viewer-units-changed', { detail: { units: this.displayUnits } }));
     }
 
@@ -153,9 +157,9 @@ export class GCodeViewer {
         const elapsedTime = this.clock.getElapsedTime();
 
         if (this.spindleSpeed > 0) {
-             const radiansPerSecond = this.spindleSpeed * (Math.PI / 30);
-             const targetRotationZ = elapsedTime * radiansPerSecond;
-             this.toolGroup.rotation.z = -targetRotationZ;
+            const radiansPerSecond = this.spindleSpeed * (Math.PI / 30);
+            const targetRotationZ = elapsedTime * radiansPerSecond;
+            this.toolGroup.rotation.z = -targetRotationZ;
         }
 
         if (this.controls) this.controls.update();
@@ -191,7 +195,7 @@ export class GCodeViewer {
         ctx.font = `bold ${fontsize}px "JetBrains Mono", monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(text, width/2, height/2);
+        ctx.fillText(text, width / 2, height / 2);
         const tex = new THREE.CanvasTexture(canvas);
         tex.minFilter = THREE.LinearFilter;
         tex.magFilter = THREE.LinearFilter;
@@ -343,56 +347,56 @@ export class GCodeViewer {
         const yEnd = Math.ceil(ymax / majorScene) * majorScene;
 
         for (let x = xStart; x <= xEnd + epsilon; x += stepScene) {
-             if (x < xmin - epsilon || x > xmax + epsilon) continue;
-             vertices.push(x, ymin, 0, x, ymax, 0);
+            if (x < xmin - epsilon || x > xmax + epsilon) continue;
+            vertices.push(x, ymin, 0, x, ymax, 0);
 
-             if (isMajor(x)) {
-                 colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
-                 const valDisplay = x / scaleFactor;
-                 const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
-                 const s = this.createTextSprite(labelText);
-                 const yOffset = isDisplayInch ? (0.5 * scaleFactor) : (10 * scaleFactor);
-                 s.position.set(x, ymin - yOffset, 0);
-                 this.labelsGroup.add(s);
-             } else {
-                 colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
-             }
+            if (isMajor(x)) {
+                colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
+                const valDisplay = x / scaleFactor;
+                const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
+                const s = this.createTextSprite(labelText);
+                const yOffset = isDisplayInch ? (0.5 * scaleFactor) : (10 * scaleFactor);
+                s.position.set(x, ymin - yOffset, 0);
+                this.labelsGroup.add(s);
+            } else {
+                colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
+            }
         }
 
         for (let y = yStart; y <= yEnd + epsilon; y += stepScene) {
-             if (y < ymin - epsilon || y > ymax + epsilon) continue;
-             vertices.push(xmin, y, 0, xmax, y, 0);
+            if (y < ymin - epsilon || y > ymax + epsilon) continue;
+            vertices.push(xmin, y, 0, xmax, y, 0);
 
-             if (isMajor(y)) {
-                 colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
-                 const valDisplay = y / scaleFactor;
-                 const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
-                 const s = this.createTextSprite(labelText);
-                 const xOffset = isDisplayInch ? (0.8 * scaleFactor) : (15 * scaleFactor);
-                 s.position.set(xmin - xOffset, y, 0);
-                 this.labelsGroup.add(s);
-             } else {
-                 colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
-             }
+            if (isMajor(y)) {
+                colors.push(cMajor.r, cMajor.g, cMajor.b, cMajor.r, cMajor.g, cMajor.b);
+                const valDisplay = y / scaleFactor;
+                const labelText = parseFloat(valDisplay.toPrecision(10)).toString();
+                const s = this.createTextSprite(labelText);
+                const xOffset = isDisplayInch ? (0.8 * scaleFactor) : (15 * scaleFactor);
+                s.position.set(xmin - xOffset, y, 0);
+                this.labelsGroup.add(s);
+            } else {
+                colors.push(cMinor.r, cMinor.g, cMinor.b, cMinor.r, cMinor.g, cMinor.b);
+            }
         }
 
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-        const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent:true, opacity:0.5 });
+        const material = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 });
         this.gridGroup.add(new THREE.LineSegments(geometry, material));
 
         if (xStart <= 0 && xEnd >= 0) {
             if (0 >= xmin && 0 <= xmax) {
-                 const yAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(0, ymin, 0.05), new THREE.Vector3(0, ymax, 0.05) ]);
-                 this.gridGroup.add(new THREE.LineSegments(yAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisY, linewidth: 2 })));
+                const yAxisGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, ymin, 0.05), new THREE.Vector3(0, ymax, 0.05)]);
+                this.gridGroup.add(new THREE.LineSegments(yAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisY, linewidth: 2 })));
             }
         }
         if (yStart <= 0 && yEnd >= 0) {
-             if (0 >= ymin && 0 <= ymax) {
-                 const xAxisGeo = new THREE.BufferGeometry().setFromPoints([ new THREE.Vector3(xmin, 0, 0.05), new THREE.Vector3(xmax, 0, 0.05) ]);
-                 this.gridGroup.add(new THREE.LineSegments(xAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisX, linewidth: 2 })));
-             }
+            if (0 >= ymin && 0 <= ymax) {
+                const xAxisGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(xmin, 0, 0.05), new THREE.Vector3(xmax, 0, 0.05)]);
+                this.gridGroup.add(new THREE.LineSegments(xAxisGeo, new THREE.LineBasicMaterial({ color: COLORS.axisX, linewidth: 2 })));
+            }
         }
     }
 
@@ -532,7 +536,7 @@ export class GCodeViewer {
     }
 
     updateToolPosition(x, y, z) {
-        if(x !== undefined && y !== undefined && z !== undefined) {
+        if (x !== undefined && y !== undefined && z !== undefined) {
             this.targetToolPos.set(x, y, z);
         }
     }
@@ -611,7 +615,7 @@ export class GCodeViewer {
 
     renderJobStats(box) {
         this.statsGroup.clear();
-        if(box.isEmpty()) return;
+        if (box.isEmpty()) return;
         const size = new THREE.Vector3();
         box.getSize(size);
         const center = new THREE.Vector3();
@@ -680,7 +684,7 @@ export class GCodeViewer {
 
     setCameraView(view) {
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
-        let center = new THREE.Vector3(0,0,0);
+        let center = new THREE.Vector3(0, 0, 0);
         let dist = 200;
         if (!box.isEmpty()) {
             center = box.getCenter(new THREE.Vector3());
@@ -695,25 +699,63 @@ export class GCodeViewer {
         }
 
         this.controls.target.copy(center);
+
+        // Calculate target position and up vector
+        let targetPosition = new THREE.Vector3();
+        let targetUp = new THREE.Vector3();
+
         switch (view) {
             case 'Top':
-                this.camera.position.set(center.x, center.y, center.z + dist);
-                this.camera.up.set(0, 1, 0);
+                targetPosition.set(center.x, center.y, center.z + dist);
+                targetUp.set(0, 1, 0);
                 break;
             case 'Front':
-                this.camera.position.set(center.x, center.y - dist, center.z);
-                this.camera.up.set(0, 0, 1);
+                targetPosition.set(center.x, center.y - dist, center.z);
+                targetUp.set(0, 0, 1);
                 break;
             case 'Left':
-                this.camera.position.set(center.x - dist, center.y, center.z);
-                this.camera.up.set(0, 0, 1);
+                targetPosition.set(center.x - dist, center.y, center.z);
+                targetUp.set(0, 0, 1);
                 break;
             case 'Iso':
-                this.camera.position.set(center.x + dist, center.y - dist, center.z + dist);
-                this.camera.up.set(0, 0, 1);
+                targetPosition.set(center.x + dist, center.y - dist, center.z + dist);
+                targetUp.set(0, 0, 1);
                 break;
         }
-        this.controls.update();
+
+        // Animate camera to target position
+        this.animateCamera(targetPosition, targetUp);
+    }
+
+    animateCamera(targetPosition, targetUp) {
+        const startPosition = this.camera.position.clone();
+        const startUp = this.camera.up.clone();
+        const duration = 600; // milliseconds
+        const startTime = Date.now();
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Easing function (easeInOutCubic)
+            const eased = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+            // Interpolate position
+            this.camera.position.lerpVectors(startPosition, targetPosition, eased);
+
+            // Interpolate up vector
+            this.camera.up.lerpVectors(startUp, targetUp, eased);
+
+            this.controls.update();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        animate();
     }
 
     toggleCamera() {
@@ -725,18 +767,30 @@ export class GCodeViewer {
             const aspect = w / h;
             const frustumSize = currentPos.distanceTo(currentTarget);
             this.camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 10000);
-            this.camera.up.set(0,0,1);
+            this.camera.up.set(0, 0, 1);
             this.camera.position.copy(currentPos);
             this.camera.zoom = 1;
             this.controls.object = this.camera;
             this.controls.target.copy(currentTarget);
+
+            // Update viewcube with new camera reference
+            if (this.viewCube) {
+                this.viewCube.updateCamera(this.camera, this.controls);
+            }
+
             return 'Orthographic';
         } else {
             this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 10000);
-            this.camera.up.set(0,0,1);
+            this.camera.up.set(0, 0, 1);
             this.camera.position.copy(currentPos);
             this.controls.object = this.camera;
             this.controls.target.copy(currentTarget);
+
+            // Update viewcube with new camera reference
+            if (this.viewCube) {
+                this.viewCube.updateCamera(this.camera, this.controls);
+            }
+
             return 'Perspective';
         }
     }

@@ -49,7 +49,7 @@ export class DROHandler {
     }
 
     setPredefined(pos) {
-        if(confirm(`Set G${pos} location to current Machine Coordinates?`)) {
+        if (confirm(`Set G${pos} location to current Machine Coordinates?`)) {
             this.ws.sendCommand(`G${pos}.1`);
             this.term.writeln(`\x1b[32m> G${pos} Position Set.\x1b[0m`);
         }
@@ -75,11 +75,11 @@ export class DROHandler {
     updateUIUnits() {
         // Toggle Switch
         const toggle = document.getElementById('unitToggle');
-        if(toggle) toggle.checked = this.isMm;
+        if (toggle) toggle.checked = this.isMm;
 
         // Label
         const label = document.getElementById('unitLabel');
-        if(label) label.innerText = this.isMm ? 'MM' : 'IN';
+        if (label) label.innerText = this.isMm ? 'MM' : 'IN';
 
         // Step Options
         const select = document.getElementById('stepSize');
@@ -99,66 +99,79 @@ export class DROHandler {
                 const opt = document.createElement('option');
                 opt.value = step;
                 opt.innerText = `${step} ${unit}`;
-                if(step === currentStep) matchFound = true;
+                if (step === currentStep) matchFound = true;
                 select.appendChild(opt);
             });
 
-            if(matchFound) select.value = currentStep;
+            if (matchFound) select.value = currentStep;
             else select.selectedIndex = 2; // Default to middle option if mismatch
         }
 
         // Feedrate
         const feedInput = document.getElementById('feedRate');
-        if(feedInput) {
+        if (feedInput) {
             // Read from Store
             feedInput.value = this.store.get('jog.feed');
         }
     }
 
     parseStatus(line) {
-       const content = line.substring(1, line.length - 1);
-       const parts = content.split('|');
+        const content = line.substring(1, line.length - 1);
+        const parts = content.split('|');
 
-       this._updateStateBadge(parts[0]);
+        this._updateStateBadge(parts[0]);
 
-       // --- NEW: Reset spindle speed to 0 before each parse. ---
-       // If the 'FS:' field isn't in the report, the spindle is off.
-       this.spindleSpeed = 0;
+        // --- NEW: Reset spindle speed and feedrate to 0 before each parse. ---
+        // If the 'FS:' field isn't in the report, the spindle is off.
+        this.spindleSpeed = 0;
+        this.feedRate = 0;
 
-       let rawWPos = null;
-       let rawMPos = null;
+        let rawWPos = null;
+        let rawMPos = null;
+        let feedOverride = null;  // Only update if present in report
+        let spindleOverride = null;  // Only update if present in report
 
-       parts.forEach(part => {
-           if (part.startsWith('WCO:')) {
-               this.wco = part.split(':')[1].split(',').map(Number);
-           } else if (part.startsWith('WPos:')) {
-               rawWPos = part.split(':')[1].split(',').map(Number);
-           } else if (part.startsWith('MPos:')) {
-               rawMPos = part.split(':')[1].split(',').map(Number);
-           }
-           // --- NEW: Add the logic to parse the Feed/Speed part ---
-           else if (part.startsWith('FS:')) {
-               const speeds = part.substring(3).split(',');
-               // grblHAL provides: Feed, Programmed RPM, Actual RPM
-               if (speeds.length === 3) {
-                   this.spindleSpeed = parseFloat(speeds[2]);
-               } else if (speeds.length === 2) {
-                   // Fallback to programmed speed if actual is not reported
-                   this.spindleSpeed = parseFloat(speeds[1]);
-               }
-           }
-       });
+        parts.forEach(part => {
+            if (part.startsWith('WCO:')) {
+                this.wco = part.split(':')[1].split(',').map(Number);
+            } else if (part.startsWith('WPos:')) {
+                rawWPos = part.split(':')[1].split(',').map(Number);
+            } else if (part.startsWith('MPos:')) {
+                rawMPos = part.split(':')[1].split(',').map(Number);
+            }
+            // --- Parse Feed/Speed (FS:feed,programmedRPM,actualRPM) ---
+            else if (part.startsWith('FS:')) {
+                const speeds = part.substring(3).split(',');
+                // grblHAL provides: Feed, Programmed RPM, Actual RPM
+                if (speeds.length >= 1) {
+                    this.feedRate = parseFloat(speeds[0]) || 0;
+                }
+                if (speeds.length === 3) {
+                    this.spindleSpeed = parseFloat(speeds[2]) || 0;
+                } else if (speeds.length === 2) {
+                    // Fallback to programmed speed if actual is not reported
+                    this.spindleSpeed = parseFloat(speeds[1]) || 0;
+                }
+            }
+            // --- Parse Override values (Ov:feed,rapids,spindle) ---
+            else if (part.startsWith('Ov:')) {
+                const overrides = part.substring(3).split(',');
+                if (overrides.length >= 1) feedOverride = parseInt(overrides[0]) || 100;
+                if (overrides.length >= 3) spindleOverride = parseInt(overrides[2]) || 100;
+            }
+        });
 
-       if (rawMPos) {
-           this.mpos = rawMPos;
-           this.wpos = this.mpos.map((v, i) => v - (this.wco[i] || 0));
-       } else if (rawWPos) {
-           this.wpos = rawWPos;
-           this.mpos = this.wpos.map((v, i) => v + (this.wco[i] || 0));
-       }
+        if (rawMPos) {
+            this.mpos = rawMPos;
+            this.wpos = this.mpos.map((v, i) => v - (this.wco[i] || 0));
+        } else if (rawWPos) {
+            this.wpos = rawWPos;
+            this.mpos = this.wpos.map((v, i) => v + (this.wco[i] || 0));
+        }
 
-       this._updateAxisDisplay();
-   }
+        this._updateAxisDisplay();
+        this._updateFeedSpindleDisplay(feedOverride, spindleOverride);
+    }
 
 
     _updateStateBadge(state) {
@@ -207,5 +220,44 @@ export class DROHandler {
                 }
             }
         });
+    }
+
+    _updateFeedSpindleDisplay(feedOverride, spindleOverride) {
+        // Update Spindle RPM
+        const spindleRpmEl = document.getElementById('spindle-rpm');
+        if (spindleRpmEl) {
+            spindleRpmEl.textContent = Math.round(this.spindleSpeed || 0);
+        }
+
+        // Update Spindle Override % (only if present in report)
+        const spindleOvrEl = document.getElementById('spindle-ovr');
+        if (spindleOvrEl && spindleOverride !== null) {
+            spindleOvrEl.textContent = `${spindleOverride}%`;
+        }
+
+        // Update Feedrate with unit conversion
+        const feedRateEl = document.getElementById('feed-rate');
+        const feedRateUnitEl = document.getElementById('feed-rate-unit');
+        if (feedRateEl) {
+            let feedValue = this.feedRate || 0;
+            let unit = 'mm/min';
+
+            // Convert to inches per minute if in inch mode
+            if (!this.isMm) {
+                feedValue = feedValue / 25.4;
+                unit = 'in/min';
+            }
+
+            feedRateEl.textContent = Math.round(feedValue);
+            if (feedRateUnitEl) {
+                feedRateUnitEl.textContent = unit;
+            }
+        }
+
+        // Update Feed Override % (only if present in report)
+        const feedOvrEl = document.getElementById('feed-ovr');
+        if (feedOvrEl && feedOverride !== null) {
+            feedOvrEl.textContent = `${feedOverride}%`;
+        }
     }
 }

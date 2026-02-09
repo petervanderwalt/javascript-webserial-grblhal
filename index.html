@@ -1,11 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSerial CNC Control</title>
 
     <!-- Fonts: Nunito & Roboto -->
@@ -34,13 +32,13 @@
                         secondary: {
                             DEFAULT: '#6A6B6A',
                             dark: '#383838',
-                            light: '#D9D9D8'
+                            light: '#B0B0AF' // Darkened from #D9D9D8
                         }, // Techno Graphite
                         grey: {
                             dark: '#2F373C',
-                            DEFAULT: '#909090',
-                            light: '#E2E8F0',
-                            bg: '#F8F9FA'
+                            DEFAULT: '#6B6B6B', // Darkened from #909090 for better contrast
+                            light: '#CBD5E1', // Darkened from #E2E8F0 (Slate-300 feel)
+                            bg: '#EDF2F7'    // Darkened from #F8F9FA (more defined background)
                         },
                         surface: '#FFFFFF',
                         // CNC Standard Axis Colors
@@ -92,7 +90,7 @@
             .btn-icon { @apply p-2 rounded-md hover:bg-grey-bg transition-colors; }
 
             /* Overrides Button */
-            .btn-ovr { @apply h-9 md:h-7 w-full bg-grey-light/50 hover:bg-secondary hover:text-white rounded text-[10px] font-bold text-grey-dark transition-colors border border-grey-light touch-manipulation; }
+            .btn-ovr { @apply h-9 md:h-7 w-full bg-grey-light/50 hover:bg-secondary hover:text-white rounded text-[12px] font-bold text-grey-dark transition-colors border border-grey-light touch-manipulation; }
 
             /* Inputs */
             .input-field { @apply w-full rounded-md border-2 border-grey-light bg-grey-bg px-3 py-2 text-sm font-bold text-grey-dark focus:border-secondary focus:bg-white outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
@@ -133,11 +131,12 @@
             .console-wrapper { @apply flex-1 bg-white rounded-lg overflow-hidden p-1 md:p-2 shadow-inner border border-grey-light relative min-h-[100px] md:min-h-[150px]; }
 
             /* Tabs */
-            .tab-btn { @apply py-3 md:py-3 px-3 md:px-4 text-xs md:text-sm font-bold text-grey transition-all flex items-center hover:text-white whitespace-nowrap min-w-fit touch-manipulation; }
+            .tab-btn { @apply py-3 md:py-3 px-3 md:px-4 text-xs md:text-sm font-bold text-grey-light transition-all flex items-center hover:text-white whitespace-nowrap min-w-fit touch-manipulation; }
             .tab-btn.active { @apply bg-grey-bg text-secondary-dark; }
 
             /* Viewer Overlay */
             .viewer-controls { @apply absolute top-2 md:top-4 right-2 md:right-4 flex flex-col gap-2 z-20; }
+            .viewer-controls-left { @apply absolute top-2 md:top-4 left-2 md:left-4 flex flex-col gap-2 z-20; }
             .overlay-btn { @apply bg-white/90 backdrop-blur shadow-md px-3 py-2 rounded-lg text-xs font-bold text-grey-dark hover:text-primary hover:bg-white transition-all flex items-center gap-2 touch-manipulation; }
 
             /* Hide Scrollbar */
@@ -164,14 +163,17 @@
         <!-- Sidebar (Added 'open' class for default open state on mobile) -->
         <aside class="sidebar open" id="main-sidebar">
             <!-- Header -->
-            <div class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
+            <div
+                class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
                 <div class="flex items-center gap-3">
                     <!-- Sidebar Burger Menu (Mobile Only) -->
-                    <button class="md:hidden text-primary hover:text-white transition-colors mr-1" onclick="toggleSidebar()">
+                    <button class="md:hidden text-primary hover:text-white transition-colors mr-1"
+                        onclick="toggleSidebar()" aria-label="Toggle sidebar menu">
                         <i class="bi bi-list text-xl"></i>
                     </button>
 
                     <a href="#"><img src="logo.png" alt="CNC Control" class="h-10"></a>
+                    <h1 class="sr-only">WebSerial CNC Control</h1>
                     <!-- Connection Status Pill -->
                     <div
                         class="flex items-center bg-black/20 px-2.5 py-0 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-wider">
@@ -184,8 +186,9 @@
                     <!-- Reset Button -->
                     <button id="btn-reset"
                         class="btn h-8 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0"
-                        onclick="sendRealtime('\x18')" title="Soft Reset"><i class="bi bi-exclamation-octagon-fill"></i>Reset
-                        </button>
+                        onclick="sendRealtime('\x18')" title="Soft Reset"><i
+                            class="bi bi-exclamation-octagon-fill"></i>Reset
+                    </button>
                     <!-- Connect Button -->
                     <button id="btn-connect"
                         class="btn btn-primary h-8 text-xs shadow-none border border-white/10">Connect</button>
@@ -224,7 +227,7 @@
                                 <span class="text-xs font-black text-grey uppercase">WCS</span>
                                 <select
                                     class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
-                                    onchange="window.dro.setWCS(this.value)">
+                                    onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
                                     <option value="G54" selected>G54</option>
                                     <option value="G55">G55</option>
                                     <option value="G56">G56</option>
@@ -244,7 +247,8 @@
                                 <span id="dro-x-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-x" class="dro-val-lg">0.000</span>
                             </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('X')">Zero</button>
+                            <button class="dro-zero-btn" onclick="window.dro.setZero('X')"
+                                aria-label="Zero X axis">Zero</button>
                         </div>
 
                         <!-- Y Axis -->
@@ -254,7 +258,8 @@
                                 <span id="dro-y-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-y" class="dro-val-lg">0.000</span>
                             </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('Y')">Zero</button>
+                            <button class="dro-zero-btn" onclick="window.dro.setZero('Y')"
+                                aria-label="Zero Y axis">Zero</button>
                         </div>
 
                         <!-- Z Axis -->
@@ -264,7 +269,8 @@
                                 <span id="dro-z-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-z" class="dro-val-lg">0.000</span>
                             </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('Z')">Zero</button>
+                            <button class="dro-zero-btn" onclick="window.dro.setZero('Z')"
+                                aria-label="Zero Z axis">Zero</button>
                         </div>
 
                         <!-- A Axis (Hidden by default) -->
@@ -274,7 +280,8 @@
                                 <span id="dro-a-m" class="dro-val-sm">0.000</span>
                                 <span id="dro-a" class="dro-val-lg">0.000</span>
                             </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('A')">Zero</button>
+                            <button class="dro-zero-btn" onclick="window.dro.setZero('A')"
+                                aria-label="Zero A axis">Zero</button>
                         </div>
 
 
@@ -282,7 +289,8 @@
                         <!-- Footer Actions -->
                         <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
                             <div class="col-span-1 flex items-center">
-                                <span id="machine-state" class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
+                                <span id="machine-state"
+                                    class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
                             </div>
                             <div class="col-span-2 flex gap-1">
                                 <button
@@ -295,57 +303,81 @@
                             </div>
                         </div>
 
-                        <!-- Overrides -->
-                        <div class="flex flex-col gap-1.5 pt-2 border-t border-grey-light/50">
 
-                            <!-- Row 1: Feed (Full Width) -->
-                            <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <!-- UPDATED: text-[9px] -> text-[11px] -->
-                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0">
-                                  <i class="bi bi-speedometer2"></i> Feed</span>
-                                <div class="flex gap-1 flex-1">
-                                  <button
-                                      class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100"
-                                      onclick="sendRealtime('\x92')" title="-10%">-10</button>
-                                  <button class="btn-ovr flex-1 !bg-white !text-black border-grey-light"
-                                      onclick="sendRealtime('\x90')" title="Reset 100%">100</button>
-                                  <button
-                                      class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100"
-                                      onclick="sendRealtime('\x91')" title="+10%">+10</button>
+
+
+                        <!-- Spindle & Feedrate Display with Integrated Controls -->
+                        <div class="flex flex-col gap-1.5 mt-1.5 pt-1.5 border-t border-grey-light/50">
+                            <!-- Spindle RPM with Controls -->
+                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
+                                <div class="flex items-baseline justify-between mb-0.5">
+                                    <span class="text-[10px] font-bold text-grey uppercase"><i class="bi bi-fan"></i>
+                                        Spindle</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span id="spindle-rpm"
+                                            class="text-sm font-mono font-black text-grey-dark">0</span>
+                                        <span class="text-[9px] text-grey">RPM</span>
+                                        <span id="spindle-ovr"
+                                            class="text-[10px] font-bold text-secondary-dark ml-1">100%</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    <button
+                                        class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x9B')" title="-10%">-10</button>
+                                    <button
+                                        class="btn-ovr flex-1 !bg-white !text-black border-grey-light !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x99')" title="Reset 100%">Reset</button>
+                                    <button
+                                        class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x9A')" title="+10%">+10</button>
                                 </div>
                             </div>
 
-                            <!-- Row 2: Spindle (Full Width) -->
-                            <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <!-- UPDATED: text-[9px] -> text-[11px] -->
-                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0">
-                                  <i class="bi bi-fan"></i> Spin</span>
-                                <div class="flex gap-1 flex-1">
-                                  <button
-                                      class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100"
-                                      onclick="sendRealtime('\x9B')" title="-10%">-10</button>
-                                  <button class="btn-ovr flex-1 !bg-white !text-black border-grey-light"
-                                      onclick="sendRealtime('\x99')" title="Reset 100%">100</button>
-                                  <button
-                                      class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100"
-                                      onclick="sendRealtime('\x9A')" title="+10%">+10</button>
+                            <!-- Feedrate with Controls -->
+                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
+                                <div class="flex items-baseline justify-between mb-0.5">
+                                    <span class="text-[10px] font-bold text-grey uppercase"><i
+                                            class="bi bi-speedometer2"></i> Feed</span>
+                                    <div class="flex items-baseline gap-1">
+                                        <span id="feed-rate"
+                                            class="text-sm font-mono font-black text-grey-dark">0</span>
+                                        <span id="feed-rate-unit" class="text-[9px] text-grey">mm/min</span>
+                                        <span id="feed-ovr"
+                                            class="text-[10px] font-bold text-secondary-dark ml-1">100%</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    <button
+                                        class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x92')" title="-10%">-10</button>
+                                    <button
+                                        class="btn-ovr flex-1 !bg-white !text-black border-grey-light !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x90')" title="Reset 100%">Reset</button>
+                                    <button
+                                        class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x91')" title="+10%">+10</button>
                                 </div>
                             </div>
 
-                            <!-- Row 3: Rapids (Full Width) -->
-                            <div class="flex items-center gap-1 bg-grey-bg/50 p-1 rounded border border-grey-light/50">
-                                <!-- UPDATED: text-[9px] -> text-[11px] -->
-                                <span class="text-[11px] font-bold text-grey-dark w-14 shrink-0"><i
-                                        class="bi bi-lightning-charge-fill"></i> Rapid</span>
-                                <div class="flex gap-1 flex-1">
-                                    <button class="btn-ovr h-6 md:h-5 flex-1" onclick="sendRealtime('\x97')">25%</button>
-                                    <button class="btn-ovr h-6 md:h-5 flex-1" onclick="sendRealtime('\x96')">50%</button>
-                                    <button class="btn-ovr h-6 md:h-5 flex-1 !bg-white !text-black"
+                            <!-- Rapids Override -->
+                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[10px] font-bold text-grey uppercase"><i
+                                            class="bi bi-lightning-charge-fill"></i> Rapids</span>
+                                </div>
+                                <div class="flex gap-0.5">
+                                    <button class="btn-ovr flex-1 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x97')">25%</button>
+                                    <button class="btn-ovr flex-1 !h-5 !text-[10px]"
+                                        onclick="sendRealtime('\x96')">50%</button>
+                                    <button class="btn-ovr flex-1 !bg-white !text-black !h-5 !text-[10px]"
                                         onclick="sendRealtime('\x95')">100%</button>
                                 </div>
                             </div>
-
                         </div>
+
+
 
                         <!-- Predefined Positions Grid -->
                         <div class="grid grid-cols-2 gap-2 mt-2">
@@ -377,94 +409,109 @@
 
                     <!-- Jog Controls (Compact) -->
                     <!-- Jog Controls (Compact) -->
-                                        <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
+                    <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
 
-                                            <div class="jog-wrapper">
-                                                <!-- XY Pad -->
-                                                <div class="jog-pad">
-                                                    <!-- Row 1 -->
-                                                    <button class="jog-btn rounded-tl-xl" data-jog="X-Y+"><i
-                                                            class="bi bi-arrow-up-left"></i></button>
+                        <div class="jog-wrapper">
+                            <!-- XY Pad -->
+                            <div class="jog-pad">
+                                <!-- Row 1 -->
+                                <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
+                                        class="bi bi-arrow-up-left"></i></button>
 
-                                                    <!-- Y+ (Green, Top Border) -->
-                                                    <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50" data-jog="Y+"><i
-                                                            class="bi bi-caret-up-fill text-2xl"></i></button>
+                                <!-- Y+ (Green, Top Border) -->
+                                <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
+                                    data-jog="Y+" aria-label="Jog Y plus"><i
+                                        class="bi bi-caret-up-fill text-2xl"></i></button>
 
-                                                    <button class="jog-btn rounded-tr-xl" data-jog="X+Y+"><i
-                                                            class="bi bi-arrow-up-right"></i></button>
+                                <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
+                                        class="bi bi-arrow-up-right"></i></button>
 
-                                                    <!-- Row 2 -->
-                                                    <!-- X- (Red, Left Border) -->
-                                                    <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50" data-jog="X-"><i
-                                                            class="bi bi-caret-left-fill text-2xl"></i></button>
+                                <!-- Row 2 -->
+                                <!-- X- (Red, Left Border) -->
+                                <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
+                                    data-jog="X-" aria-label="Jog X minus"><i
+                                        class="bi bi-caret-left-fill text-2xl"></i></button>
 
-                                                    <div class="w-12 h-12 flex items-center justify-center">
-                                                        <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
-                                                    </div>
+                                <div class="w-12 h-12 flex items-center justify-center">
+                                    <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
+                                </div>
 
-                                                    <!-- X+ (Red, Right Border) -->
-                                                    <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50" data-jog="X+"><i
-                                                            class="bi bi-caret-right-fill text-2xl"></i></button>
+                                <!-- X+ (Red, Right Border) -->
+                                <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
+                                    data-jog="X+" aria-label="Jog X plus"><i
+                                        class="bi bi-caret-right-fill text-2xl"></i></button>
 
-                                                    <!-- Row 3 -->
-                                                    <button class="jog-btn rounded-bl-xl" data-jog="X-Y-"><i
-                                                            class="bi bi-arrow-down-left"></i></button>
+                                <!-- Row 3 -->
+                                <button class="jog-btn rounded-bl-xl" data-jog="X-Y-"
+                                    aria-label="Jog X minus Y minus"><i class="bi bi-arrow-down-left"></i></button>
 
-                                                    <!-- Y- (Green, Bottom Border) -->
-                                                    <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50" data-jog="Y-"><i
-                                                            class="bi bi-caret-down-fill text-2xl"></i></button>
+                                <!-- Y- (Green, Bottom Border) -->
+                                <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
+                                    data-jog="Y-" aria-label="Jog Y minus"><i
+                                        class="bi bi-caret-down-fill text-2xl"></i></button>
 
-                                                    <button class="jog-btn rounded-br-xl" data-jog="X+Y-"><i
-                                                            class="bi bi-arrow-down-right"></i></button>
-                                                </div>
+                                <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
+                                        class="bi bi-arrow-down-right"></i></button>
+                            </div>
 
-                                                <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
-                                                <div class="flex flex-col gap-2 w-28">
-                                                    <!-- Unlock Button -->
-                                                    <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
-                                                        onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
-                                                        Unlock</button>
+                            <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
+                            <div class="flex flex-col gap-2 w-28">
+                                <!-- Unlock Button -->
+                                <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
+                                    onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
+                                    Unlock</button>
 
-                                                    <!-- Z & A Buttons -->
-                                                    <div class="flex gap-1.5 justify-center">
-                                                        <!-- Z Pad (Blue) -->
-                                                        <div class="jog-extra-col">
-                                                            <button class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50" data-jog="Z+">Z+</button>
-                                                            <button class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50" data-jog="Z-">Z-</button>
-                                                        </div>
-                                                        <!-- A Pad (Orange) -->
-                                                        <div class="jog-extra-col">
-                                                            <button class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50" data-jog="A+">A+</button>
-                                                            <button class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50" data-jog="A-">A-</button>
-                                                        </div>
-                                                    </div>
+                                <!-- Z & A Buttons -->
+                                <div class="flex gap-1.5 justify-center">
+                                    <!-- Z Pad (Blue) -->
+                                    <div class="jog-extra-col">
+                                        <button
+                                            class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
+                                            data-jog="Z+" aria-label="Jog Z plus">Z+</button>
+                                        <button
+                                            class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
+                                            data-jog="Z-" aria-label="Jog Z minus">Z-</button>
+                                    </div>
+                                    <!-- A Pad (Orange) -->
+                                    <div class="jog-extra-col">
+                                        <button
+                                            class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
+                                            data-jog="A+" aria-label="Jog A plus">A+</button>
+                                        <button
+                                            class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
+                                            data-jog="A-" aria-label="Jog A minus">A-</button>
+                                    </div>
+                                </div>
 
-                                                    <!-- Continuous Toggle -->
-                                                    <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
-                                                        <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
-                                                        <input type="checkbox" id="jogContinuous" class="sr-only peer">
-                                                        <div
-                                                            class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
-                                                        </div>
-                                                        <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
-                                                    </label>
-                                                </div>
-                                            </div>
+                                <!-- Continuous Toggle -->
+                                <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
+                                    <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
+                                    <input type="checkbox" id="jogContinuous" class="sr-only peer">
+                                    <div
+                                        class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                                    </div>
+                                    <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
+                                </label>
+                            </div>
+                        </div>
 
-                                            <!-- Step/Feed -->
-                                            <div class="grid grid-cols-2 gap-2 mt-3">
-                                                <div class="relative">
-                                                    <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
-                                                    <select id="stepSize" class="input-field pl-10 text-right h-8 py-0">
-                                                        <!-- Populated by JS -->
-                                                    </select>
-                                                </div>
-                                                <div class="relative">
-                                                    <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
-                                                    <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
-                                                </div>
-                                            </div>
-                                        </div>
+                        <!-- Step/Feed -->
+                        <div class="grid grid-cols-2 gap-2 mt-3">
+                            <div class="relative">
+                                <span
+                                    class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
+                                <select id="stepSize" class="input-field pl-10 text-right h-8 py-0"
+                                    aria-label="Jog distance step size">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="relative">
+                                <span
+                                    class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
+                                <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
+                            </div>
+                        </div>
+                    </div>
                     <!-- End Jog Controls  -->
 
                 </div>
@@ -477,10 +524,13 @@
                     <!-- Console Input (Disabled when offline) -->
                     <div id="console-input-area"
                         class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
-                        <input type="text" id="cmdInput" class="input-field font-mono h-9 md:h-8" placeholder="G-Code...">
-                        <button id="btnSend" class="btn btn-secondary px-3 h-9 md:h-8"><i
-                                class="bi bi-send-fill text-xs"></i></button>
-                        <button class="btn-ghost text-xs" onclick="clearTerminal()"><i class="bi bi-trash"></i></button>
+                        <label for="cmdInput" class="sr-only">G-Code command input</label>
+                        <input type="text" id="cmdInput" class="input-field font-mono h-9 md:h-8"
+                            placeholder="G-Code...">
+                        <button id="btnSend" class="btn btn-secondary px-3 h-9 md:h-8"
+                            aria-label="Send G-Code command"><i class="bi bi-send-fill text-xs"></i></button>
+                        <button class="btn-ghost text-xs" onclick="clearTerminal()" aria-label="Clear terminal"><i
+                                class="bi bi-trash"></i></button>
                     </div>
                 </div>
 
@@ -491,14 +541,19 @@
         <main class="flex-1 flex flex-col bg-grey-bg relative overflow-hidden h-full">
 
             <!-- Navigation (Updated with Burger and Arrows) -->
-            <div class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
+            <div
+                class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
                 <!-- Burger Menu (Mobile Only) -->
-                <button class="md:hidden h-full px-4 text-primary hover:text-white border-r border-white/10 flex items-center justify-center transition-colors" onclick="toggleSidebar()">
+                <button
+                    class="md:hidden h-full px-4 text-primary hover:text-white border-r border-white/10 flex items-center justify-center transition-colors"
+                    onclick="toggleSidebar()" aria-label="Toggle sidebar menu">
                     <i class="bi bi-list text-xl"></i>
                 </button>
 
                 <!-- Left Scroll Arrow -->
-                <button class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors" onclick="scrollTabs('left')">
+                <button
+                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
+                    onclick="scrollTabs('left')" aria-label="Scroll tabs left">
                     <i class="bi bi-chevron-left text-xs"></i>
                 </button>
 
@@ -511,17 +566,21 @@
                     <button class="tab-btn" onclick="switchTab('surfacing-view', this)">Surfacing</button>
                     <button class="tab-btn" onclick="switchTab('tools-view', this)">
                         Tools
-                        <span id="tools-badge" class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
+                        <span id="tools-badge"
+                            class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
                     </button>
                     <button class="tab-btn" onclick="switchTab('sd-view', this)">
                         SD Card
-                        <span id="sd-badge" class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
+                        <span id="sd-badge"
+                            class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
                     </button>
                     <button class="tab-btn" onclick="switchTab('settings-view', this)">Settings</button>
                 </div>
 
                 <!-- Right Scroll Arrow -->
-                <button class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors" onclick="scrollTabs('right')">
+                <button
+                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
+                    onclick="scrollTabs('right')" aria-label="Scroll tabs right">
                     <i class="bi bi-chevron-right text-xs"></i>
                 </button>
             </div>
@@ -543,7 +602,35 @@
                         </div>
                     </div>
 
-                    <!-- Viewer Controls -->
+                    <!-- Job Progress Bar Overlay -->
+                    <div id="job-progress-overlay"
+                        class="hidden absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-4 z-30">
+                        <div class="max-w-2xl mx-auto">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-white font-bold text-sm">Job Progress</span>
+                                <span id="job-progress-pct" class="text-white font-mono font-bold text-sm">0%</span>
+                            </div>
+                            <div class="h-3 w-full bg-grey-dark rounded-full overflow-hidden shadow-inner">
+                                <div id="job-progress-bar"
+                                    class="h-full bg-primary transition-all duration-300 w-0 shadow-lg"></div>
+                            </div>
+                            <div class="flex justify-between items-center mt-2 text-xs text-grey-light">
+                                <span id="job-progress-line">Line 0 of 0</span>
+                                <span id="job-progress-time">Elapsed: 0:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top-Left Controls: Open File -->
+                    <div class="viewer-controls-left">
+                        <label
+                            class="overlay-btn cursor-pointer !bg-primary !text-secondary-dark hover:!bg-primary-dark shadow-lg">
+                            <i class="bi bi-folder2-open text-lg"></i> Open File
+                            <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
+                        </label>
+                    </div>
+
+                    <!-- Top-Right Controls -->
                     <div class="viewer-controls">
                         <!-- Run Job (Disabled when offline) -->
                         <button id="run-job-btn"
@@ -566,17 +653,6 @@
                             </button>
                         </div>
 
-                        <!-- Camera View Shortcuts -->
-                        <div class="flex gap-1 bg-white/90 p-1 rounded-lg shadow-md mt-4 backdrop-blur">
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Top')">Top</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Front')">Frt</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Left')">Lft</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Iso')">Iso</button>
-                        </div>
 
                         <button class="overlay-btn" onclick="resetCamera()">
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
@@ -591,11 +667,6 @@
                         <button class="overlay-btn" onclick="toggleGridMode()" id="grid-toggle-btn">
                             <i class="bi bi-grid-3x3 text-secondary"></i> Grid: Job
                         </button>
-
-                        <label class="overlay-btn cursor-pointer">
-                            <i class="bi bi-folder2-open text-secondary"></i> Open
-                            <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
-                        </label>
                     </div>
                 </div>
 
@@ -603,7 +674,8 @@
                 <div id="editor-view" class="tab-pane hidden w-full h-full flex flex-col bg-grey-bg relative">
 
                     <!-- Toolbar -->
-                    <div class="h-12 bg-white border-b border-grey-light flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
+                    <div
+                        class="h-12 bg-white border-b border-grey-light flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
                         <div class="flex items-center gap-2">
                             <h3 class="text-sm font-bold text-secondary-dark uppercase tracking-wider">
                                 <i class="bi bi-code-square"></i> G-Code Editor
@@ -616,7 +688,7 @@
                                 <i class="bi bi-play-circle-fill text-primary-dark"></i> Update Preview
                             </button>
                             <button class="btn btn-secondary text-xs h-8" onclick="downloadFromEditor()">
-                                 <i class="bi bi-download"></i> Save to PC
+                                <i class="bi bi-download"></i> Save to PC
                             </button>
                             <button class="btn btn-primary text-xs h-8" onclick="uploadEditorToSD()">
                                 <i class="bi bi-sd-card-fill"></i> Upload to SD
@@ -630,7 +702,8 @@
                     </div>
 
                     <!-- Status Footer -->
-                    <div class="h-6 bg-grey-bg border-t border-grey-light flex items-center px-2 text-[10px] text-grey font-mono justify-between shrink-0">
+                    <div
+                        class="h-6 bg-grey-bg border-t border-grey-light flex items-center px-2 text-[10px] text-grey font-mono justify-between shrink-0">
                         <span>Lines: <span id="editor-line-count">0</span></span>
                         <span>Virtualized Render Active</span>
                     </div>
@@ -646,7 +719,8 @@
                                 </h2>
                                 <p class="text-sm text-grey">Quickly execute predefined G-code sequences.</p>
                             </div>
-                            <button class="btn btn-secondary shadow-soft w-full md:w-auto" onclick="window.macroHandler.openModal(null)">
+                            <button class="btn btn-secondary shadow-soft w-full md:w-auto"
+                                onclick="window.macroHandler.openModal(null)">
                                 <i class="bi bi-plus-lg"></i> Create New
                             </button>
                         </div>
@@ -669,8 +743,9 @@
                                 <p class="text-sm text-grey">Generate G-code to flatten stock or spoilboards.</p>
                             </div>
                             <div class="flex gap-2 w-full md:w-auto">
-                                <button class="btn btn-primary shadow-soft w-full" onclick="window.surfacing.loadToViewer()"><i
-                                        class="bi bi-check-lg"></i> Generate G-Code</button>
+                                <button class="btn btn-primary shadow-soft w-full"
+                                    onclick="window.surfacing.loadToViewer()"><i class="bi bi-check-lg"></i> Generate
+                                    G-Code</button>
                             </div>
                         </div>
 
@@ -804,7 +879,8 @@
                                     onclick="document.getElementById('sd-upload-input').click()">
                                     <i class="bi bi-cloud-upload-fill"></i> Upload
                                 </button>
-                                <button class="btn btn-secondary shadow-soft flex-1 md:flex-initial" onclick="window.sdHandler.refresh()">
+                                <button class="btn btn-secondary shadow-soft flex-1 md:flex-initial"
+                                    onclick="window.sdHandler.refresh()">
                                     <i class="bi bi-arrow-clockwise"></i> Refresh
                                 </button>
                             </div>
@@ -814,7 +890,8 @@
                         <!-- Breadcrumb (Disabled when offline) -->
                         <div id="sd-breadcrumb"
                             class="bg-white border border-grey-light rounded-lg p-3 mb-4 flex items-center gap-3 shadow-card opacity-50 pointer-events-none transition-opacity duration-200">
-                            <button class="btn-icon text-grey-dark" onclick="window.sdHandler.upLevel()">
+                            <button class="btn-icon text-grey-dark" onclick="window.sdHandler.upLevel()"
+                                aria-label="Go up one directory level">
                                 <i class="bi bi-arrow-90deg-up"></i>
                             </button>
                             <span class="text-grey-light">|</span>
@@ -866,10 +943,13 @@
                                 <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
                                     <i class="bi bi-tools"></i> Tool Table
                                 </h2>
-                                <p class="text-sm text-grey">Manage tool library and offsets (G10 L1). requires <code>N_TOOLS > 0</code>.</p>
+                                <p class="text-sm text-grey">Manage tool library and offsets (G10 L1). requires
+                                    <code>N_TOOLS > 0</code>.
+                                </p>
                             </div>
                             <div class="flex gap-2 w-full md:w-auto">
-                                <button class="btn btn-secondary shadow-soft w-full md:w-auto" onclick="window.toolsHandler.refresh()">
+                                <button class="btn btn-secondary shadow-soft w-full md:w-auto"
+                                    onclick="window.toolsHandler.refresh()">
                                     <i class="bi bi-arrow-clockwise"></i> Refresh ($#)
                                 </button>
                             </div>
@@ -878,39 +958,53 @@
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-250px)] min-h-[500px]">
 
                             <!-- Tool List -->
-                            <div class="lg:col-span-4 xl:col-span-3 bg-white rounded-xl border border-grey-light shadow-soft flex flex-col overflow-hidden">
-                                <div class="p-3 border-b border-grey-light bg-grey-bg/50 font-bold text-xs text-grey uppercase tracking-wider flex justify-between">
+                            <div
+                                class="lg:col-span-4 xl:col-span-3 bg-white rounded-xl border border-grey-light shadow-soft flex flex-col overflow-hidden">
+                                <div
+                                    class="p-3 border-b border-grey-light bg-grey-bg/50 font-bold text-xs text-grey uppercase tracking-wider flex justify-between">
                                     <span>Library</span>
                                     <span id="tool-count-badge">0</span>
                                 </div>
                                 <div class="flex-1 overflow-y-auto p-0 relative">
                                     <table class="w-full text-left text-sm">
-                                        <thead class="sticky top-0 bg-white shadow-sm text-[10px] text-grey uppercase font-bold z-10">
+                                        <thead
+                                            class="sticky top-0 bg-white shadow-sm text-[10px] text-grey uppercase font-bold z-10">
                                             <tr>
-                                                <th class="px-4 py-2 border-b border-grey-light text-center w-14">Tool</th>
-                                                <th class="px-4 py-2 border-b border-grey-light text-right">Z-Offset</th>
+                                                <th class="px-4 py-2 border-b border-grey-light text-center w-14">Tool
+                                                </th>
+                                                <th class="px-4 py-2 border-b border-grey-light text-right">Z-Offset
+                                                </th>
                                                 <th class="px-4 py-2 border-b border-grey-light text-right">Dia</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="tool-table-body" class="divide-y divide-grey-light cursor-pointer select-none bg-white">
-                                            <tr><td colspan="3" class="p-6 text-center text-grey italic">No tools loaded.</td></tr>
+                                        <tbody id="tool-table-body"
+                                            class="divide-y divide-grey-light cursor-pointer select-none bg-white">
+                                            <tr>
+                                                <td colspan="3" class="p-6 text-center text-grey italic">No tools
+                                                    loaded.</td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
 
                             <!-- Tool Editor -->
-                            <div class="lg:col-span-8 xl:col-span-9 bg-white p-6 rounded-xl border border-grey-light shadow-soft flex flex-col gap-6 overflow-y-auto">
+                            <div
+                                class="lg:col-span-8 xl:col-span-9 bg-white p-6 rounded-xl border border-grey-light shadow-soft flex flex-col gap-6 overflow-y-auto">
 
                                 <!-- Toolbar -->
                                 <div class="flex justify-between items-center border-b border-grey-light pb-4">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-12 h-12 rounded-lg bg-primary flex items-center justify-center font-black text-xl border border-black/10 shadow-sm">
+                                        <div
+                                            class="w-12 h-12 rounded-lg bg-primary flex items-center justify-center font-black text-xl border border-black/10 shadow-sm">
                                             T<span id="edit-tool-id-display">?</span>
                                         </div>
                                         <div>
-                                            <label class="text-[10px] font-bold text-grey uppercase block mb-0.5">Tool Number</label>
-                                            <input type="number" id="edit-tool-num" class="font-mono text-2xl font-bold w-24 outline-none bg-transparent placeholder-grey/30" placeholder="#" min="1" max="255">
+                                            <label class="text-[10px] font-bold text-grey uppercase block mb-0.5">Tool
+                                                Number</label>
+                                            <input type="number" id="edit-tool-num"
+                                                class="font-mono text-2xl font-bold w-24 outline-none bg-transparent placeholder-grey/30"
+                                                placeholder="#" min="1" max="255">
                                         </div>
                                     </div>
                                     <div class="flex gap-2">
@@ -926,18 +1020,26 @@
                                 <!-- Fields -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div class="space-y-5">
-                                        <h4 class="text-xs font-black text-grey uppercase tracking-wider border-b border-grey-light pb-1">Geometry (G10 L1)</h4>
+                                        <h4
+                                            class="text-xs font-black text-grey uppercase tracking-wider border-b border-grey-light pb-1">
+                                            Geometry (G10 L1)</h4>
 
                                         <!-- Z Offset -->
                                         <div class="flex items-end gap-2">
                                             <div class="flex-1">
-                                                <label class="text-[11px] font-bold text-secondary-dark block mb-1">Z Offset</label>
+                                                <label class="text-[11px] font-bold text-secondary-dark block mb-1">Z
+                                                    Offset</label>
                                                 <div class="relative">
-                                                    <input type="number" id="edit-tool-z" class="input-field pl-8 font-mono text-lg" step="0.001" placeholder="0.000">
-                                                    <span class="absolute left-3 top-2.5 text-grey font-bold text-xs">Z</span>
+                                                    <input type="number" id="edit-tool-z"
+                                                        class="input-field pl-8 font-mono text-lg" step="0.001"
+                                                        placeholder="0.000">
+                                                    <span
+                                                        class="absolute left-3 top-2.5 text-grey font-bold text-xs">Z</span>
                                                 </div>
                                             </div>
-                                            <button class="btn btn-secondary h-[42px] px-3" onclick="window.toolsHandler.setFromCurrent('Z')" title="Teach Z from Machine Position">
+                                            <button class="btn btn-secondary h-[42px] px-3"
+                                                onclick="window.toolsHandler.setFromCurrent('Z')"
+                                                title="Teach Z from Machine Position">
                                                 <i class="bi bi-geo-alt-fill"></i> Teach
                                             </button>
                                         </div>
@@ -945,10 +1047,14 @@
                                         <!-- Diameter -->
                                         <div class="flex items-end gap-2">
                                             <div class="flex-1">
-                                                <label class="text-[11px] font-bold text-secondary-dark block mb-1">Diameter</label>
+                                                <label
+                                                    class="text-[11px] font-bold text-secondary-dark block mb-1">Diameter</label>
                                                 <div class="relative">
-                                                    <input type="number" id="edit-tool-dia" class="input-field pl-8 font-mono text-lg" step="0.01" placeholder="0.00">
-                                                    <span class="absolute left-3 top-2.5 text-grey font-bold text-xs">Ø</span>
+                                                    <input type="number" id="edit-tool-dia"
+                                                        class="input-field pl-8 font-mono text-lg" step="0.01"
+                                                        placeholder="0.00">
+                                                    <span
+                                                        class="absolute left-3 top-2.5 text-grey font-bold text-xs">Ø</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -956,24 +1062,35 @@
                                         <!-- XY Offsets (Usually 0 for Spindles) -->
                                         <div class="grid grid-cols-2 gap-4 pt-2">
                                             <div>
-                                                <label class="text-[10px] font-bold text-grey block mb-1">X Offset</label>
-                                                <input type="number" id="edit-tool-x" class="input-field font-mono text-sm" step="0.001" placeholder="0.000">
+                                                <label class="text-[10px] font-bold text-grey block mb-1">X
+                                                    Offset</label>
+                                                <input type="number" id="edit-tool-x"
+                                                    class="input-field font-mono text-sm" step="0.001"
+                                                    placeholder="0.000">
                                             </div>
                                             <div>
-                                                <label class="text-[10px] font-bold text-grey block mb-1">Y Offset</label>
-                                                <input type="number" id="edit-tool-y" class="input-field font-mono text-sm" step="0.001" placeholder="0.000">
+                                                <label class="text-[10px] font-bold text-grey block mb-1">Y
+                                                    Offset</label>
+                                                <input type="number" id="edit-tool-y"
+                                                    class="input-field font-mono text-sm" step="0.001"
+                                                    placeholder="0.000">
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Actions -->
-                                    <div class="flex flex-col justify-between bg-grey-bg/30 p-4 rounded-xl border border-grey-light/50">
+                                    <div
+                                        class="flex flex-col justify-between bg-grey-bg/30 p-4 rounded-xl border border-grey-light/50">
                                         <div class="space-y-3">
-                                            <p class="text-xs text-grey font-bold uppercase"><i class="bi bi-info-circle-fill"></i> Description</p>
-                                            <textarea id="edit-tool-desc" class="input-field h-24 resize-none text-xs" placeholder="Endmill, Ballnose, etc... (Note: Description storage depends on sender DB, not stored in grblHAL)"></textarea>
+                                            <p class="text-xs text-grey font-bold uppercase"><i
+                                                    class="bi bi-info-circle-fill"></i> Description</p>
+                                            <textarea id="edit-tool-desc" class="input-field h-24 resize-none text-xs"
+                                                placeholder="Endmill, Ballnose, etc... (Note: Description storage depends on sender DB, not stored in grblHAL)"></textarea>
                                         </div>
 
-                                        <button class="btn btn-primary h-14 text-base shadow-md w-full mt-6 justify-center" onclick="window.toolsHandler.saveTool()">
+                                        <button
+                                            class="btn btn-primary h-14 text-base shadow-md w-full mt-6 justify-center"
+                                            onclick="window.toolsHandler.saveTool()">
                                             <i class="bi bi-save-fill"></i> Save Tool (G10 L1)
                                         </button>
                                     </div>
@@ -1023,297 +1140,419 @@
 
                 <!-- START OF FILE index.html (Replace the entire probe-view div) -->
 
-                                <!-- Probing Tab -->
-                                <div id="probe-view" class="tab-pane hidden w-full h-full bg-grey-bg overflow-y-auto">
-                                    <div id="probe-panel-content" class="max-w-6xl mx-auto p-4 md:p-6 opacity-50 pointer-events-none transition-opacity duration-200 pb-20">
+                <!-- Probing Tab -->
+                <div id="probe-view" class="tab-pane hidden w-full h-full bg-grey-bg overflow-y-auto">
+                    <div id="probe-panel-content"
+                        class="max-w-6xl mx-auto p-4 md:p-6 opacity-50 pointer-events-none transition-opacity duration-200 pb-20">
 
-                                        <!-- Header -->
-                                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
-                                            <div>
-                                                <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
-                                                    <i class="bi bi-bullseye"></i> Probing
-                                                </h2>
-                                                <p class="text-sm text-grey">Tool offsets, edge finding, and alignment.</p>
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <button class="btn btn-secondary shadow-soft" onclick="window.probeHandler.saveSettings()">
-                                                    <i class="bi bi-save"></i> Save Settings
-                                                </button>
-                                            </div>
+                        <!-- Header -->
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
+                                    <i class="bi bi-bullseye"></i> Probing
+                                </h2>
+                                <p class="text-sm text-grey">Tool offsets, edge finding, and alignment.</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-secondary shadow-soft"
+                                    onclick="window.probeHandler.saveSettings()">
+                                    <i class="bi bi-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main Layout: Sidebar Config + Tabbed Content -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                            <!-- LEFT COLUMN: Global Configuration (Always Visible) -->
+                            <div class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1">
+                                <div class="bg-white p-4 rounded-xl border border-grey-light shadow-soft sticky top-4">
+                                    <h3
+                                        class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
+                                        <i class="bi bi-gear-fill"></i> Probe Config
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <!-- Plate Toggle -->
+                                        <div
+                                            class="bg-grey-bg/50 p-2 rounded border border-grey-light flex justify-between items-center">
+                                            <span class="text-xs font-bold text-secondary-dark">Touch Plate?</span>
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" id="prb-use-plate-main" class="sr-only peer"
+                                                    onchange="window.probeHandler.saveSettings()">
+                                                <div
+                                                    class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary">
+                                                </div>
+                                            </label>
                                         </div>
 
-                                        <!-- Main Layout: Sidebar Config + Tabbed Content -->
-                                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                        <!-- Basic Params -->
+                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Probe
+                                                Diameter</label>
+                                            <input type="number" id="prb-tool" class="input-field font-mono text-xs h-8"
+                                                step="0.01">
+                                        </div>
+                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Plate Thickness
+                                                (Z)</label>
+                                            <input type="number" id="prb-z-thick"
+                                                class="input-field font-mono text-xs h-8" step="0.01">
+                                        </div>
+                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Plate Offset
+                                                (XY)</label>
+                                            <input type="number" id="prb-xy-offset"
+                                                class="input-field font-mono text-xs h-8" step="0.01">
+                                        </div>
 
-                                            <!-- LEFT COLUMN: Global Configuration (Always Visible) -->
-                                            <div class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1">
-                                                <div class="bg-white p-4 rounded-xl border border-grey-light shadow-soft sticky top-4">
-                                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
-                                                        <i class="bi bi-gear-fill"></i> Probe Config
-                                                    </h3>
-                                                    <div class="space-y-3">
-                                                        <!-- Plate Toggle -->
-                                                        <div class="bg-grey-bg/50 p-2 rounded border border-grey-light flex justify-between items-center">
-                                                            <span class="text-xs font-bold text-secondary-dark">Touch Plate?</span>
-                                                            <label class="inline-flex items-center cursor-pointer">
-                                                                <input type="checkbox" id="prb-use-plate-main" class="sr-only peer" onchange="window.probeHandler.saveSettings()">
-                                                                <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
-                                                            </label>
+                                        <hr class="border-grey-light/50">
+
+                                        <!-- Speeds -->
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Fast
+                                                    Feed</label>
+                                                <input type="number" id="prb-feed"
+                                                    class="input-field font-mono text-xs h-8">
+                                            </div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Latch
+                                                    Feed</label>
+                                                <input type="number" id="prb-feed-latch"
+                                                    class="input-field font-mono text-xs h-8">
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Max
+                                                    Dist</label>
+                                                <input type="number" id="prb-dist"
+                                                    class="input-field font-mono text-xs h-8">
+                                            </div>
+                                            <div><label
+                                                    class="text-[10px] font-bold text-grey block mb-1">Retract</label>
+                                                <input type="number" id="prb-retract"
+                                                    class="input-field font-mono text-xs h-8">
+                                            </div>
+                                        </div>
+                                        <div><label class="text-[10px] font-bold text-grey block mb-1">XY
+                                                Clearance</label>
+                                            <input type="number" id="prb-edge-dist"
+                                                class="input-field font-mono text-xs h-8">
+                                        </div>
+                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Z Depth
+                                                (Edges)</label>
+                                            <input type="number" id="prb-z-depth"
+                                                class="input-field font-mono text-xs h-8">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN: Tabbed Interface -->
+                            <div class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 flex flex-col">
+
+                                <!-- Internal Tabs -->
+                                <div class="flex border-b border-grey-light mb-4 overflow-x-auto no-scrollbar">
+
+                                    <button
+                                        class="px-4 py-2 text-sm font-bold text-primary-dark border-b-2 border-primary transition-colors hover:bg-white whitespace-nowrap probe-tab-btn"
+                                        data-target="tab-edges"
+                                        onclick="window.probeHandler.switchProbeTab('tab-edges', this)">
+                                        Edge & Corners
+                                    </button>
+                                    <button
+                                        class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn"
+                                        data-target="tab-centers"
+                                        onclick="window.probeHandler.switchProbeTab('tab-centers', this)">
+                                        Center Finder
+                                    </button>
+                                    <button
+                                        class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn"
+                                        data-target="tab-rotation"
+                                        onclick="window.probeHandler.switchProbeTab('tab-rotation', this)">
+                                        Rotation
+                                    </button>
+                                    <button
+                                        class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn"
+                                        data-target="tab-tlo"
+                                        onclick="window.probeHandler.switchProbeTab('tab-tlo', this)">
+                                        Tool Length Offset
+                                    </button>
+                                </div>
+
+                                <!-- TAB CONTENT: Tool Length Offset -->
+                                <div id="tab-tlo" class="probe-tab-content hidden">
+                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light">
+                                        <h3 class="font-bold text-lg text-secondary-dark mb-4">Tool Length Offset (TLO)
+                                        </h3>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <!-- Config -->
+                                            <div class="space-y-4">
+                                                <div
+                                                    class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
+                                                    <i class="bi bi-info-circle-fill mr-1"></i>
+                                                    <strong>Workflow:</strong>
+                                                    1. Establish a reference with your first tool. <br>
+                                                    2. Change tool. <br>
+                                                    3. Measure new tool. The difference is applied to the Z Work
+                                                    Coordinate System (G54...).
+                                                </div>
+
+                                                <div class="bg-grey-bg/50 p-3 rounded-lg border border-grey-light">
+                                                    <h4 class="text-xs font-bold text-grey uppercase mb-2">Fixed Tool
+                                                        Setter Location (G53)</h4>
+                                                    <div class="grid grid-cols-3 gap-2">
+                                                        <div><label class="text-[9px] font-bold text-grey">X</label>
+                                                            <input type="number" id="tlo-x"
+                                                                class="input-field h-8 text-xs" placeholder="0.0">
                                                         </div>
-
-                                                        <!-- Basic Params -->
-                                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Probe Diameter</label>
-                                                            <input type="number" id="prb-tool" class="input-field font-mono text-xs h-8" step="0.01"></div>
-                                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Plate Thickness (Z)</label>
-                                                            <input type="number" id="prb-z-thick" class="input-field font-mono text-xs h-8" step="0.01"></div>
-                                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Plate Offset (XY)</label>
-                                                            <input type="number" id="prb-xy-offset" class="input-field font-mono text-xs h-8" step="0.01"></div>
-
-                                                        <hr class="border-grey-light/50">
-
-                                                        <!-- Speeds -->
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Fast Feed</label>
-                                                                <input type="number" id="prb-feed" class="input-field font-mono text-xs h-8"></div>
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Latch Feed</label>
-                                                                <input type="number" id="prb-feed-latch" class="input-field font-mono text-xs h-8"></div>
+                                                        <div><label class="text-[9px] font-bold text-grey">Y</label>
+                                                            <input type="number" id="tlo-y"
+                                                                class="input-field h-8 text-xs" placeholder="0.0">
                                                         </div>
-                                                        <div class="grid grid-cols-2 gap-2">
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Max Dist</label>
-                                                                <input type="number" id="prb-dist" class="input-field font-mono text-xs h-8"></div>
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Retract</label>
-                                                                <input type="number" id="prb-retract" class="input-field font-mono text-xs h-8"></div>
+                                                        <div><label class="text-[9px] font-bold text-grey">Z
+                                                                (Start)</label>
+                                                            <input type="number" id="tlo-z"
+                                                                class="input-field h-8 text-xs" placeholder="-5.0">
                                                         </div>
-                                                        <div><label class="text-[10px] font-bold text-grey block mb-1">XY Clearance</label>
-                                                            <input type="number" id="prb-edge-dist" class="input-field font-mono text-xs h-8"></div>
-                                                        <div><label class="text-[10px] font-bold text-grey block mb-1">Z Depth (Edges)</label>
-                                                            <input type="number" id="prb-z-depth" class="input-field font-mono text-xs h-8"></div>
+                                                    </div>
+                                                    <div class="flex gap-2 mt-2">
+                                                        <button class="btn btn-secondary text-[10px] w-full"
+                                                            onclick="window.probeHandler.setTLOFromMachine()">
+                                                            <i class="bi bi-geo-alt"></i> Get Current Pos
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- RIGHT COLUMN: Tabbed Interface -->
-                                            <div class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 flex flex-col">
 
-                                                <!-- Internal Tabs -->
-                                                <div class="flex border-b border-grey-light mb-4 overflow-x-auto no-scrollbar">
+                                            <!-- Actions -->
+                                            <div class="flex flex-col gap-3 justify-center">
 
-                                                    <button class="px-4 py-2 text-sm font-bold text-primary-dark border-b-2 border-primary transition-colors hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-edges" onclick="window.probeHandler.switchProbeTab('tab-edges', this)">
-                                                        Edge & Corners
-                                                    </button>
-                                                    <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-centers" onclick="window.probeHandler.switchProbeTab('tab-centers', this)">
-                                                        Center Finder
-                                                    </button>
-                                                    <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-rotation" onclick="window.probeHandler.switchProbeTab('tab-rotation', this)">
-                                                        Rotation
-                                                    </button>
-                                                    <button class="px-4 py-2 text-sm font-bold text-grey border-b-2 border-transparent transition-colors hover:text-secondary-dark hover:bg-white whitespace-nowrap probe-tab-btn" data-target="tab-tlo" onclick="window.probeHandler.switchProbeTab('tab-tlo', this)">
-                                                        Tool Length Offset
-                                                    </button>
+                                                <!-- Button 1: Reference (Height set to auto to prevent overflow) -->
+                                                <button
+                                                    class="btn btn-secondary h-auto py-3 flex-col items-center justify-center gap-1 border-2"
+                                                    onclick="window.probeHandler.runTLO('reference')">
+                                                    <i class="bi bi-1-circle-fill text-2xl text-primary-dark"></i>
+                                                    <span class="text-sm font-bold">1. Establish Reference</span>
+                                                    <span class="text-[10px] text-grey font-normal">Probe First
+                                                        Tool</span>
+                                                </button>
+
+                                                <div class="flex items-center justify-center text-grey-light">
+                                                    <i class="bi bi-arrow-down text-xl"></i>
                                                 </div>
 
-                                                <!-- TAB CONTENT: Tool Length Offset -->
-                                                <div id="tab-tlo" class="probe-tab-content hidden">
-                                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light">
-                                                        <h3 class="font-bold text-lg text-secondary-dark mb-4">Tool Length Offset (TLO)</h3>
+                                                <!-- Button 2: Measure (Height set to auto) -->
+                                                <button
+                                                    class="btn btn-primary h-auto py-3 flex-col items-center justify-center gap-1 shadow-md"
+                                                    onclick="window.probeHandler.runTLO('measure')">
+                                                    <i class="bi bi-rulers text-2xl"></i>
+                                                    <span class="text-sm font-bold">2. Measure New Tool</span>
+                                                    <span class="text-[10px] text-black/60 font-normal">Adjusts WCS Z
+                                                        Zero</span>
+                                                </button>
 
-                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                            <!-- Config -->
-                                                            <div class="space-y-4">
-                                                                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-xs text-blue-800 leading-relaxed">
-                                                                    <i class="bi bi-info-circle-fill mr-1"></i>
-                                                                    <strong>Workflow:</strong>
-                                                                    1. Establish a reference with your first tool. <br>
-                                                                    2. Change tool. <br>
-                                                                    3. Measure new tool. The difference is applied to the Z Work Coordinate System (G54...).
-                                                                </div>
-
-                                                                <div class="bg-grey-bg/50 p-3 rounded-lg border border-grey-light">
-                                                                    <h4 class="text-xs font-bold text-grey uppercase mb-2">Fixed Tool Setter Location (G53)</h4>
-                                                                    <div class="grid grid-cols-3 gap-2">
-                                                                        <div><label class="text-[9px] font-bold text-grey">X</label>
-                                                                            <input type="number" id="tlo-x" class="input-field h-8 text-xs" placeholder="0.0"></div>
-                                                                        <div><label class="text-[9px] font-bold text-grey">Y</label>
-                                                                            <input type="number" id="tlo-y" class="input-field h-8 text-xs" placeholder="0.0"></div>
-                                                                        <div><label class="text-[9px] font-bold text-grey">Z (Start)</label>
-                                                                            <input type="number" id="tlo-z" class="input-field h-8 text-xs" placeholder="-5.0"></div>
-                                                                    </div>
-                                                                    <div class="flex gap-2 mt-2">
-                                                                        <button class="btn btn-secondary text-[10px] w-full" onclick="window.probeHandler.setTLOFromMachine()">
-                                                                            <i class="bi bi-geo-alt"></i> Get Current Pos
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-
-                                                              <!-- Actions -->
-                                                              <div class="flex flex-col gap-3 justify-center">
-
-                                                                  <!-- Button 1: Reference (Height set to auto to prevent overflow) -->
-                                                                  <button class="btn btn-secondary h-auto py-3 flex-col items-center justify-center gap-1 border-2" onclick="window.probeHandler.runTLO('reference')">
-                                                                      <i class="bi bi-1-circle-fill text-2xl text-primary-dark"></i>
-                                                                      <span class="text-sm font-bold">1. Establish Reference</span>
-                                                                      <span class="text-[10px] text-grey font-normal">Probe First Tool</span>
-                                                                  </button>
-
-                                                                  <div class="flex items-center justify-center text-grey-light">
-                                                                      <i class="bi bi-arrow-down text-xl"></i>
-                                                                  </div>
-
-                                                                  <!-- Button 2: Measure (Height set to auto) -->
-                                                                  <button class="btn btn-primary h-auto py-3 flex-col items-center justify-center gap-1 shadow-md" onclick="window.probeHandler.runTLO('measure')">
-                                                                      <i class="bi bi-rulers text-2xl"></i>
-                                                                      <span class="text-sm font-bold">2. Measure New Tool</span>
-                                                                      <span class="text-[10px] text-black/60 font-normal">Adjusts WCS Z Zero</span>
-                                                                  </button>
-
-                                                                  <div class="mt-2 text-center">
-                                                                      <span class="text-xs font-mono bg-grey-bg px-2 py-1 rounded text-grey-dark" id="tlo-status">Ref: Not Set</span>
-                                                                  </div>
-                                                              </div>
-                                                        </div>
-                                                    </div>
+                                                <div class="mt-2 text-center">
+                                                    <span
+                                                        class="text-xs font-mono bg-grey-bg px-2 py-1 rounded text-grey-dark"
+                                                        id="tlo-status">Ref: Not Set</span>
                                                 </div>
-
-                                                <!-- TAB CONTENT: Edges & Corners (Existing logic refined) -->
-                                                <div id="tab-edges" class="probe-tab-content space-y-4 block">
-
-                                                    <!-- Corners -->
-                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <!-- Outside Corner -->
-                                                        <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
-                                                            <div class="flex justify-between items-start mb-2">
-                                                                <h3 class="font-bold text-secondary-dark text-sm"><i class="bi bi-box"></i> Outside Corner</h3>
-                                                                <span class="text-[9px] text-grey font-bold plate-status-text">Mode: Plate</span>
-                                                            </div>
-                                                            <div class="flex gap-4">
-                                                                <div class="w-24 h-24 grid grid-cols-2 gap-1 flex-shrink-0">
-                                                                    <button class="corner-sel-btn rounded-tl bg-grey-bg border border-grey-light hover:bg-primary h-full" data-corner="RL" onclick="window.probeHandler.selectCorner(this, 'Outside', 'RL')"></button>
-                                                                    <button class="corner-sel-btn rounded-tr bg-grey-bg border border-grey-light hover:bg-primary h-full" data-corner="RR" onclick="window.probeHandler.selectCorner(this, 'Outside', 'RR')"></button>
-                                                                    <button class="corner-sel-btn rounded-bl bg-primary border-2 border-black/20 ring-2 ring-primary/30 h-full" data-corner="FL" onclick="window.probeHandler.selectCorner(this, 'Outside', 'FL')"></button>
-                                                                    <button class="corner-sel-btn rounded-br bg-grey-bg border border-grey-light hover:bg-primary h-full" data-corner="FR" onclick="window.probeHandler.selectCorner(this, 'Outside', 'FR')"></button>
-                                                                </div>
-                                                                <button class="btn btn-primary flex-1 h-auto" onclick="window.probeHandler.runCornerProbe('Outside')">Start</button>
-                                                            </div>
-                                                        </div>
-
-                                                        <!-- Inside Corner -->
-                                                        <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
-                                                            <div class="flex justify-between items-start mb-2">
-                                                                <h3 class="font-bold text-secondary-dark text-sm"><i class="bi bi-bounding-box"></i> Inside Corner</h3>
-                                                                <span class="text-[9px] text-grey font-bold plate-status-text">Mode: Plate</span>
-                                                            </div>
-                                                            <div class="flex gap-4">
-                                                                <div class="w-24 h-24 grid grid-cols-2 gap-1 flex-shrink-0 p-1 bg-grey-light rounded-lg">
-                                                                    <button class="corner-sel-btn rounded-tl bg-white h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'RL')"></button>
-                                                                    <button class="corner-sel-btn rounded-tr bg-white h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'RR')"></button>
-                                                                    <button class="corner-sel-btn rounded-bl bg-primary border-2 border-black/20 h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'FL')"></button>
-                                                                    <button class="corner-sel-btn rounded-br bg-white h-full" onclick="window.probeHandler.selectCorner(this, 'Inside', 'FR')"></button>
-                                                                </div>
-                                                                <button class="btn btn-secondary flex-1 h-auto" onclick="window.probeHandler.runCornerProbe('Inside')">Start</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Single Axis -->
-                                                    <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
-                                                        <div class="flex justify-between items-center mb-2">
-                                                            <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Single Surface</h3>
-                                                            <span class="text-[10px] text-grey font-bold plate-status-text">Mode: Plate</span>
-                                                        </div>
-                                                        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]" onclick="window.probeHandler.runSingleAxis('X', 1)">
-                                                                <i class="bi bi-arrow-bar-right text-xl"></i><span class="text-[10px]">X+</span>
-                                                            </button>
-                                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]" onclick="window.probeHandler.runSingleAxis('X', -1)">
-                                                                <i class="bi bi-arrow-bar-left text-xl"></i><span class="text-[10px]">X-</span>
-                                                            </button>
-                                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]" onclick="window.probeHandler.runSingleAxis('Y', 1)">
-                                                                <i class="bi bi-arrow-bar-up text-xl"></i><span class="text-[10px]">Y+</span>
-                                                            </button>
-                                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]" onclick="window.probeHandler.runSingleAxis('Y', -1)">
-                                                                <i class="bi bi-arrow-bar-down text-xl"></i><span class="text-[10px]">Y-</span>
-                                                            </button>
-                                                            <button class="btn btn-primary flex-1 py-3 flex-col gap-1 min-w-[70px]" onclick="window.probeHandler.runZProbe()">
-                                                                <i class="bi bi-arrow-bar-down text-xl"></i><span class="text-[10px]">Z Surface</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- TAB CONTENT: Center Finder -->
-                                                <div id="tab-centers" class="probe-tab-content hidden">
-                                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light mb-4">
-                                                        <div class="flex items-center gap-2 mb-4">
-                                                             <h3 class="font-bold text-secondary-dark text-sm">Boss / Stock Dimensions</h3>
-                                                             <i class="bi bi-info-circle text-xs text-grey" title="Approximate size required for Boss probing"></i>
-                                                        </div>
-                                                        <div class="grid grid-cols-2 gap-4 max-w-sm">
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Width (X)</label>
-                                                                <input type="number" id="prb-boss-x" class="input-field h-8 text-sm" placeholder="0.0"></div>
-                                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Height (Y)</label>
-                                                                <input type="number" id="prb-boss-y" class="input-field h-8 text-sm" placeholder="0.0"></div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
-                                                            <i class="bi bi-circle-square text-3xl text-secondary mb-2 block"></i>
-                                                            <h4 class="font-bold text-sm">Inside Pocket</h4>
-                                                            <button class="btn btn-secondary w-full mt-3" onclick="window.probeHandler.runPocketCenter()">Probe</button>
-                                                        </div>
-                                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
-                                                            <i class="bi bi-square-fill text-3xl text-secondary mb-2 block"></i>
-                                                            <h4 class="font-bold text-sm">Rect Boss</h4>
-                                                            <button class="btn btn-secondary w-full mt-3" onclick="window.probeHandler.runBossCenter('Rect')">Probe</button>
-                                                        </div>
-                                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
-                                                            <i class="bi bi-circle-fill text-3xl text-secondary mb-2 block"></i>
-                                                            <h4 class="font-bold text-sm">Circular Boss</h4>
-                                                            <button class="btn btn-secondary w-full mt-3" onclick="window.probeHandler.runBossCenter('Circ')">Probe</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- TAB CONTENT: Rotation (New) -->
-                                                <div id="tab-rotation" class="probe-tab-content hidden">
-                                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light">
-                                                        <h3 class="font-bold text-lg text-secondary-dark mb-4">Workpiece Rotation</h3>
-
-                                                        <div class="flex flex-col md:flex-row gap-6">
-                                                            <div class="flex-1 space-y-4">
-                                                                <p class="text-xs text-grey leading-relaxed">
-                                                                    Probes two points along an edge to determine the angle of the material.
-                                                                    Use this to physically align your stock.
-                                                                </p>
-
-                                                                <div class="bg-grey-bg p-3 rounded-lg border border-grey-light">
-                                                                    <label class="text-[10px] font-bold text-grey block mb-1">Probe Distance (P1 to P2)</label>
-                                                                    <input type="number" id="rot-dist" class="input-field h-8 text-sm" value="50">
-                                                                    <p class="text-[9px] text-grey mt-1">Distance to move along X before probing P2.</p>
-                                                                </div>
-
-                                                                <div class="flex gap-2">
-                                                                    <button class="btn btn-primary flex-1" onclick="window.probeHandler.runRotationProbe()">
-                                                                        <i class="bi bi-arrow-clockwise"></i> Measure Angle
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="flex-1 flex flex-col items-center justify-center bg-blue-50 rounded-xl border border-blue-100 p-4">
-                                                                <h4 class="text-xs font-bold text-blue-800 uppercase mb-2">Measured Angle</h4>
-                                                                <span class="text-4xl font-mono font-black text-secondary-dark" id="rot-result">0.00°</span>
-                                                                <p class="text-[10px] text-blue-600 mt-2 text-center" id="rot-msg">Ready to probe.</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- TAB CONTENT: Edges & Corners (Existing logic refined) -->
+                                <div id="tab-edges" class="probe-tab-content space-y-4 block">
+
+                                    <!-- Corners -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- Outside Corner -->
+                                        <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <h3 class="font-bold text-secondary-dark text-sm"><i
+                                                        class="bi bi-box"></i> Outside Corner</h3>
+                                                <span class="text-[9px] text-grey font-bold plate-status-text">Mode:
+                                                    Plate</span>
+                                            </div>
+                                            <div class="flex gap-4">
+                                                <div class="w-24 h-24 grid grid-cols-2 gap-1 flex-shrink-0">
+                                                    <button
+                                                        class="corner-sel-btn rounded-tl bg-grey-bg border border-grey-light hover:bg-primary h-full"
+                                                        data-corner="RL"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Outside', 'RL')"></button>
+                                                    <button
+                                                        class="corner-sel-btn rounded-tr bg-grey-bg border border-grey-light hover:bg-primary h-full"
+                                                        data-corner="RR"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Outside', 'RR')"></button>
+                                                    <button
+                                                        class="corner-sel-btn rounded-bl bg-primary border-2 border-black/20 ring-2 ring-primary/30 h-full"
+                                                        data-corner="FL"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Outside', 'FL')"></button>
+                                                    <button
+                                                        class="corner-sel-btn rounded-br bg-grey-bg border border-grey-light hover:bg-primary h-full"
+                                                        data-corner="FR"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Outside', 'FR')"></button>
+                                                </div>
+                                                <button class="btn btn-primary flex-1 h-auto"
+                                                    onclick="window.probeHandler.runCornerProbe('Outside')">Start</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Inside Corner -->
+                                        <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <h3 class="font-bold text-secondary-dark text-sm"><i
+                                                        class="bi bi-bounding-box"></i> Inside Corner</h3>
+                                                <span class="text-[9px] text-grey font-bold plate-status-text">Mode:
+                                                    Plate</span>
+                                            </div>
+                                            <div class="flex gap-4">
+                                                <div
+                                                    class="w-24 h-24 grid grid-cols-2 gap-1 flex-shrink-0 p-1 bg-grey-light rounded-lg">
+                                                    <button class="corner-sel-btn rounded-tl bg-white h-full"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Inside', 'RL')"></button>
+                                                    <button class="corner-sel-btn rounded-tr bg-white h-full"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Inside', 'RR')"></button>
+                                                    <button
+                                                        class="corner-sel-btn rounded-bl bg-primary border-2 border-black/20 h-full"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Inside', 'FL')"></button>
+                                                    <button class="corner-sel-btn rounded-br bg-white h-full"
+                                                        onclick="window.probeHandler.selectCorner(this, 'Inside', 'FR')"></button>
+                                                </div>
+                                                <button class="btn btn-secondary flex-1 h-auto"
+                                                    onclick="window.probeHandler.runCornerProbe('Inside')">Start</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Single Axis -->
+                                    <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">
+                                                Single Surface</h3>
+                                            <span class="text-[10px] text-grey font-bold plate-status-text">Mode:
+                                                Plate</span>
+                                        </div>
+                                        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]"
+                                                onclick="window.probeHandler.runSingleAxis('X', 1)">
+                                                <i class="bi bi-arrow-bar-right text-xl"></i><span
+                                                    class="text-[10px]">X+</span>
+                                            </button>
+                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]"
+                                                onclick="window.probeHandler.runSingleAxis('X', -1)">
+                                                <i class="bi bi-arrow-bar-left text-xl"></i><span
+                                                    class="text-[10px]">X-</span>
+                                            </button>
+                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]"
+                                                onclick="window.probeHandler.runSingleAxis('Y', 1)">
+                                                <i class="bi bi-arrow-bar-up text-xl"></i><span
+                                                    class="text-[10px]">Y+</span>
+                                            </button>
+                                            <button class="btn btn-secondary flex-1 py-3 flex-col gap-1 min-w-[70px]"
+                                                onclick="window.probeHandler.runSingleAxis('Y', -1)">
+                                                <i class="bi bi-arrow-bar-down text-xl"></i><span
+                                                    class="text-[10px]">Y-</span>
+                                            </button>
+                                            <button class="btn btn-primary flex-1 py-3 flex-col gap-1 min-w-[70px]"
+                                                onclick="window.probeHandler.runZProbe()">
+                                                <i class="bi bi-arrow-bar-down text-xl"></i><span class="text-[10px]">Z
+                                                    Surface</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- TAB CONTENT: Center Finder -->
+                                <div id="tab-centers" class="probe-tab-content hidden">
+                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light mb-4">
+                                        <div class="flex items-center gap-2 mb-4">
+                                            <h3 class="font-bold text-secondary-dark text-sm">Boss / Stock Dimensions
+                                            </h3>
+                                            <i class="bi bi-info-circle text-xs text-grey"
+                                                title="Approximate size required for Boss probing"></i>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4 max-w-sm">
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Width
+                                                    (X)</label>
+                                                <input type="number" id="prb-boss-x" class="input-field h-8 text-sm"
+                                                    placeholder="0.0">
+                                            </div>
+                                            <div><label class="text-[10px] font-bold text-grey block mb-1">Height
+                                                    (Y)</label>
+                                                <input type="number" id="prb-boss-y" class="input-field h-8 text-sm"
+                                                    placeholder="0.0">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
+                                            <i class="bi bi-circle-square text-3xl text-secondary mb-2 block"></i>
+                                            <h4 class="font-bold text-sm">Inside Pocket</h4>
+                                            <button class="btn btn-secondary w-full mt-3"
+                                                onclick="window.probeHandler.runPocketCenter()">Probe</button>
+                                        </div>
+                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
+                                            <i class="bi bi-square-fill text-3xl text-secondary mb-2 block"></i>
+                                            <h4 class="font-bold text-sm">Rect Boss</h4>
+                                            <button class="btn btn-secondary w-full mt-3"
+                                                onclick="window.probeHandler.runBossCenter('Rect')">Probe</button>
+                                        </div>
+                                        <div class="bg-white p-4 rounded-xl border border-grey-light text-center">
+                                            <i class="bi bi-circle-fill text-3xl text-secondary mb-2 block"></i>
+                                            <h4 class="font-bold text-sm">Circular Boss</h4>
+                                            <button class="btn btn-secondary w-full mt-3"
+                                                onclick="window.probeHandler.runBossCenter('Circ')">Probe</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- TAB CONTENT: Rotation (New) -->
+                                <div id="tab-rotation" class="probe-tab-content hidden">
+                                    <div class="bg-white p-6 rounded-xl shadow-soft border border-grey-light">
+                                        <h3 class="font-bold text-lg text-secondary-dark mb-4">Workpiece Rotation</h3>
+
+                                        <div class="flex flex-col md:flex-row gap-6">
+                                            <div class="flex-1 space-y-4">
+                                                <p class="text-xs text-grey leading-relaxed">
+                                                    Probes two points along an edge to determine the angle of the
+                                                    material.
+                                                    Use this to physically align your stock.
+                                                </p>
+
+                                                <div class="bg-grey-bg p-3 rounded-lg border border-grey-light">
+                                                    <label class="text-[10px] font-bold text-grey block mb-1">Probe
+                                                        Distance (P1 to P2)</label>
+                                                    <input type="number" id="rot-dist" class="input-field h-8 text-sm"
+                                                        value="50">
+                                                    <p class="text-[9px] text-grey mt-1">Distance to move along X before
+                                                        probing P2.</p>
+                                                </div>
+
+                                                <div class="flex gap-2">
+                                                    <button class="btn btn-primary flex-1"
+                                                        onclick="window.probeHandler.runRotationProbe()">
+                                                        <i class="bi bi-arrow-clockwise"></i> Measure Angle
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                class="flex-1 flex flex-col items-center justify-center bg-blue-50 rounded-xl border border-blue-100 p-4">
+                                                <h4 class="text-xs font-bold text-blue-800 uppercase mb-2">Measured
+                                                    Angle</h4>
+                                                <span class="text-4xl font-mono font-black text-secondary-dark"
+                                                    id="rot-result">0.00°</span>
+                                                <p class="text-[10px] text-blue-600 mt-2 text-center" id="rot-msg">Ready
+                                                    to probe.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
 
             </div>
@@ -1376,8 +1615,10 @@
     </div>
 
     <!-- Tool Change Modal -->
-    <div id="tool-change-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-4 border-primary animate-in fade-in zoom-in duration-200">
+    <div id="tool-change-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-4 border-primary animate-in fade-in zoom-in duration-200">
             <!-- Header -->
             <div class="bg-primary p-4 flex justify-between items-center">
                 <h3 class="text-xl font-black text-black uppercase flex items-center gap-2">
@@ -1396,15 +1637,21 @@
                 <!-- Steps -->
                 <div class="bg-grey-bg p-4 rounded-xl border border-grey-light text-sm space-y-2 text-grey-dark">
                     <div class="flex gap-3">
-                        <div class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">1</div>
+                        <div
+                            class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">
+                            1</div>
                         <span>Change the physical tool.</span>
                     </div>
                     <div class="flex gap-3">
-                        <div class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">2</div>
+                        <div
+                            class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">
+                            2</div>
                         <span>Jog to safe location (if needed).</span>
                     </div>
                     <div class="flex gap-3">
-                        <div class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">3</div>
+                        <div
+                            class="font-bold bg-white w-6 h-6 rounded-full flex items-center justify-center border border-grey-light shrink-0">
+                            3</div>
                         <span>Probe or set length offsets.</span>
                     </div>
                 </div>
@@ -1422,12 +1669,12 @@
 
             <!-- Footer -->
             <div class="p-4 bg-grey-bg border-t border-grey-light flex justify-between gap-3">
-                 <div class="text-[10px] text-grey leading-tight flex-1">
-                     Click Resume only after tool is set.<br>Machine will return to previous pos.
-                 </div>
-                 <button class="btn btn-primary px-8 shadow-lg" onclick="window.toolsHandler.resumeToolChange()">
-                     <i class="bi bi-play-fill text-xl"></i> RESUME
-                 </button>
+                <div class="text-[10px] text-grey leading-tight flex-1">
+                    Click Resume only after tool is set.<br>Machine will return to previous pos.
+                </div>
+                <button class="btn btn-primary px-8 shadow-lg" onclick="window.toolsHandler.resumeToolChange()">
+                    <i class="bi bi-play-fill text-xl"></i> RESUME
+                </button>
             </div>
         </div>
     </div>
@@ -1540,7 +1787,7 @@
         let probeHandler = null;
         let surfacingHandler = null;
         let macroHandler = null;
-        let toolsHandler  = null;
+        let toolsHandler = null;
         let editor = null; // NEW GLOBAL
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1548,8 +1795,8 @@
 
             // Sync Grid Toggle Button Text on Init
             const gridBtn = document.getElementById('grid-toggle-btn');
-            if(gridBtn && viewer.gridMode === 'machine') {
-               gridBtn.innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> Grid: Machine`;
+            if (gridBtn && viewer.gridMode === 'machine') {
+                gridBtn.innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> Grid: Machine`;
             }
 
 
@@ -1571,10 +1818,10 @@
                     currentGCodeContent = content;
 
                     // Populate Editor
-                    if(editor) {
+                    if (editor) {
                         editor.setValue(content);
                         document.getElementById('editor-line-count').innerText = editor.lines.length;
-                        if(filename) document.getElementById('editor-file-name').innerText = filename;
+                        if (filename) document.getElementById('editor-file-name').innerText = filename;
                     }
                 },
                 switchToViewer: () => {
@@ -1605,16 +1852,16 @@
             window.addEventListener('gcode-loaded', (e) => {
                 currentGCodeContent = e.detail;
                 // Update editor when Surfacing wizard generates code
-                if(editor) {
+                if (editor) {
                     editor.setValue(e.detail);
                     document.getElementById('editor-line-count').innerText = editor.lines.length;
                     document.getElementById('editor-file-name').innerText = "Surfacing_Job.gcode";
                 }
             });
 
-           window.addEventListener('tab-shown', (e) => {
-               if(e.detail.id === 'tools-view') window.toolsHandler.refresh();
-           });
+            window.addEventListener('tab-shown', (e) => {
+                if (e.detail.id === 'tools-view') window.toolsHandler.refresh();
+            });
 
             // Unit Syncing
             const unitToggle = document.getElementById('unitToggle');
@@ -1683,7 +1930,7 @@
                     viewer.processGCodeString(currentGCodeContent);
 
                     // Update Editor
-                    if(editor) {
+                    if (editor) {
                         editor.setValue(content);
                         document.getElementById('editor-line-count').innerText = editor.lines.length;
                     }
@@ -1714,15 +1961,15 @@
         });
 
         window.toggleCamera = function () {
-              const mode = viewer.toggleCamera();
-              const icon = mode === 'Perspective' ? 'bi-eye-fill' : 'bi-box-fill';
-              document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${mode}`;
+            const mode = viewer.toggleCamera();
+            const icon = mode === 'Perspective' ? 'bi-eye-fill' : 'bi-box-fill';
+            document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${mode}`;
         };
 
         // New Grid Toggle Function
-        window.toggleGridMode = function() {
-             const label = viewer.toggleGridMode();
-             document.getElementById('grid-toggle-btn').innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> ${label}`;
+        window.toggleGridMode = function () {
+            const label = viewer.toggleGridMode();
+            document.getElementById('grid-toggle-btn').innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> ${label}`;
         };
 
         window.resetCamera = function () { viewer.resetCamera(); };
@@ -1731,8 +1978,8 @@
         window.clearTerminal = function () { term.clear(); }
 
         // Editor Actions
-        window.applyEditorChanges = function() {
-            if(!editor) return;
+        window.applyEditorChanges = function () {
+            if (!editor) return;
             const content = editor.getValue();
             currentGCodeContent = content;
 
@@ -1741,8 +1988,8 @@
             term.writeln("\x1b[32m[Editor] Job updated from editor.\x1b[0m");
         };
 
-        window.downloadFromEditor = function() {
-            if(!editor) return;
+        window.downloadFromEditor = function () {
+            if (!editor) return;
             const content = editor.getValue();
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1753,13 +2000,13 @@
             URL.revokeObjectURL(url);
         };
 
-        window.uploadEditorToSD = function() {
-            if(!editor) return;
+        window.uploadEditorToSD = function () {
+            if (!editor) return;
             const content = editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "edited.gcode";
             const filename = prompt("Enter filename for SD Card:", defaultName);
 
-            if(!filename) return;
+            if (!filename) return;
 
             const file = new File([content], filename, { type: "text/plain" });
             switchTab('sd-view');
@@ -1846,7 +2093,7 @@
                 btn.addEventListener('mousedown', startJog);
                 btn.addEventListener('mouseup', stopJog);
                 btn.addEventListener('mouseleave', stopJog);
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); startJog(e); }, {passive: false});
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); startJog(e); }, { passive: false });
                 btn.addEventListener('touchend', (e) => { e.preventDefault(); stopJog(e); });
                 btn.addEventListener('click', clickJog);
             });
@@ -1927,7 +2174,7 @@
                 if (viewer) {
                     viewer.updateWCS(droHandler.wco);
                     if (droHandler.wpos) {
-                         viewer.updateToolPosition(droHandler.wpos[0], droHandler.wpos[1], droHandler.wpos[2]);
+                        viewer.updateToolPosition(droHandler.wpos[0], droHandler.wpos[1], droHandler.wpos[2]);
                     }
                     // Pass the parsed spindle speed (if available) to the viewer for animation.
                     if (droHandler.spindleSpeed !== undefined) {
@@ -1960,8 +2207,11 @@
             document.getElementById('job-active-controls').classList.remove('hidden');
             document.getElementById('job-active-controls').classList.add('flex');
 
+            // Show job progress overlay
+            document.getElementById('job-progress-overlay').classList.remove('hidden');
+            jobStartTime = Date.now();
+
             term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
-            document.getElementById('upload-progress-container').style.display = 'block';
             advanceGCodeStream();
         }
 
@@ -1994,6 +2244,8 @@
             abortGCodeStream("User Stopped");
         }
 
+        let jobStartTime = 0;
+
         function advanceGCodeStream() {
             if (!gcodeStreamer.active) return;
             if (gcodeStreamer.index >= gcodeStreamer.lines.length) {
@@ -2003,9 +2255,18 @@
             const line = gcodeStreamer.lines[gcodeStreamer.index];
             ws.sendCommand(line);
             gcodeStreamer.index++;
+
+            // Update job progress
             const pct = Math.round((gcodeStreamer.index / gcodeStreamer.lines.length) * 100);
-            document.getElementById('upload-progress-bar').style.width = `${pct}%`;
-            document.getElementById('upload-pct').textContent = `${pct}%`;
+            document.getElementById('job-progress-bar').style.width = `${pct}%`;
+            document.getElementById('job-progress-pct').textContent = `${pct}%`;
+            document.getElementById('job-progress-line').textContent = `Line ${gcodeStreamer.index} of ${gcodeStreamer.lines.length}`;
+
+            // Update elapsed time
+            const elapsed = Math.floor((Date.now() - jobStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('job-progress-time').textContent = `Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
         function finishGCodeStream() {
@@ -2020,7 +2281,14 @@
         }
 
         function resetJobUI() {
-            document.getElementById('upload-progress-container').style.display = 'none';
+            // Hide job progress overlay
+            document.getElementById('job-progress-overlay').classList.add('hidden');
+            document.getElementById('job-progress-bar').style.width = '0%';
+            document.getElementById('job-progress-pct').textContent = '0%';
+            document.getElementById('job-progress-line').textContent = 'Line 0 of 0';
+            document.getElementById('job-progress-time').textContent = 'Elapsed: 0:00';
+
+            // Reset buttons
             document.getElementById('run-job-btn').classList.remove('hidden');
             document.getElementById('job-active-controls').classList.add('hidden');
             document.getElementById('job-active-controls').classList.remove('flex');
