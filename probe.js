@@ -47,28 +47,28 @@ export class ProbeHandler {
         const s = this.store.data.probe;
 
         // Basic Config
-        if(document.getElementById('prb-tool')) this.store.set('probe.toolDiameter', parseFloat(document.getElementById('prb-tool').value) || 0);
-        if(document.getElementById('prb-z-thick')) this.store.set('probe.plateThickness', parseFloat(document.getElementById('prb-z-thick').value) || 0);
-        if(document.getElementById('prb-xy-offset')) this.store.set('probe.xyPlateOffset', parseFloat(document.getElementById('prb-xy-offset').value) || 0);
+        if (document.getElementById('prb-tool')) this.store.set('probe.toolDiameter', parseFloat(document.getElementById('prb-tool').value) || 0);
+        if (document.getElementById('prb-z-thick')) this.store.set('probe.plateThickness', parseFloat(document.getElementById('prb-z-thick').value) || 0);
+        if (document.getElementById('prb-xy-offset')) this.store.set('probe.xyPlateOffset', parseFloat(document.getElementById('prb-xy-offset').value) || 0);
 
-        if(document.getElementById('prb-feed')) this.store.set('probe.feed', parseFloat(document.getElementById('prb-feed').value) || 100);
-        if(document.getElementById('prb-feed-latch')) this.store.set('probe.feedLatch', parseFloat(document.getElementById('prb-feed-latch').value) || 25);
-        if(document.getElementById('prb-dist')) this.store.set('probe.travel', parseFloat(document.getElementById('prb-dist').value) || 25);
-        if(document.getElementById('prb-retract')) this.store.set('probe.retract', parseFloat(document.getElementById('prb-retract').value) || 2);
-        if(document.getElementById('prb-edge-dist')) this.store.set('probe.clearance', parseFloat(document.getElementById('prb-edge-dist').value) || 5);
-        if(document.getElementById('prb-z-depth')) this.store.set('probe.zDepth', parseFloat(document.getElementById('prb-z-depth').value) || 5);
+        if (document.getElementById('prb-feed')) this.store.set('probe.feed', parseFloat(document.getElementById('prb-feed').value) || 100);
+        if (document.getElementById('prb-feed-latch')) this.store.set('probe.feedLatch', parseFloat(document.getElementById('prb-feed-latch').value) || 25);
+        if (document.getElementById('prb-dist')) this.store.set('probe.travel', parseFloat(document.getElementById('prb-dist').value) || 25);
+        if (document.getElementById('prb-retract')) this.store.set('probe.retract', parseFloat(document.getElementById('prb-retract').value) || 2);
+        if (document.getElementById('prb-edge-dist')) this.store.set('probe.clearance', parseFloat(document.getElementById('prb-edge-dist').value) || 5);
+        if (document.getElementById('prb-z-depth')) this.store.set('probe.zDepth', parseFloat(document.getElementById('prb-z-depth').value) || 5);
 
-        if(document.getElementById('prb-boss-x')) this.store.set('probe.bossW', parseFloat(document.getElementById('prb-boss-x').value) || 0);
-        if(document.getElementById('prb-boss-y')) this.store.set('probe.bossH', parseFloat(document.getElementById('prb-boss-y').value) || 0);
+        if (document.getElementById('prb-boss-x')) this.store.set('probe.bossW', parseFloat(document.getElementById('prb-boss-x').value) || 0);
+        if (document.getElementById('prb-boss-y')) this.store.set('probe.bossH', parseFloat(document.getElementById('prb-boss-y').value) || 0);
 
         // TLO Settings
-        if(document.getElementById('tlo-x')) this.store.set('probe.tloX', parseFloat(document.getElementById('tlo-x').value) || 0);
-        if(document.getElementById('tlo-y')) this.store.set('probe.tloY', parseFloat(document.getElementById('tlo-y').value) || 0);
-        if(document.getElementById('tlo-z')) this.store.set('probe.tloZ', parseFloat(document.getElementById('tlo-z').value) || -5);
+        if (document.getElementById('tlo-x')) this.store.set('probe.tloX', parseFloat(document.getElementById('tlo-x').value) || 0);
+        if (document.getElementById('tlo-y')) this.store.set('probe.tloY', parseFloat(document.getElementById('tlo-y').value) || 0);
+        if (document.getElementById('tlo-z')) this.store.set('probe.tloZ', parseFloat(document.getElementById('tlo-z').value) || -5);
 
         // Main Toggle
         const toggle = document.getElementById('prb-use-plate-main');
-        if(toggle) this.store.set('probe.usePlate', toggle.checked);
+        if (toggle) this.store.set('probe.usePlate', toggle.checked);
 
         this.renderSettings();
     }
@@ -77,7 +77,7 @@ export class ProbeHandler {
         const s = this.store.data.probe;
 
         // Helper to safely set values
-        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
 
         setVal('prb-tool', s.toolDiameter);
         setVal('prb-z-thick', s.plateThickness);
@@ -96,11 +96,11 @@ export class ProbeHandler {
         setVal('tlo-z', s.tloZ || -5);
 
         const toggle = document.getElementById('prb-use-plate-main');
-        if(toggle) toggle.checked = s.usePlate;
+        if (toggle) toggle.checked = s.usePlate;
 
         const statusEls = document.querySelectorAll('.plate-status-text');
         statusEls.forEach(el => {
-            if(s.usePlate) {
+            if (s.usePlate) {
                 el.textContent = "Mode: Plate";
                 el.classList.replace('text-grey', 'text-primary-dark');
             } else {
@@ -111,7 +111,7 @@ export class ProbeHandler {
     }
 
     selectCorner(btn, type, corner) {
-        if(type === 'Outside') this.selections.outsideCorner = corner;
+        if (type === 'Outside') this.selections.outsideCorner = corner;
         else this.selections.insideCorner = corner;
 
         const parent = btn.parentElement;
@@ -121,7 +121,7 @@ export class ProbeHandler {
         const inUnsel = ['bg-white', 'shadow-inner']; // simplified
 
         parent.querySelectorAll('button').forEach(b => {
-             b.className = "corner-sel-btn h-full transition-colors rounded " + (type==='Outside'? "bg-grey-bg border border-grey-light hover:bg-primary" : "bg-white shadow-inner hover:bg-primary");
+            b.className = "corner-sel-btn h-full transition-colors rounded " + (type === 'Outside' ? "bg-grey-bg border border-grey-light hover:bg-primary" : "bg-white shadow-inner hover:bg-primary");
         });
 
         // Apply active style
@@ -129,7 +129,7 @@ export class ProbeHandler {
     }
 
     setTLOFromMachine() {
-        if(window.dro && window.dro.mpos) {
+        if (window.dro && window.dro.mpos) {
             document.getElementById('tlo-x').value = window.dro.mpos[0].toFixed(3);
             document.getElementById('tlo-y').value = window.dro.mpos[1].toFixed(3);
             document.getElementById('tlo-z').value = window.dro.mpos[2].toFixed(3);
@@ -165,9 +165,12 @@ export class ProbeHandler {
         const s = this.store.data.probe;
 
         // Safety Checks
-        if(s.tloZ === 0 || s.tloZ === undefined) {
-             alert("Please set a safe Z start position for the Tool Setter.");
-             return;
+        if (s.tloZ === 0 || s.tloZ === undefined) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('TLO Setup Required', 'Please set a safe Z start position for the Tool Setter.');
+            }
+            return;
         }
 
         this.activeRoutine = 'TLO';
@@ -280,9 +283,9 @@ export class ProbeHandler {
     stepRotation(coords) {
         const s = this.store.data.probe;
 
-        if(this.routineStep === 0) {
+        if (this.routineStep === 0) {
             // P1 Done
-            this.probeData.push({x: coords[0], y: coords[1]});
+            this.probeData.push({ x: coords[0], y: coords[1] });
             this.term.writeln(`\x1b[32m> P1 Recorded.\x1b[0m`);
 
             // Retract
@@ -301,7 +304,7 @@ export class ProbeHandler {
         } else if (this.routineStep === 1) {
             // P2 Done
             const p1 = this.probeData[0];
-            const p2 = {x: coords[0], y: coords[1]};
+            const p2 = { x: coords[0], y: coords[1] };
 
             // Retract
             this.ws.sendCommand(`G91 G0 Y${s.retract}`);
@@ -344,7 +347,13 @@ export class ProbeHandler {
     }
 
     runCornerProbe(type) {
-        if(type === 'Inside') { alert("Inside corner logic placeholder."); return; }
+        if (type === 'Inside') {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('Not Implemented', 'Inside corner logic placeholder.');
+            }
+            return;
+        }
         this.saveSettings();
         const corner = this.selections.outsideCorner;
         const s = this.store.data.probe;
@@ -362,7 +371,7 @@ export class ProbeHandler {
         const rad = s.toolDiameter / 2;
         const xDir = this.tempData.xDir;
         const yDir = this.tempData.yDir;
-        const moveDist = s.clearance + rad + (s.usePlate?s.xyPlateOffset:0) + 2;
+        const moveDist = s.clearance + rad + (s.usePlate ? s.xyPlateOffset : 0) + 2;
 
         if (this.routineStep === 1) { // Z Done
             this.ws.sendCommand(`G10 L20 P0 Z${s.usePlate ? s.plateThickness : 0}`);
@@ -372,7 +381,7 @@ export class ProbeHandler {
             setTimeout(() => { this.ws.sendCommand(`G38.2 X${(-xDir * s.travel).toFixed(3)} F${s.feed}`); }, 200);
             this.routineStep = 2; // Fixed step logic
         } else if (this.routineStep === 2) { // X Done
-            const setX = -( -xDir * (rad + (s.usePlate?s.xyPlateOffset:0)) );
+            const setX = -(-xDir * (rad + (s.usePlate ? s.xyPlateOffset : 0)));
             this.ws.sendCommand(`G10 L20 P0 X${setX.toFixed(3)}`);
             this.ws.sendCommand(`G0 X${(xDir * s.retract).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
@@ -382,7 +391,7 @@ export class ProbeHandler {
             setTimeout(() => { this.ws.sendCommand(`G38.2 Y${(-yDir * s.travel).toFixed(3)} F${s.feed}`); }, 200);
             this.routineStep = 3;
         } else if (this.routineStep === 3) { // Y Done
-            const setY = -( -yDir * (rad + (s.usePlate?s.xyPlateOffset:0)) );
+            const setY = -(-yDir * (rad + (s.usePlate ? s.xyPlateOffset : 0)));
             this.ws.sendCommand(`G10 L20 P0 Y${setY.toFixed(3)}`);
             this.ws.sendCommand(`G0 Y${(yDir * s.retract).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
@@ -392,13 +401,14 @@ export class ProbeHandler {
     }
 
     // Reuse existing Pocket/Boss logic (simplified for brevity, assume previous implementation logic remains)
-    runPocketCenter() { this.activeRoutine = 'POCKET'; this.routineStep = 1; this.probeData=[]; this.ws.sendCommand(`G91 G38.2 X${this.store.data.probe.travel} F${this.store.data.probe.feed}`); }
-    runBossCenter(t) { this.activeRoutine='BOSS'; this.routineStep=1; this.probeData=[]; this.tempData={type:t};
-        const s=this.store.data.probe;
-        const mx=(s.bossW/2)+s.clearance+s.toolDiameter;
+    runPocketCenter() { this.activeRoutine = 'POCKET'; this.routineStep = 1; this.probeData = []; this.ws.sendCommand(`G91 G38.2 X${this.store.data.probe.travel} F${this.store.data.probe.feed}`); }
+    runBossCenter(t) {
+        this.activeRoutine = 'BOSS'; this.routineStep = 1; this.probeData = []; this.tempData = { type: t };
+        const s = this.store.data.probe;
+        const mx = (s.bossW / 2) + s.clearance + s.toolDiameter;
         this.ws.sendCommand(`G91 G0 X${mx.toFixed(3)}`);
-        this.ws.sendCommand(`G0 Z-${(s.retract+s.zDepth).toFixed(3)}`);
-        setTimeout(()=>{this.ws.sendCommand(`G38.2 X-50 F${s.feed}`)},200);
+        this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
+        setTimeout(() => { this.ws.sendCommand(`G38.2 X-50 F${s.feed}`) }, 200);
     }
     stepPocket(c) { this.commonCenterStep(c, 'POCKET'); }
     stepBoss(c) { this.commonCenterStep(c, 'BOSS'); } // Keeping it abstract, implementation details same as previous file
@@ -410,57 +420,57 @@ export class ProbeHandler {
         const len = this.probeData.length;
 
         if (len === 1 || len === 3) { // Back off and probe opposite
-            const axis = (len===1) ? 'X' : 'Y';
-            const mult = (type==='BOSS')? 1 : -1; // Boss moves out, Pocket moves in? Actually heavily depends on logic.
+            const axis = (len === 1) ? 'X' : 'Y';
+            const mult = (type === 'BOSS') ? 1 : -1; // Boss moves out, Pocket moves in? Actually heavily depends on logic.
             // Simplified logic: Assuming implementation from previous file is correct.
             // Re-implementing explicitly for Boss to ensure it works with new TLO logic structure:
-            if(type === 'BOSS') {
-                if(len === 1) { // Hit X Right side. Retract, go Left, Probe Right
-                     this.ws.sendCommand(`G0 X${s.retract}`);
-                     this.ws.sendCommand(`G0 Z${(s.retract+s.zDepth).toFixed(3)}`);
-                     const traverse = s.bossW + s.clearance*2 + s.toolDiameter + 2;
-                     this.ws.sendCommand(`G0 X-${traverse}`);
-                     this.ws.sendCommand(`G0 Z-${(s.retract+s.zDepth).toFixed(3)}`);
-                     setTimeout(()=>{this.ws.sendCommand(`G38.2 X50 F${s.feed}`)},200);
+            if (type === 'BOSS') {
+                if (len === 1) { // Hit X Right side. Retract, go Left, Probe Right
+                    this.ws.sendCommand(`G0 X${s.retract}`);
+                    this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
+                    const traverse = s.bossW + s.clearance * 2 + s.toolDiameter + 2;
+                    this.ws.sendCommand(`G0 X-${traverse}`);
+                    this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
+                    setTimeout(() => { this.ws.sendCommand(`G38.2 X50 F${s.feed}`) }, 200);
                 } else if (len === 3) { // Hit Y Top. Retract, Go Bottom, Probe Up
-                     this.ws.sendCommand(`G0 Y${s.retract}`);
-                     this.ws.sendCommand(`G0 Z${(s.retract+s.zDepth).toFixed(3)}`);
-                     const traverse = s.bossH + s.clearance*2 + s.toolDiameter + 2;
-                     this.ws.sendCommand(`G0 Y-${traverse}`);
-                     this.ws.sendCommand(`G0 Z-${(s.retract+s.zDepth).toFixed(3)}`);
-                     setTimeout(()=>{this.ws.sendCommand(`G38.2 Y50 F${s.feed}`)},200);
+                    this.ws.sendCommand(`G0 Y${s.retract}`);
+                    this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
+                    const traverse = s.bossH + s.clearance * 2 + s.toolDiameter + 2;
+                    this.ws.sendCommand(`G0 Y-${traverse}`);
+                    this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
+                    setTimeout(() => { this.ws.sendCommand(`G38.2 Y50 F${s.feed}`) }, 200);
                 }
             } else {
                 // Pocket Logic (Existing)
-                if(len === 1) { this.ws.sendCommand(`G0 X-${s.retract}`); setTimeout(()=>{this.ws.sendCommand(`G38.2 X-${s.travel*2} F${s.feed}`)},200); }
-                else if (len === 3) { this.ws.sendCommand(`G0 Y-${s.retract}`); setTimeout(()=>{this.ws.sendCommand(`G38.2 Y-${s.travel*2} F${s.feed}`)},200); }
+                if (len === 1) { this.ws.sendCommand(`G0 X-${s.retract}`); setTimeout(() => { this.ws.sendCommand(`G38.2 X-${s.travel * 2} F${s.feed}`) }, 200); }
+                else if (len === 3) { this.ws.sendCommand(`G0 Y-${s.retract}`); setTimeout(() => { this.ws.sendCommand(`G38.2 Y-${s.travel * 2} F${s.feed}`) }, 200); }
             }
         } else if (len === 2) { // Center X Found
-             const cx = (this.probeData[0][0] + this.probeData[1][0]) / 2;
-             if(type==='BOSS'){
-                 this.ws.sendCommand(`G0 X-${s.retract}`);
-                 this.ws.sendCommand(`G0 Z${(s.retract+s.zDepth).toFixed(3)}`);
-                 this.ws.sendCommand(`G90 G0 X${cx.toFixed(3)}`);
-                 this.ws.sendCommand(`G91`);
-                 const my=(s.bossH/2)+s.clearance+s.toolDiameter;
-                 this.ws.sendCommand(`G0 Y${my.toFixed(3)}`);
-                 this.ws.sendCommand(`G0 Z-${(s.retract+s.zDepth).toFixed(3)}`);
-                 setTimeout(()=>{this.ws.sendCommand(`G38.2 Y-50 F${s.feed}`)},200);
-             } else {
-                 this.ws.sendCommand(`G90 G0 X${cx.toFixed(3)}`);
-                 this.ws.sendCommand(`G91`);
-                 setTimeout(()=>{this.ws.sendCommand(`G38.2 Y${s.travel} F${s.feed}`)},500);
-             }
+            const cx = (this.probeData[0][0] + this.probeData[1][0]) / 2;
+            if (type === 'BOSS') {
+                this.ws.sendCommand(`G0 X-${s.retract}`);
+                this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
+                this.ws.sendCommand(`G90 G0 X${cx.toFixed(3)}`);
+                this.ws.sendCommand(`G91`);
+                const my = (s.bossH / 2) + s.clearance + s.toolDiameter;
+                this.ws.sendCommand(`G0 Y${my.toFixed(3)}`);
+                this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
+                setTimeout(() => { this.ws.sendCommand(`G38.2 Y-50 F${s.feed}`) }, 200);
+            } else {
+                this.ws.sendCommand(`G90 G0 X${cx.toFixed(3)}`);
+                this.ws.sendCommand(`G91`);
+                setTimeout(() => { this.ws.sendCommand(`G38.2 Y${s.travel} F${s.feed}`) }, 500);
+            }
         } else if (len === 4) { // Center Y Found
-             const cy = (this.probeData[2][1] + this.probeData[3][1]) / 2;
-             if(type==='BOSS') {
+            const cy = (this.probeData[2][1] + this.probeData[3][1]) / 2;
+            if (type === 'BOSS') {
                 this.ws.sendCommand(`G0 Y-${s.retract}`);
-                this.ws.sendCommand(`G0 Z${(s.retract+s.zDepth).toFixed(3)}`);
-             }
-             this.ws.sendCommand(`G90 G0 Y${cy.toFixed(3)}`);
-             this.ws.sendCommand(`G10 L20 P0 X0 Y0`);
-             this.activeRoutine = null;
-             this.term.writeln(`\x1b[32m> Center Found & Set.\x1b[0m`);
+                this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
+            }
+            this.ws.sendCommand(`G90 G0 Y${cy.toFixed(3)}`);
+            this.ws.sendCommand(`G10 L20 P0 X0 Y0`);
+            this.activeRoutine = null;
+            this.term.writeln(`\x1b[32m> Center Found & Set.\x1b[0m`);
         }
     }
 

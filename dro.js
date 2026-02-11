@@ -29,9 +29,16 @@ export class DROHandler {
     }
 
     home() {
-        if (confirm("Run Homing Cycle ($H)? Ensure path is clear.")) {
-            this.ws.sendCommand('$H');
+        if (!this.ws || !this.ws.isConnected) return;
+        // Access the global reporter instance
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        if (!reporter) {
+            console.error('Reporter not available for modal');
+            return;
         }
+        reporter.showConfirm('Run Homing Cycle', 'Run Homing Cycle ($H)? Ensure path is clear.', () => {
+            this.ws.sendCommand('$H');
+        });
     }
 
     goXY0() {
@@ -49,10 +56,16 @@ export class DROHandler {
     }
 
     setPredefined(pos) {
-        if (confirm(`Set G${pos} location to current Machine Coordinates?`)) {
+        if (!this.ws || !this.ws.isConnected) return;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        if (!reporter) {
+            console.error('Reporter not available for modal');
+            return;
+        }
+        reporter.showConfirm('Set Position', `Set G${pos} location to current Machine Coordinates?`, () => {
             this.ws.sendCommand(`G${pos}.1`);
             this.term.writeln(`\x1b[32m> G${pos} Position Set.\x1b[0m`);
-        }
+        });
     }
 
     toggleUnits() {

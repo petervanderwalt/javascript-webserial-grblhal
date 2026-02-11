@@ -17,7 +17,7 @@ export class GrblSettings {
 
     init(containerId) {
         this.tableContainer = document.getElementById(containerId);
-        if(!this.tableContainer) return;
+        if (!this.tableContainer) return;
         this.renderEmpty();
     }
 
@@ -49,22 +49,31 @@ export class GrblSettings {
     saveChanges() {
         const ids = Object.keys(this.pendingChanges);
         if (ids.length === 0) {
-            alert("No changes to save.");
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('No Changes', 'No changes to save.');
+            }
             return;
         }
 
-        if (!confirm(`Save ${ids.length} changed settings to EEPROM?`)) return;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        if (!reporter) {
+            console.error('Reporter not available for modal');
+            return;
+        }
+        reporter.showConfirm('Save Settings', `Save ${ids.length} changed settings to EEPROM?`, () => {
 
-        ids.forEach(id => {
-            const val = this.pendingChanges[id];
-            this.ws.sendCommand(`$${id}=${val}`);
+            ids.forEach(id => {
+                const val = this.pendingChanges[id];
+                this.ws.sendCommand(`$${id}=${val}`);
+            });
+
+            this.pendingChanges = {};
+            this.render();
+
+            // Refresh values after a moment
+            setTimeout(() => this.ws.sendCommand('$$'), 1500);
         });
-
-        this.pendingChanges = {};
-        this.render();
-
-        // Refresh values after a moment
-        setTimeout(() => this.ws.sendCommand('$$'), 1500);
     }
 
     backup() {
@@ -72,7 +81,7 @@ export class GrblSettings {
             timestamp: new Date().toISOString(),
             settings: {}
         };
-        for(const [id, s] of Object.entries(this.settings)) {
+        for (const [id, s] of Object.entries(this.settings)) {
             payload.settings[id] = s.val;
         }
         const data = JSON.stringify(payload, null, 2);
@@ -80,14 +89,14 @@ export class GrblSettings {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `grblhal_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.download = `grblhal_backup_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     }
 
     restore(file) {
-        if(!file) return;
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -102,8 +111,11 @@ export class GrblSettings {
                 }
                 this.term.writeln(`\x1b[32m> Restored ${count} settings.\x1b[0m`);
                 setTimeout(() => this.ws.sendCommand('$$'), 2000);
-            } catch(err) {
-                alert("Error parsing settings JSON file.");
+            } catch (err) {
+                const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+                if (reporter) {
+                    reporter.showAlert('Parse Error', 'Error parsing settings JSON file.');
+                }
             }
         };
         reader.readAsText(file);
@@ -151,7 +163,7 @@ export class GrblSettings {
                 desc: this.settings[id]?.desc || ''
             };
 
-            if(this.activeGroupId === null) this.activeGroupId = parts[1];
+            if (this.activeGroupId === null) this.activeGroupId = parts[1];
 
             this.debounceRender();
             return true;
@@ -164,7 +176,7 @@ export class GrblSettings {
 
             if (this.settings[id]) {
                 const desc = parts.find(p => p.length > 20 && p.includes(' '));
-                if(desc) this.settings[id].desc = desc;
+                if (desc) this.settings[id].desc = desc;
             }
             return true;
         }
@@ -208,7 +220,7 @@ export class GrblSettings {
         this.render();
         setTimeout(() => {
             const input = document.getElementById('settings-search-input');
-            if(input) {
+            if (input) {
                 input.focus();
                 const len = input.value.length;
                 input.setSelectionRange(len, len);
@@ -275,9 +287,9 @@ export class GrblSettings {
             const q = this.searchQuery.toLowerCase();
             settingsToDisplay = Object.values(this.settings).filter(s => {
                 return s.id.includes(q) ||
-                       (s.label && s.label.toLowerCase().includes(q)) ||
-                       (s.desc && s.desc.toLowerCase().includes(q)) ||
-                       String(s.val).toLowerCase().includes(q);
+                    (s.label && s.label.toLowerCase().includes(q)) ||
+                    (s.desc && s.desc.toLowerCase().includes(q)) ||
+                    String(s.val).toLowerCase().includes(q);
             });
             displayTitle = `Search Results (${settingsToDisplay.length})`;
         } else {
@@ -336,10 +348,10 @@ export class GrblSettings {
         }
 
         const hasUngrouped = Object.values(this.settings).some(s => !this.groups[s.groupId]);
-        if(hasUngrouped) {
-             const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
-             const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
-             html += `
+        if (hasUngrouped) {
+            const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
+            const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
+            html += `
                 <button onclick="window.grblSettings.setActiveGroup('ungrouped')"
                     class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all ${activeClass} border-t border-grey-light mt-1">
                     Other
@@ -443,7 +455,7 @@ export class GrblSettings {
         const newSidebar = document.getElementById('settings-sidebar');
         if (newSidebar && !this.searchQuery) {
             const sbContainer = newSidebar.querySelector('.overflow-y-auto');
-            if(sbContainer) sbContainer.scrollTop = prevSidebarScroll;
+            if (sbContainer) sbContainer.scrollTop = prevSidebarScroll;
         }
     }
 
@@ -473,7 +485,7 @@ export class GrblSettings {
             let html = `<div class="flex flex-col gap-1 border border-grey-light rounded p-1 bg-grey-bg/30">`;
 
             options.forEach((label, index) => {
-                if(!label || label.toUpperCase() === 'N/A') return;
+                if (!label || label.toUpperCase() === 'N/A') return;
                 const bitMask = 1 << index;
                 const isSet = (intVal & bitMask) !== 0;
 

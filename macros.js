@@ -1,4 +1,4 @@
- export class MacroHandler {
+export class MacroHandler {
     constructor(ws, term) {
         this.ws = ws;
         this.term = term;
@@ -55,17 +55,22 @@
         const lines = macro.gcode.split('\n');
         lines.forEach(line => {
             const cmd = line.trim();
-            if(cmd && !cmd.startsWith(';')) { // Skip comments and empty lines
+            if (cmd && !cmd.startsWith(';')) { // Skip comments and empty lines
                 this.ws.sendCommand(cmd);
             }
         });
     }
 
     delete(index) {
-        if(confirm('Are you sure you want to delete this macro?')) {
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        if (!reporter) {
+            console.error('Reporter not available for modal');
+            return;
+        }
+        reporter.showConfirm('Delete Macro', 'Are you sure you want to delete this macro?', () => {
             this.macros.splice(index, 1);
             this.save();
-        }
+        });
     }
 
     // --- UI Rendering ---
@@ -216,7 +221,10 @@
         const color = this.colorSelect.value;
 
         if (!name) {
-            alert("Macro name is required");
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('Name Required', 'Macro name is required');
+            }
             return;
         }
 

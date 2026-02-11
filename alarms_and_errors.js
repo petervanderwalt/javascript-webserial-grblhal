@@ -203,6 +203,126 @@ export class AlarmsAndErrors {
         this.overlay.classList.add('hidden');
     }
 
+    /**
+     * Show a confirmation dialog (replaces window.confirm)
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Function} onConfirm - Callback when user confirms
+     * @param {Function} onCancel - Optional callback when user cancels
+     */
+    showConfirm(title, message, onConfirm, onCancel) {
+        // Yellow/primary theme for confirmations
+        this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+        this.domIcon.className = "bi bi-question-circle-fill text-primary-dark text-xl";
+        this.domTitle.textContent = title;
+        this.domTitle.className = "font-bold text-lg text-secondary-dark";
+
+        this.domBody.textContent = message;
+        this.domFooter.innerHTML = '';
+
+        const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', async () => {
+            if (onCancel) await onCancel();
+            this.closeModal();
+        });
+
+        const btnConfirm = this.createBtn('OK', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
+            if (onConfirm) await onConfirm();
+            this.closeModal();
+        });
+
+        this.domFooter.appendChild(btnCancel);
+        this.domFooter.appendChild(btnConfirm);
+
+        this.overlay.classList.remove('hidden');
+    }
+
+    /**
+     * Show an alert/info dialog (replaces window.alert)
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {Function} onOk - Optional callback when user clicks OK
+     */
+    showAlert(title, message, onOk) {
+        // Neutral theme for alerts
+        this.domHeader.className = "px-6 py-4 border-b border-grey-light bg-grey-bg flex items-center gap-3";
+        this.domIcon.className = "bi bi-info-circle-fill text-secondary text-xl";
+        this.domTitle.textContent = title;
+        this.domTitle.className = "font-bold text-lg text-secondary-dark";
+
+        this.domBody.textContent = message;
+        this.domFooter.innerHTML = '';
+
+        const btnOk = this.createBtn('OK', 'bg-secondary text-white hover:bg-secondary-dark', async () => {
+            if (onOk) await onOk();
+            this.closeModal();
+        });
+
+        this.domFooter.appendChild(btnOk);
+
+        this.overlay.classList.remove('hidden');
+    }
+
+    /**
+     * Show a prompt dialog with input field (replaces window.prompt)
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {string} defaultValue - Default input value
+     * @param {Function} onSubmit - Callback with input value when user submits
+     * @param {Function} onCancel - Optional callback when user cancels
+     */
+    showPrompt(title, message, defaultValue, onSubmit, onCancel) {
+        // Primary theme for prompts
+        this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+        this.domIcon.className = "bi bi-pencil-square text-primary-dark text-xl";
+        this.domTitle.textContent = title;
+        this.domTitle.className = "font-bold text-lg text-secondary-dark";
+
+        // Create input field in body
+        this.domBody.innerHTML = `
+            <p class="text-sm font-bold text-grey-dark mb-3">${message}</p>
+            <input type="text" id="cnc-modal-input" 
+                   class="w-full rounded-md border-2 border-grey-light bg-grey-bg px-3 py-2 text-sm font-bold text-grey-dark focus:border-secondary focus:bg-white outline-none transition-colors"
+                   value="${defaultValue || ''}" />
+        `;
+
+        this.domFooter.innerHTML = '';
+
+        const inputEl = this.domBody.querySelector('#cnc-modal-input');
+
+        const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', async () => {
+            if (onCancel) await onCancel();
+            this.closeModal();
+        });
+
+        const btnSubmit = this.createBtn('OK', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
+            const value = inputEl.value.trim();
+            if (onSubmit) await onSubmit(value);
+            this.closeModal();
+        });
+
+        this.domFooter.appendChild(btnCancel);
+        this.domFooter.appendChild(btnSubmit);
+
+        this.overlay.classList.remove('hidden');
+
+        // Focus and select input
+        setTimeout(() => {
+            inputEl.focus();
+            inputEl.select();
+        }, 100);
+
+        // Handle Enter key
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnSubmit.click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                btnCancel.click();
+            }
+        });
+    }
+
     createBtn(text, classes, onClick) {
         const btn = document.createElement('button');
         btn.className = `px-4 py-2 rounded-lg text-sm font-bold transition-colors ${classes}`;
@@ -213,7 +333,7 @@ export class AlarmsAndErrors {
 
     performUnlock() {
         // Send Soft Reset then Unlock
-        if(this.ws) {
+        if (this.ws) {
             setTimeout(() => {
                 this.ws.sendCommand('$X'); // Unlock
             }, 100);

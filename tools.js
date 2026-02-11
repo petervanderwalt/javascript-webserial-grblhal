@@ -17,7 +17,7 @@ export class ToolsHandler {
 
     initUI() {
         const numInput = document.getElementById('edit-tool-num');
-        if(numInput) {
+        if (numInput) {
             numInput.addEventListener('input', (e) => {
                 document.getElementById('edit-tool-id-display').textContent = e.target.value || '?';
             });
@@ -31,7 +31,7 @@ export class ToolsHandler {
     }
 
     handleLine(line) {
-        if(!line) return;
+        if (!line) return;
         line = line.trim();
 
         // 1. PARSE TOOL REPORT (Configuration)
@@ -45,7 +45,7 @@ export class ToolsHandler {
                 // Part 0: ID "T:1"
                 const idStr = parts[0].split(':')[1];
                 const id = parseInt(idStr);
-                if(isNaN(id)) return;
+                if (isNaN(id)) return;
 
                 // Part 1: Offsets "0.000,0.000,0.000"
                 const offsetParts = parts[1].split(',');
@@ -72,9 +72,9 @@ export class ToolsHandler {
             const id = parseInt(legacyMatch[1]);
             const params = legacyMatch[2].split(',');
             this.tools[id] = {
-                x: parseFloat(params[0])||0,
-                y: parseFloat(params[1])||0,
-                z: parseFloat(params[2])||0,
+                x: parseFloat(params[0]) || 0,
+                y: parseFloat(params[1]) || 0,
+                z: parseFloat(params[2]) || 0,
                 r: (params.length > 3 ? parseFloat(params[3]) : 0)
             };
             this.triggerRender();
@@ -109,7 +109,7 @@ export class ToolsHandler {
     }
 
     triggerRender() {
-        if(this.renderTimeout) clearTimeout(this.renderTimeout);
+        if (this.renderTimeout) clearTimeout(this.renderTimeout);
         this.renderTimeout = setTimeout(() => this.renderTable(), 50);
     }
 
@@ -118,15 +118,15 @@ export class ToolsHandler {
         const badge = document.getElementById('tool-count-badge');
         const navBadge = document.getElementById('tools-badge');
 
-        if(!tbody) return;
+        if (!tbody) return;
 
         tbody.innerHTML = '';
-        const ids = Object.keys(this.tools).map(Number).sort((a,b) => a-b);
+        const ids = Object.keys(this.tools).map(Number).sort((a, b) => a - b);
 
-        if(badge) badge.textContent = ids.length;
-        if(navBadge) {
+        if (badge) badge.textContent = ids.length;
+        if (navBadge) {
             navBadge.textContent = ids.length;
-            if(ids.length > 0) navBadge.classList.remove('hidden');
+            if (ids.length > 0) navBadge.classList.remove('hidden');
         }
 
         if (ids.length === 0) {
@@ -142,8 +142,8 @@ export class ToolsHandler {
             const tr = document.createElement('tr');
             // Styling: Blue for selected (Editing), Green border/bg for Active (In Spindle)
             let classes = "border-b border-grey-light transition-colors cursor-pointer group ";
-            if(isSelected) classes += "bg-blue-50 ";
-            else if(isActive) classes += "bg-green-50 ";
+            if (isSelected) classes += "bg-blue-50 ";
+            else if (isActive) classes += "bg-green-50 ";
             else classes += "hover:bg-grey-bg ";
 
             tr.className = classes;
@@ -194,7 +194,10 @@ export class ToolsHandler {
 
     setFromCurrent(axis) {
         if (!window.dro || !window.dro.mpos) {
-            alert("No machine position available.");
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('No Position', 'No machine position available.');
+            }
             return;
         }
         // Use Machine Coordinates for G10 L1
@@ -207,7 +210,13 @@ export class ToolsHandler {
 
     saveTool() {
         const id = document.getElementById('edit-tool-num').value;
-        if (!id) { alert("Tool Number is required."); return; }
+        if (!id) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showAlert('Tool Number Required', 'Tool Number is required.');
+            }
+            return;
+        }
 
         const x = parseFloat(document.getElementById('edit-tool-x').value) || 0;
         const y = parseFloat(document.getElementById('edit-tool-y').value) || 0;
@@ -224,18 +233,23 @@ export class ToolsHandler {
     }
 
     deleteTool() {
-         const id = document.getElementById('edit-tool-num').value;
-         if(!id) return;
-         if(!confirm(`Delete Tool ${id}?`)) return;
-
-         const cmd = `G10 L1 P${id} X0 Y0 Z0 R0`;
-         this.ws.sendCommand(cmd);
-         setTimeout(() => this.refresh(), 500);
+        const id = document.getElementById('edit-tool-num').value;
+        if (!id) return;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        if (!reporter) {
+            console.error('Reporter not available for modal');
+            return;
+        }
+        reporter.showConfirm('Delete Tool', `Delete Tool ${id}?`, () => {
+            const cmd = `G10 L1 P${id} X0 Y0 Z0 R0`;
+            this.ws.sendCommand(cmd);
+            setTimeout(() => this.refresh(), 500);
+        });
     }
 
     // --- MTC Protocol ---
     startMTC() {
-        if(this.mtcActive) return;
+        if (this.mtcActive) return;
         console.log("MTC: Tool State Detected");
         this.mtcActive = true;
 
@@ -247,7 +261,7 @@ export class ToolsHandler {
     }
 
     endMTC() {
-        if(!this.mtcActive) return;
+        if (!this.mtcActive) return;
         this.mtcActive = false;
         document.getElementById('tool-change-modal').classList.add('hidden');
         this.term.writeln(`\x1b[32m[MTC] Tool Change Complete.\x1b[0m`);

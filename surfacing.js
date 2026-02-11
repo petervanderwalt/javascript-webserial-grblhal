@@ -158,8 +158,8 @@ export class SurfacingHandler {
 
         const setVal = (id, v) => {
             const el = document.getElementById(id);
-            if(!el) return;
-            if(el.type === 'checkbox') el.checked = v;
+            if (!el) return;
+            if (el.type === 'checkbox') el.checked = v;
             else el.value = v;
         };
 
@@ -186,11 +186,41 @@ export class SurfacingHandler {
 
         // --- VALIDATION ---
         const minDim = this.units === 'mm' ? 0.1 : 0.004;
-        if (s.toolDiameter <= minDim) { alert(`Tool Diameter must be greater than ${minDim}`); return null; }
-        if (s.stepover <= 1) { alert("Stepover must be greater than 1%"); return null; }
-        if (s.depthPerPass <= 0) { alert("Depth per pass must be greater than 0"); return null; }
-        if (s.width <= 0 || s.height <= 0) { alert("Dimensions must be greater than 0"); return null; }
-        if (s.finalDepth <= 0) { alert("Final Depth must be greater than 0"); return null; }
+        if (s.toolDiameter <= minDim) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+            if (reporter) {
+                reporter.showAlert('Invalid Tool Diameter', `Tool Diameter must be greater than ${minDim}`);
+            }
+            return null;
+        }
+        if (s.stepover <= 1) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+            if (reporter) {
+                reporter.showAlert('Invalid Stepover', 'Stepover must be greater than 1%');
+            }
+            return null;
+        }
+        if (s.depthPerPass <= 0) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+            if (reporter) {
+                reporter.showAlert('Invalid Depth', 'Depth per pass must be greater than 0');
+            }
+            return null;
+        }
+        if (s.width <= 0 || s.height <= 0) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+            if (reporter) {
+                reporter.showAlert('Invalid Dimensions', 'Dimensions must be greater than 0');
+            }
+            return null;
+        }
+        if (s.finalDepth <= 0) {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+            if (reporter) {
+                reporter.showAlert('Invalid Final Depth', 'Final Depth must be greater than 0');
+            }
+            return null;
+        }
 
         let gcode = [];
         const comment = (msg) => gcode.push(`; ${msg}`);
@@ -210,8 +240,8 @@ export class SurfacingHandler {
         cmd(`${unitCmd} G90 G17`);
         cmd('G54');
 
-        if(s.rpm > 0) cmd(`M3 S${s.rpm}`);
-        if(s.useCoolant) cmd('M8');
+        if (s.rpm > 0) cmd(`M3 S${s.rpm}`);
+        if (s.useCoolant) cmd('M8');
 
         // Fmt helper for coordinate precision
         const fmt = (n) => n.toFixed(this.units === 'mm' ? 3 : 4);
@@ -240,19 +270,25 @@ export class SurfacingHandler {
 
         while (true) {
             zSafety++;
-            if(zSafety > 100) { alert("Z-Pass safety limit reached. Check depth settings."); break; }
+            if (zSafety > 100) {
+                const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+                if (reporter) {
+                    reporter.showAlert('Safety Limit', 'Z-Pass safety limit reached. Check depth settings.');
+                }
+                break;
+            }
 
             // Decrement Z
             currentZ -= zStep;
 
             // Clamp to target
-            if(currentZ < targetZ) currentZ = targetZ;
+            if (currentZ < targetZ) currentZ = targetZ;
 
             comment(`--- Pass Z: ${fmt(currentZ)} ---`);
 
             // 1. Move to Start (0,0)
-            if(isXDir) cmd(`G0 X${fmt(minMain)} Y${fmt(minCross)}`);
-            else       cmd(`G0 X${fmt(minCross)} Y${fmt(minMain)}`);
+            if (isXDir) cmd(`G0 X${fmt(minMain)} Y${fmt(minCross)}`);
+            else cmd(`G0 X${fmt(minCross)} Y${fmt(minMain)}`);
 
             cmd(`G1 Z${fmt(currentZ)} F${s.feed / 2}`);
 
@@ -262,25 +298,31 @@ export class SurfacingHandler {
             let xySafety = 0;
 
             // Loop until cross position reaches the end dimension
-            while(posCross <= maxCross + 0.0001) {
+            while (posCross <= maxCross + 0.0001) {
                 xySafety++;
-                if(xySafety > 10000) { alert("XY Loop safety limit reached."); break; }
+                if (xySafety > 10000) {
+                    const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(null) : null);
+                    if (reporter) {
+                        reporter.showAlert('Safety Limit', 'XY Loop safety limit reached.');
+                    }
+                    break;
+                }
 
                 // Cut Main Axis
                 const endMain = goingForward ? maxMain : minMain;
-                if(isXDir) cmd(`G1 X${fmt(endMain)} F${s.feed}`);
-                else       cmd(`G1 Y${fmt(endMain)} F${s.feed}`);
+                if (isXDir) cmd(`G1 X${fmt(endMain)} F${s.feed}`);
+                else cmd(`G1 Y${fmt(endMain)} F${s.feed}`);
 
                 // Check done
-                if(posCross >= maxCross - 0.0001) break;
+                if (posCross >= maxCross - 0.0001) break;
 
                 // Step Over
                 posCross += stepoverVal;
-                if(posCross > maxCross) posCross = maxCross; // Clamp last step
+                if (posCross > maxCross) posCross = maxCross; // Clamp last step
 
                 // Move Cross Axis
-                if(isXDir) cmd(`G1 Y${fmt(posCross)}`);
-                else       cmd(`G1 X${fmt(posCross)}`);
+                if (isXDir) cmd(`G1 Y${fmt(posCross)}`);
+                else cmd(`G1 X${fmt(posCross)}`);
 
                 goingForward = !goingForward;
             }
@@ -306,7 +348,7 @@ export class SurfacingHandler {
 
         // --- Footer ---
         cmd('M5');
-        if(s.useCoolant) cmd('M9');
+        if (s.useCoolant) cmd('M9');
         cmd('G0 X0 Y0');
         cmd('M30');
 
@@ -315,7 +357,7 @@ export class SurfacingHandler {
 
     loadToViewer() {
         const gcode = this.generateGCode();
-        if(gcode && window.viewer) {
+        if (gcode && window.viewer) {
             const event = new CustomEvent('gcode-loaded', { detail: gcode });
             window.dispatchEvent(event);
 
@@ -328,7 +370,7 @@ export class SurfacingHandler {
 
     uploadToSD() {
         const gcode = this.generateGCode();
-        if(gcode) {
+        if (gcode) {
             const file = new File([gcode], "surface.nc", { type: "text/plain" });
             this.sdHandler.startUpload(file);
         }

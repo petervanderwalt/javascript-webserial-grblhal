@@ -639,6 +639,13 @@
                             <i class="bi bi-play-fill text-lg"></i> Run Job
                         </button>
 
+                        <!-- Run from SD -->
+                        <button id="run-sd-btn"
+                            class="overlay-btn !bg-secondary !text-white hover:!bg-secondary-dark shadow-lg opacity-50 pointer-events-none transition-opacity duration-200"
+                            title="Upload to SD and Run" onclick="runFromSD()">
+                            <i class="bi bi-sd-card-fill text-lg"></i> Run from SD
+                        </button>
+
                         <!-- Job Running Controls (Pause/Stop) -->
                         <div id="job-active-controls" class="hidden flex-col gap-2">
                             <button id="pause-job-btn"
@@ -1776,6 +1783,7 @@
         const viewer = new GCodeViewer('viewer-container', 'loading-overlay', store); // Added store
         const reporter = new AlarmsAndErrors(ws);
         window.viewer = viewer;
+        window.reporter = reporter; // Make reporter globally accessible
 
         // --- ERROR HANDLING ---
         ws.on('error', (err) => {
@@ -1833,7 +1841,8 @@
                     // Populate Editor
                     if (editor) {
                         editor.setValue(content);
-                        document.getElementById('editor-line-count').innerText = editor.lines.length;
+                        const lineCount = editor.getValue().split('\n').length;
+                        document.getElementById('editor-line-count').innerText = lineCount;
                         if (filename) document.getElementById('editor-file-name').innerText = filename;
                     }
                 },
@@ -1867,7 +1876,8 @@
                 // Update editor when Surfacing wizard generates code
                 if (editor) {
                     editor.setValue(e.detail);
-                    document.getElementById('editor-line-count').innerText = editor.lines.length;
+                    const lineCount = editor.getValue().split('\n').length;
+                    document.getElementById('editor-line-count').innerText = lineCount;
                     document.getElementById('editor-file-name').innerText = "Surfacing_Job.gcode";
                 }
             });
@@ -1945,7 +1955,8 @@
                     // Update Editor
                     if (editor) {
                         editor.setValue(content);
-                        document.getElementById('editor-line-count').innerText = editor.lines.length;
+                        const lineCount = editor.getValue().split('\n').length;
+                        document.getElementById('editor-line-count').innerText = lineCount;
                     }
 
                     e.target.value = '';
@@ -1953,7 +1964,10 @@
                 reader.readAsText(file);
             });
 
-            document.getElementById('sd-upload-input').addEventListener('change', (e) => sdHandler.startUpload(e.target.files[0]));
+            document.getElementById('sd-upload-input').addEventListener('change', (e) => {
+                sdHandler.startUpload(e.target.files[0]);
+                e.target.value = '';
+            });
 
             window.addEventListener('resize', () => { fitAddon.fit(); viewer.resize(); });
             window.addEventListener('tab-shown', (e) => {
@@ -2017,13 +2031,14 @@
             if (!editor) return;
             const content = editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "edited.gcode";
-            const filename = prompt("Enter filename for SD Card:", defaultName);
+            reporter.showPrompt('Upload to SD Card', 'Enter filename for SD Card:', defaultName, (filename) => {
 
-            if (!filename) return;
+                if (!filename) return;
 
-            const file = new File([content], filename, { type: "text/plain" });
-            switchTab('sd-view');
-            sdHandler.startUpload(file);
+                const file = new File([content], filename, { type: "text/plain" });
+                switchTab('sd-view');
+                sdHandler.startUpload(file);
+            });
         };
 
         function sendFromInput() {
@@ -2139,6 +2154,8 @@
                 document.getElementById('connection-dot').classList.replace('bg-green-500', 'bg-red-500');
                 document.getElementById('connection-text').textContent = 'Offline';
                 resetBtn.classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('run-job-btn').classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('dro-alarm-btn')?.classList.add('hidden'); // Hide alarm button when offline
                 disabledIds.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.classList.add('opacity-50', 'pointer-events-none');
@@ -2207,25 +2224,26 @@
 
         window.runCurrentJob = function () {
             if (!currentGCodeContent || gcodeStreamer.active) {
-                alert("No G-Code loaded in the viewer to run!");
+                reporter.showAlert('No G-Code', 'No G-Code loaded in the viewer to run!');
                 return;
             }
-            if (!confirm("Are you sure you want to run the job currently loaded in the 3D viewer?")) return;
-            gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
-            gcodeStreamer.index = 0;
-            gcodeStreamer.active = true;
-            gcodeStreamer.paused = false;
+            reporter.showConfirm('Run Job', 'Are you sure you want to run the job currently loaded in the 3D viewer?', () => {
+                gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
+                gcodeStreamer.index = 0;
+                gcodeStreamer.active = true;
+                gcodeStreamer.paused = false;
 
-            document.getElementById('run-job-btn').classList.add('hidden');
-            document.getElementById('job-active-controls').classList.remove('hidden');
-            document.getElementById('job-active-controls').classList.add('flex');
+                document.getElementById('run-job-btn').classList.add('hidden');
+                document.getElementById('job-active-controls').classList.remove('hidden');
+                document.getElementById('job-active-controls').classList.add('flex');
 
-            // Show job progress overlay
-            document.getElementById('job-progress-overlay').classList.remove('hidden');
-            jobStartTime = Date.now();
+                // Show job progress overlay
+                document.getElementById('job-progress-overlay').classList.remove('hidden');
+                jobStartTime = Date.now();
 
-            term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
-            advanceGCodeStream();
+                term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
+                advanceGCodeStream();
+            });
         }
 
         window.pauseJob = function () {
@@ -2252,9 +2270,10 @@
 
         window.stopJob = function () {
             if (!gcodeStreamer.active) return;
-            if (!confirm("Stop Job? This will reset the machine.")) return;
-            ws.sendRealtime('\x18');
-            abortGCodeStream("User Stopped");
+            reporter.showConfirm('Stop Job', 'Stop Job? This will reset the machine.', () => {
+                ws.sendRealtime('\x18');
+                abortGCodeStream("User Stopped");
+            });
         }
 
         let jobStartTime = 0;
