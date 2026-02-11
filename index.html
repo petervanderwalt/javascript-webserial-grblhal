@@ -653,6 +653,19 @@
                             </button>
                         </div>
 
+                        <!-- Camera View Shortcuts -->
+                        <div class="flex gap-1 bg-white/90 p-1 rounded-lg shadow-md mt-4 backdrop-blur">
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
+                                onclick="window.viewer.setCameraView('Top')" aria-label="Top camera view">Top</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
+                                onclick="window.viewer.setCameraView('Front')"
+                                aria-label="Front camera view">Frt</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
+                                onclick="window.viewer.setCameraView('Left')" aria-label="Left camera view">Lft</button>
+                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
+                                onclick="window.viewer.setCameraView('Iso')"
+                                aria-label="Isometric camera view">Iso</button>
+                        </div>
 
                         <button class="overlay-btn" onclick="resetCamera()">
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
