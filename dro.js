@@ -13,6 +13,8 @@ export class DROHandler {
         this.mpos = [0, 0, 0, 0];
 
         this.spindleSpeed = 0;
+        this.accessoryState = "";
+        this.inputPins = "";
 
         // Initial UI Render
         this.updateUIUnits();
@@ -132,17 +134,22 @@ export class DROHandler {
         const content = line.substring(1, line.length - 1);
         const parts = content.split('|');
 
-        this._updateStateBadge(parts[0]);
+        // Extract State
+        const statePart = parts[0];
+        // this._updateStateBadge(statePart); // DEFERRED to end of parse
 
-        // --- NEW: Reset spindle speed and feedrate to 0 before each parse. ---
-        // If the 'FS:' field isn't in the report, the spindle is off.
         this.spindleSpeed = 0;
         this.feedRate = 0;
+        // this.accessoryState = ""; // PERSIST STATE (Change-based reporting)
+        // this.inputPins = "";      // PERSIST STATE
 
         let rawWPos = null;
         let rawMPos = null;
-        let feedOverride = null;  // Only update if present in report
-        let spindleOverride = null;  // Only update if present in report
+        let feedOverride = null;
+        let spindleOverride = null;
+        let homedMask = 0;
+        let isSdPrinting = false;
+        // let foundAccessories = false; // DEBOUNCE REMOVED
 
         parts.forEach(part => {
             if (part.startsWith('WCO:')) {
@@ -152,28 +159,76 @@ export class DROHandler {
             } else if (part.startsWith('MPos:')) {
                 rawMPos = part.split(':')[1].split(',').map(Number);
             }
-            // --- Parse Feed/Speed (FS:feed,programmedRPM,actualRPM) ---
+            // Feed/Speed
             else if (part.startsWith('FS:')) {
                 const speeds = part.substring(3).split(',');
-                // grblHAL provides: Feed, Programmed RPM, Actual RPM
-                if (speeds.length >= 1) {
-                    this.feedRate = parseFloat(speeds[0]) || 0;
-                }
-                if (speeds.length === 3) {
-                    this.spindleSpeed = parseFloat(speeds[2]) || 0;
-                } else if (speeds.length === 2) {
-                    // Fallback to programmed speed if actual is not reported
-                    this.spindleSpeed = parseFloat(speeds[1]) || 0;
-                }
+                if (speeds.length >= 1) this.feedRate = parseFloat(speeds[0]) || 0;
+                if (speeds.length === 3) this.spindleSpeed = parseFloat(speeds[2]) || 0;
+                else if (speeds.length === 2) this.spindleSpeed = parseFloat(speeds[1]) || 0;
             }
-            // --- Parse Override values (Ov:feed,rapids,spindle) ---
+            // Overrides
             else if (part.startsWith('Ov:')) {
                 const overrides = part.substring(3).split(',');
                 if (overrides.length >= 1) feedOverride = parseInt(overrides[0]) || 100;
                 if (overrides.length >= 3) spindleOverride = parseInt(overrides[2]) || 100;
             }
+            // --- NEW: Homing Status (H:mask,...) ---
+            // grblHAL reports H:<homed_mask>,<homing_dir_mask>
+            else if (part.startsWith('H:')) {
+                const hParts = part.substring(2).split(',');
+                homedMask = parseInt(hParts[0]) || 0;
+                // We only care about homed_mask for now
+            }
+            // --- NEW: Input Pins (Pn:PXYZ...) ---
+            else if (part.startsWith('Pn:')) {
+                this.inputPins = part.substring(3);
+            }
+            // --- NEW: Accessories (A:SCFM) ---
+            else if (part.startsWith('A:')) {
+                this.accessoryState = part.substring(2);
+                // foundAccessories = true;
+            }
+            // --- NEW: SD Status (SD:pct,file OR SD:status) ---
+            else if (part.startsWith('SD:')) {
+                const sdContent = part.substring(3);
+                const sdParts = sdContent.split(',');
+
+                // Case 1: Streaming Progress (pct, filename)
+                if (sdParts.length >= 2) {
+                    const pct = parseFloat(sdParts[0]);
+                    const filename = sdParts[1];
+                    isSdPrinting = true; // Flag as active
+                    window.dispatchEvent(new CustomEvent('sd-status', { detail: { pct, filename } }));
+                }
+                // Case 2: Mount Status or Pending
+                else if (sdParts.length === 1) {
+                    const val = sdParts[0];
+                    if (val === 'Pending') {
+                        // Handle pending if needed
+                    } else {
+                        // Numeric Mount Status (0-3)
+                        const state = parseInt(val);
+                        if (!isNaN(state)) {
+                            window.dispatchEvent(new CustomEvent('sd-mount-state', { detail: { state } }));
+                        }
+                    }
+                }
+            }
+            // --- NEW: Line Number (Ln:xxxx) ---
+            else if (part.startsWith('Ln:')) {
+                const ln = parseInt(part.substring(3));
+                if (!isNaN(ln)) {
+                    window.dispatchEvent(new CustomEvent('gcode-line', { detail: { line: ln } }));
+                }
+            }
         });
 
+        // Debounce Logic REMOVED (State Persists)
+
+        // Update State Badge (Deferred to check isSdPrinting)
+        this._updateStateBadge(statePart, isSdPrinting);
+
+        // Calculate Position
         if (rawMPos) {
             this.mpos = rawMPos;
             this.wpos = this.mpos.map((v, i) => v - (this.wco[i] || 0));
@@ -182,12 +237,111 @@ export class DROHandler {
             this.mpos = this.wpos.map((v, i) => v + (this.wco[i] || 0));
         }
 
+        // Update UI Components
         this._updateAxisDisplay();
         this._updateFeedSpindleDisplay(feedOverride, spindleOverride);
+        this._updateHoming(homedMask); // NEW
+        this._updatePins();            // NEW
+        this._updateAccessories();     // NEW
     }
 
+    // --- New Update Methods ---
 
-    _updateStateBadge(state) {
+    _updateHoming(mask) {
+        // X=1, Y=2, Z=4, A=8, B=16, C=32
+        const mapping = ['x', 'y', 'z', 'a', 'b', 'c'];
+        mapping.forEach((axis, i) => {
+            const isHomed = (mask >> i) & 1;
+            const btn = document.getElementById(`homing-btn-${axis}`);
+            if (btn) {
+                if (isHomed) {
+                    btn.classList.add('text-green-500');
+                    btn.classList.remove('text-grey-light', 'text-red-400');
+                    btn.title = `${axis.toUpperCase()} Homed`;
+                } else {
+                    // Use Red for unhomed as requested, or Gray?
+                    // User said "green or red". Let's use Red to indicate "Not Homed" if standard.
+                    // But usually unhomed is default state. I'll use Gray (faded) and Red only if we want to warn.
+                    // Let's stick to Gray for "Not Homed" but make it clickable.
+                    // Actually, let's use Red as "Needs Homing" style?
+                    // I will use Gray for now as it's safer UI design, unless user insists on Red.
+                    // User asked "green or red?". I'll implementation Green (Homed) and Gray (Unhomed).
+                    btn.classList.remove('text-green-500', 'text-red-400');
+                    btn.classList.add('text-grey-light');
+                    btn.title = `Home ${axis.toUpperCase()}`;
+                }
+            }
+        });
+    }
+
+    _updatePins() {
+        // Pins: X, Y, Z, P, D, H, R, S
+        // ID convention: pin-indicator-{char}
+        const pinChars = ['X', 'Y', 'Z', 'P', 'D', 'H', 'R', 'S'];
+        pinChars.forEach(char => {
+            const el = document.getElementById(`pin-indicator-${char}`);
+            if (el) {
+                if (this.inputPins.includes(char)) {
+                    el.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                    el.classList.remove('bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                } else {
+                    el.classList.remove('bg-red-500', 'text-white', 'border-red-600');
+                    el.classList.add('bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                }
+            }
+        });
+    }
+
+    _updateAccessories() {
+        // A: S(CW), C(CCW), F(Flood), M(Mist)
+        const mapping = {
+            'S': 'acc-spindle', // Icon generic spindle? Or direction?
+            'C': 'acc-spindle', // Both map to spindle icon, maybe change icon?
+            'F': 'acc-flood',
+            'M': 'acc-mist'
+        };
+
+        // Reset all first? Or check presence
+        // Spindle (CW/CCW)
+        const sEl = document.getElementById('acc-spindle');
+        if (sEl) {
+            if (this.accessoryState.includes('S')) {
+                sEl.classList.add('text-green-500', 'animate-spin-slow'); // CW
+                sEl.classList.remove('text-grey-light');
+            } else if (this.accessoryState.includes('C')) {
+                sEl.classList.add('text-yellow-500', 'animate-spin-reverse'); // CCW
+                sEl.classList.remove('text-grey-light');
+            } else {
+                sEl.classList.remove('text-green-500', 'text-yellow-500', 'animate-spin-slow', 'animate-spin-reverse');
+                sEl.classList.add('text-grey-light');
+            }
+        }
+
+        ['F', 'M'].forEach(char => {
+            const id = mapping[char];
+            const el = document.getElementById(id);
+            if (el) {
+                if (this.accessoryState.includes(char)) {
+                    el.classList.add('text-blue-500');
+                    el.classList.remove('text-grey-light');
+                } else {
+                    el.classList.remove('text-blue-500');
+                    el.classList.add('text-grey-light');
+                }
+            }
+        });
+    }
+
+    homeAxis(axis) {
+        if (!this.ws || !this.ws.isConnected) return;
+        this.ws.sendCommand(`$H${axis}`);
+    }
+
+    // ... existing methods ...
+
+
+
+    _updateStateBadge(state, isSdPrinting = false) {
         const stateEl = document.getElementById('machine-state');
         if (!stateEl) return;
         const cleanState = state.split(':')[0];
@@ -203,6 +357,11 @@ export class DROHandler {
             stateEl.classList.add('bg-green-600');
         } else {
             stateEl.classList.add('bg-secondary');
+        }
+
+        // Check for Idle to reset SD UI (Only if NOT printing)
+        if (s === 'idle' && !isSdPrinting) {
+            window.dispatchEvent(new CustomEvent('sd-job-complete'));
         }
     }
 

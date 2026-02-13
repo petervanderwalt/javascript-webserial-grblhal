@@ -210,7 +210,7 @@ export class AlarmsAndErrors {
      * @param {Function} onConfirm - Callback when user confirms
      * @param {Function} onCancel - Optional callback when user cancels
      */
-    showConfirm(title, message, onConfirm, onCancel) {
+    showConfirm(title, message, onConfirm, onCancel, confirmText = 'OK', cancelText = 'Cancel') {
         // Yellow/primary theme for confirmations
         this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
         this.domIcon.className = "bi bi-question-circle-fill text-primary-dark text-xl";
@@ -220,12 +220,12 @@ export class AlarmsAndErrors {
         this.domBody.textContent = message;
         this.domFooter.innerHTML = '';
 
-        const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', async () => {
+        const btnCancel = this.createBtn(cancelText, 'bg-white border border-grey-light text-grey-dark hover:text-black', async () => {
             if (onCancel) await onCancel();
             this.closeModal();
         });
 
-        const btnConfirm = this.createBtn('OK', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
+        const btnConfirm = this.createBtn(confirmText, 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
             if (onConfirm) await onConfirm();
             this.closeModal();
         });

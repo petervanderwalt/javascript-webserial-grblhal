@@ -19,6 +19,7 @@ export class SDCardHandler {
         this.downloadBuffer = "";
         this.downloadTimeout = null;
         this.downloadLineCount = 0;
+        this.pendingRunFile = null; // Track file to run after download
 
         // YMODEM State
         this.ymodem = {
@@ -39,10 +40,27 @@ export class SDCardHandler {
     processLine(line) {
         // 1. Download Mode
         if (this.isDownloading) {
-            if (line.trim() === 'ok' && this.downloadBuffer.length > 0) {
-                if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
-                this._finishDownload();
-                return true;
+            // Ignore realtime status reports during download
+            if (line.startsWith('<')) return true;
+
+            // console.log("SD Download Line:", line);
+
+            // Check for 'ok' on its own line OR appended to end (e.g. "%ok")
+            if (line.trim() === 'ok' || line.endsWith('ok')) {
+                // Remove 'ok' from the line if it's appended
+                if (line.endsWith('ok') && line.trim() !== 'ok') {
+                    const content = line.substring(0, line.lastIndexOf('ok'));
+                    if (content.trim().length > 0) {
+                        this.downloadBuffer += content + "\n";
+                        this.downloadLineCount++;
+                    }
+                }
+
+                if (this.downloadBuffer.length > 0) {
+                    if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
+                    this._finishDownload();
+                    return true;
+                }
             }
 
             if (line === 'ok' && this.downloadBuffer.length === 0) return true;
@@ -127,13 +145,16 @@ export class SDCardHandler {
         }
     }
 
-    async preview(fileName) {
+    async preview(fileName, skipConfirm = false) {
         if (this.isDownloading) return;
-        if (!confirm(`Download ${fileName}?`)) return;
+        if (!skipConfirm && !confirm(`Download ${fileName}?`)) return;
 
         this.isDownloading = true;
         this.downloadingFile = fileName;
+        this.downloadingFullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
         this.downloadTotal = this.files[fileName] || 0; // Get size from cache
+        console.log(`Starting download for ${fileName}. Expected size: ${this.downloadTotal} bytes`);
+
         this.downloadBuffer = "";
         this.downloadLineCount = 0;
 
@@ -146,10 +167,43 @@ export class SDCardHandler {
     }
 
     runFile(fileName) {
-        if (!confirm(`Run file ${fileName} on machine?`)) return;
-
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
         const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
-        this.ws.sendCommand(`$F=${fullPath}`);
+
+        if (reporter) {
+            reporter.showConfirm(
+                'Load to Viewer?',
+                `Do you want to load ${fileName} into the 3D Viewer before running?`,
+                () => { // Yes: Load
+                    this.pendingRunFile = fileName;
+                    this.preview(fileName, true);
+                },
+                () => { // No: Ask to run directly
+                    reporter.showConfirm(
+                        'Run Directly?',
+                        `Run ${fileName} directly from SD card without preview?`,
+                        () => { // Yes
+                            this.ws.sendCommand(`$F=${fullPath}`);
+                        },
+                        null, // Cancel: Do nothing
+                        'Run Now',
+                        'Cancel'
+                    );
+                },
+                'Load & View',
+                'No'
+            );
+        } else {
+            // Fallback
+            if (confirm(`Load ${fileName} to 3D Viewer?`)) {
+                this.pendingRunFile = fileName;
+                this.preview(fileName, true);
+                return;
+            }
+            if (confirm(`Run ${fileName} directly from SD?`)) {
+                this.ws.sendCommand(`$F=${fullPath}`);
+            }
+        }
     }
 
     runMacro(pNum) {
@@ -258,10 +312,14 @@ export class SDCardHandler {
     }
 
     _updateDownloadProgress() {
-        if (!this.downloadingFile || this.downloadTotal <= 0) return;
+        if (!this.downloadingFile || this.downloadTotal <= 0) {
+            // console.warn("Skipping progress update:", this.downloadingFile, this.downloadTotal);
+            return;
+        }
 
         const currentBytes = this.downloadBuffer.length;
         const pct = Math.min(100, Math.round((currentBytes / this.downloadTotal) * 100));
+        // console.log(`Download Progress: ${currentBytes}/${this.downloadTotal} (${pct}%)`);
 
         const safeId = btoa(this.downloadingFile).replace(/=/g, '');
         const bar = document.querySelector(`#sd-prog-${safeId} > div`);
@@ -324,27 +382,51 @@ export class SDCardHandler {
 
         if (this.downloadTimeout) clearTimeout(this.downloadTimeout);
 
-        const cleanContent = this.downloadBuffer.replace(/<.*>/g, '').trim();
+        // Remove XML-style tags and realtime status reports
+        const cleanContent = this.downloadBuffer.replace(/<[^>]*>/g, '').trim();
         const lines = cleanContent.split('\n').filter(l => l.trim().length > 0 && l.trim() !== 'ok');
 
         if (lines.length === 0) {
             this.term.writeln(`\x1b[31mDownload Failed: No data.\x1b[0m`);
+            console.error("SD Download Failed: Buffer empty");
         } else {
             this.term.writeln(`\x1b[32mDownloaded ${lines.length} lines.\x1b[0m`);
+            console.log(`SD Download Success: ${lines.length} lines. Calling callbacks...`);
             if (this.callbacks.onDownloadComplete) {
-                // Pass filename as second arg
-                this.callbacks.onDownloadComplete(cleanContent, filename);
+                // Pass filename AND fullPath
+                this.callbacks.onDownloadComplete(cleanContent, filename, this.downloadingFullPath);
             }
             this.viewer.processGCodeString(cleanContent);
             if (this.callbacks.switchToViewer) {
                 this.callbacks.switchToViewer();
+            }
+
+            // Trigger Run Prompt if this download was initiated by runFile
+            if (this.pendingRunFile === filename) {
+                this.pendingRunFile = null;
+                setTimeout(() => {
+                    const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+                    const promptMsg = `File ${filename} loaded. Run now?`;
+                    const fullPath = this.path === '/' ? `/${filename}` : `${this.path}/${filename}`;
+
+                    if (reporter) {
+                        reporter.showConfirm('Run Job', promptMsg,
+                            () => this.ws.sendCommand(`$F=${fullPath}`),
+                            null,
+                            'Run Job',
+                            'Cancel'
+                        );
+                    } else if (confirm(promptMsg)) {
+                        this.ws.sendCommand(`$F=${fullPath}`);
+                    }
+                }, 500);
             }
         }
     }
 
     // --- YMODEM Upload ---
 
-    async startUpload(file) {
+    async startUpload(file, onComplete = null) {
         if (!file) return;
         const name = file.name.replace(/\s/g, '_');
         if (!confirm(`Upload ${name} (${this._formatBytes(file.size)})?`)) return;
@@ -362,11 +444,16 @@ export class SDCardHandler {
             fileName: name,
             fileSize: bytes.length,
             packetNum: 0,
-            offset: 0
+            offset: 0,
+            onComplete: onComplete // Store callback
         };
 
-        document.getElementById('upload-progress-container').style.display = 'block';
+        document.getElementById('upload-progress-container').classList.remove('hidden');
+        document.getElementById('upload-progress-container').style.display = 'block'; // Ensure block display
+        document.getElementById('upload-progress-container').style.opacity = '1';
         document.getElementById('upload-progress-bar').style.width = '0%';
+        document.getElementById('upload-pct').textContent = '0%';
+
         this.term.writeln('\x1b[35m[YMODEM] Start...\x1b[0m');
 
         const fp = this.path === '/' ? name : `${this.path}/${name}`;
@@ -506,6 +593,11 @@ export class SDCardHandler {
         }, 1500);
 
         if (this.callbacks.resumePolling) this.callbacks.resumePolling();
+
+        if (this.ymodem.onComplete) {
+            this.ymodem.onComplete(this.ymodem.fileName);
+        }
+
         setTimeout(() => this.refresh(), 1000);
     }
 

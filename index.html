@@ -70,11 +70,19 @@
 
             /* Sidebar: Full width on mobile, Fixed width on desktop */
             .sidebar {
-                @apply w-full md:w-[420px] flex-shrink-0 bg-white border-r border-grey-light flex flex-col shadow-soft;
+                @apply w-full md:w-80 flex-shrink-0 bg-white border-r border-grey-light flex flex-col shadow-soft;
                 @apply fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out;
                 @apply -translate-x-full md:translate-x-0;
             }
             .sidebar.open { @apply translate-x-0; }
+
+            /* Right Sidebar */
+            .sidebar-right {
+                @apply w-full md:w-96 flex-shrink-0 bg-white border-l border-grey-light flex flex-col shadow-soft;
+                @apply fixed md:relative inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out;
+                @apply translate-x-full md:translate-x-0;
+            }
+            .sidebar-right.open { @apply translate-x-0; }
 
             /* Sidebar Overlay */
             .sidebar-overlay {
@@ -101,11 +109,11 @@
             /* The Axis Card Container */
             .dro-card { @apply flex items-stretch bg-white rounded-md shadow-sm border border-grey-light mb-1 overflow-hidden transition-colors h-9 md:h-8; }
 
-            /* The Axis Letter Box */
-            .dro-label-box { @apply w-8 md:w-8 flex items-center justify-center font-heading font-black text-lg md:text-lg text-black; }
+            /* The Axis Letter Box - Compacted */
+            .dro-label-box { @apply w-12 md:w-12 flex items-center justify-start gap-1 pl-2 font-heading font-black text-lg md:text-lg text-black; }
 
-            /* The Number Area */
-            .dro-readout { @apply flex-1 flex items-baseline justify-between gap-2 md:gap-4 px-2 md:px-3 py-1 bg-white overflow-hidden; }
+            /* The Number Area - Compacted */
+            .dro-readout { @apply flex-1 flex items-baseline justify-between gap-1 md:gap-2 px-1 md:px-2 py-1 bg-white overflow-hidden; }
 
             /* Work Position (Big) */
             .dro-val-lg { @apply font-mono text-[20px] md:text-[24px] font-black tracking-tight text-grey-dark leading-none text-right flex-1 tabular-nums mb-0 self-center; }
@@ -205,109 +213,13 @@
                     <!-- DRO (New Card Design - Side by Side) -->
                     <div class="dro-panel">
 
-                        <!-- Header: WCS & Units -->
-                        <div class="flex justify-between items-center mb-1.5 px-1">
-
-                            <!-- Units Toggle -->
-                            <label
-                                class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
-                                <!-- UPDATED: text-[10px] -> text-xs -->
-                                <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
-                                <input type="checkbox" id="unitToggle" class="sr-only peer" checked
-                                    onchange="window.dro.toggleUnits()">
-                                <div
-                                    class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary">
-                                </div>
-                            </label>
-
-                            <!-- WCS Select -->
-                            <div
-                                class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
-                                <!-- UPDATED: text-[10px] -> text-xs -->
-                                <span class="text-xs font-black text-grey uppercase">WCS</span>
-                                <select
-                                    class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
-                                    onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
-                                    <option value="G54" selected>G54</option>
-                                    <option value="G55">G55</option>
-                                    <option value="G56">G56</option>
-                                    <option value="G57">G57</option>
-                                    <option value="G58">G58</option>
-                                    <option value="G59">G59</option>
-                                </select>
-                            </div>
-
-
-                        </div>
-
-                        <!-- X Axis -->
-                        <div class="dro-card border-l-4 border-l-axis-x">
-                            <div class="dro-label-box">X</div>
-                            <div class="dro-readout">
-                                <span id="dro-x-m" class="dro-val-sm">0.000</span>
-                                <span id="dro-x" class="dro-val-lg">0.000</span>
-                            </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('X')"
-                                aria-label="Zero X axis">Zero</button>
-                        </div>
-
-                        <!-- Y Axis -->
-                        <div class="dro-card border-l-4 border-l-axis-y">
-                            <div class="dro-label-box">Y</div>
-                            <div class="dro-readout">
-                                <span id="dro-y-m" class="dro-val-sm">0.000</span>
-                                <span id="dro-y" class="dro-val-lg">0.000</span>
-                            </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('Y')"
-                                aria-label="Zero Y axis">Zero</button>
-                        </div>
-
-                        <!-- Z Axis -->
-                        <div class="dro-card border-l-4 border-l-axis-z">
-                            <div class="dro-label-box">Z</div>
-                            <div class="dro-readout">
-                                <span id="dro-z-m" class="dro-val-sm">0.000</span>
-                                <span id="dro-z" class="dro-val-lg">0.000</span>
-                            </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('Z')"
-                                aria-label="Zero Z axis">Zero</button>
-                        </div>
-
-                        <!-- A Axis (Hidden by default) -->
-                        <div class="dro-row hidden dro-card border-l-4 border-l-axis-a">
-                            <div class="dro-label-box">A</div>
-                            <div class="dro-readout">
-                                <span id="dro-a-m" class="dro-val-sm">0.000</span>
-                                <span id="dro-a" class="dro-val-lg">0.000</span>
-                            </div>
-                            <button class="dro-zero-btn" onclick="window.dro.setZero('A')"
-                                aria-label="Zero A axis">Zero</button>
-                        </div>
-
-
-
-                        <!-- Footer Actions -->
-                        <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
-                            <div class="col-span-1 flex items-center">
-                                <span id="machine-state"
-                                    class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
-                            </div>
-                            <div class="col-span-2 flex gap-1">
-                                <button
-                                    class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark"
-                                    onclick="window.dro.home()">
-                                    <i class="bi bi-house-door-fill"></i> HOME
-                                </button>
-                                <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
-                                <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
-                            </div>
-                        </div>
+                        <!-- DRO moved to Right Sidebar -->
 
 
 
 
-                        <!-- Spindle & Feedrate Display with Integrated Controls -->
-                        <div class="flex flex-col gap-1.5 mt-1.5 pt-1.5 border-t border-grey-light/50">
+                        <!-- Spindle & Feedrate Display -->
+                        <div class="flex flex-col gap-1.5">
                             <!-- Spindle RPM with Controls -->
                             <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
                                 <div class="flex items-baseline justify-between mb-0.5">
@@ -405,136 +317,42 @@
 
                     </div>
 
-
-
-                    <!-- Jog Controls (Compact) -->
-                    <!-- Jog Controls (Compact) -->
+                    <!-- Pin Diagnostics Widget -->
                     <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
-
-                        <div class="jog-wrapper">
-                            <!-- XY Pad -->
-                            <div class="jog-pad">
-                                <!-- Row 1 -->
-                                <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
-                                        class="bi bi-arrow-up-left"></i></button>
-
-                                <!-- Y+ (Green, Top Border) -->
-                                <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
-                                    data-jog="Y+" aria-label="Jog Y plus"><i
-                                        class="bi bi-caret-up-fill text-2xl"></i></button>
-
-                                <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
-                                        class="bi bi-arrow-up-right"></i></button>
-
-                                <!-- Row 2 -->
-                                <!-- X- (Red, Left Border) -->
-                                <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
-                                    data-jog="X-" aria-label="Jog X minus"><i
-                                        class="bi bi-caret-left-fill text-2xl"></i></button>
-
-                                <div class="w-12 h-12 flex items-center justify-center">
-                                    <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
-                                </div>
-
-                                <!-- X+ (Red, Right Border) -->
-                                <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
-                                    data-jog="X+" aria-label="Jog X plus"><i
-                                        class="bi bi-caret-right-fill text-2xl"></i></button>
-
-                                <!-- Row 3 -->
-                                <button class="jog-btn rounded-bl-xl" data-jog="X-Y-"
-                                    aria-label="Jog X minus Y minus"><i class="bi bi-arrow-down-left"></i></button>
-
-                                <!-- Y- (Green, Bottom Border) -->
-                                <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
-                                    data-jog="Y-" aria-label="Jog Y minus"><i
-                                        class="bi bi-caret-down-fill text-2xl"></i></button>
-
-                                <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
-                                        class="bi bi-arrow-down-right"></i></button>
-                            </div>
-
-                            <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
-                            <div class="flex flex-col gap-2 w-28">
-                                <!-- Unlock Button -->
-                                <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
-                                    onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
-                                    Unlock</button>
-
-                                <!-- Z & A Buttons -->
-                                <div class="flex gap-1.5 justify-center">
-                                    <!-- Z Pad (Blue) -->
-                                    <div class="jog-extra-col">
-                                        <button
-                                            class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
-                                            data-jog="Z+" aria-label="Jog Z plus">Z+</button>
-                                        <button
-                                            class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
-                                            data-jog="Z-" aria-label="Jog Z minus">Z-</button>
-                                    </div>
-                                    <!-- A Pad (Orange) -->
-                                    <div class="jog-extra-col">
-                                        <button
-                                            class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
-                                            data-jog="A+" aria-label="Jog A plus">A+</button>
-                                        <button
-                                            class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
-                                            data-jog="A-" aria-label="Jog A minus">A-</button>
-                                    </div>
-                                </div>
-
-                                <!-- Continuous Toggle -->
-                                <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
-                                    <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
-                                    <input type="checkbox" id="jogContinuous" class="sr-only peer">
-                                    <div
-                                        class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
-                                    </div>
-                                    <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
-                                </label>
-                            </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-black text-grey uppercase tracking-wider">Signals</h3>
                         </div>
-
-                        <!-- Step/Feed -->
-                        <div class="grid grid-cols-2 gap-2 mt-3">
-                            <div class="relative">
-                                <span
-                                    class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
-                                <select id="stepSize" class="input-field pl-10 text-right h-8 py-0"
-                                    aria-label="Jog distance step size">
-                                    <!-- Populated by JS -->
-                                </select>
-                            </div>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
-                                <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
-                            </div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <div id="pin-indicator-X"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                X</div>
+                            <div id="pin-indicator-Y"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                Y</div>
+                            <div id="pin-indicator-Z"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                Z</div>
+                            <div id="pin-indicator-P"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                PRB</div>
+                            <div id="pin-indicator-D"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                DR</div>
+                            <div id="pin-indicator-H"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                HLD</div>
+                            <div id="pin-indicator-R"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                RST</div>
+                            <div id="pin-indicator-S"
+                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                                ST</div>
                         </div>
                     </div>
-                    <!-- End Jog Controls  -->
 
-                </div>
 
-                <!-- Console (Light Mode) -->
-                <div class="flex-1 flex flex-col min-h-[150px] mb-20 md:mb-0">
-                    <div class="console-wrapper">
-                        <div id="terminal-container" class="w-full h-full"></div>
-                    </div>
-                    <!-- Console Input (Disabled when offline) -->
-                    <div id="console-input-area"
-                        class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
-                        <label for="cmdInput" class="sr-only">G-Code command input</label>
-                        <input type="text" id="cmdInput" class="input-field font-mono h-9 md:h-8"
-                            placeholder="G-Code...">
-                        <button id="btnSend" class="btn btn-secondary px-3 h-9 md:h-8"
-                            aria-label="Send G-Code command"><i class="bi bi-send-fill text-xs"></i></button>
-                        <button class="btn-ghost text-xs" onclick="clearTerminal()" aria-label="Clear terminal"><i
-                                class="bi bi-trash"></i></button>
-                    </div>
-                </div>
 
-            </div>
+
         </aside>
 
         <!-- Main Content -->
@@ -582,6 +400,13 @@
                     class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
                     onclick="scrollTabs('right')" aria-label="Scroll tabs right">
                     <i class="bi bi-chevron-right text-xs"></i>
+                </button>
+
+                <!-- Right Sidebar Toggle (Mobile) -->
+                <button
+                    class="md:hidden h-full px-4 text-primary hover:text-white border-l border-white/10 flex items-center justify-center transition-colors"
+                    onclick="toggleRightSidebar()" aria-label="Toggle controls">
+                    <i class="bi bi-dpad-fill text-xl"></i>
                 </button>
             </div>
 
@@ -678,7 +503,7 @@
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
                         </button>
 
-                        <!-- Renamed Camera Toggle Button -->
+                        <!-- Camera Mode Toggle -->
                         <button class="overlay-btn" onclick="toggleCamera()" id="cam-toggle-btn">
                             <i class="bi bi-eye-fill text-secondary"></i> Perspective
                         </button>
@@ -686,6 +511,11 @@
                         <!-- New Grid Mode Toggle -->
                         <button class="overlay-btn" onclick="toggleGridMode()" id="grid-toggle-btn">
                             <i class="bi bi-grid-3x3 text-secondary"></i> Grid: Job
+                        </button>
+
+                        <!-- Laser Mode Toggle -->
+                        <button class="overlay-btn" onclick="toggleLaserMode()" id="laser-toggle-btn">
+                            <i class="bi bi-brightness-high-fill text-secondary"></i> Laser Mode
                         </button>
                     </div>
                 </div>
@@ -1577,6 +1407,289 @@
 
             </div>
         </main>
+
+        <!-- Right Sidebar (Controls) -->
+        <aside class="sidebar-right" id="right-sidebar">
+            <!-- Mobile Header for Right Sidebar -->
+            <div
+                class="md:hidden h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
+                <span class="font-bold">Controls</span>
+                <button class="text-white" onclick="toggleRightSidebar()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+
+                <!-- DRO Panel (Moved from Left) -->
+                <div class="dro-panel mb-2">
+                    <!-- Header: WCS & Units -->
+                    <div class="flex justify-between items-center mb-1.5 px-1">
+
+                        <!-- Units Toggle -->
+                        <label
+                            class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
+                            <!-- UPDATED: text-[10px] -> text-xs -->
+                            <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
+                            <input type="checkbox" id="unitToggle" class="sr-only peer" checked
+                                onchange="window.dro.toggleUnits()">
+                            <div
+                                class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary">
+                            </div>
+                        </label>
+
+                        <!-- WCS Select -->
+                        <div
+                            class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
+                            <!-- UPDATED: text-[10px] -> text-xs -->
+                            <span class="text-xs font-black text-grey uppercase">WCS</span>
+                            <select
+                                class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
+                                onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
+                                <option value="G54" selected>G54</option>
+                                <option value="G55">G55</option>
+                                <option value="G56">G56</option>
+                                <option value="G57">G57</option>
+                                <option value="G58">G58</option>
+                                <option value="G59">G59</option>
+                            </select>
+                        </div>
+
+
+                    </div>
+
+                    <!-- Accessories Status (Moved to Footer) -->
+
+                    <!-- X Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-x">
+                        <div class="dro-label-box">
+                            <span>X</span>
+                            <button id="homing-btn-x"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('X')" title="Home X">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-x-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-x" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('X')"
+                            aria-label="Zero X axis">Zero</button>
+                    </div>
+
+                    <!-- Y Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-y">
+                        <div class="dro-label-box">
+                            <span>Y</span>
+                            <button id="homing-btn-y"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('Y')" title="Home Y">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-y-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-y" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('Y')"
+                            aria-label="Zero Y axis">Zero</button>
+                    </div>
+
+                    <!-- Z Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-z">
+                        <div class="dro-label-box">
+                            <span>Z</span>
+                            <button id="homing-btn-z"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('Z')" title="Home Z">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-z-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-z" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('Z')"
+                            aria-label="Zero Z axis">Zero</button>
+                    </div>
+
+                    <!-- A Axis (Hidden by default) -->
+                    <div class="dro-row hidden dro-card border-l-4 border-l-axis-a">
+                        <div class="dro-label-box">
+                            <span>A</span>
+                            <button id="homing-btn-a"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('A')" title="Home A">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-a-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-a" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('A')"
+                            aria-label="Zero A axis">Zero</button>
+                    </div>
+
+
+
+                    <!-- Footer Actions -->
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
+                        <div class="col-span-1 flex flex-col gap-1 items-center justify-center">
+                            <span id="machine-state"
+                                class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
+                            <!-- Icons Moved Here -->
+                            <div class="flex justify-center gap-3">
+                                <i id="acc-spindle" class="bi bi-fan text-grey-light text-xs transition-colors"
+                                    title="Spindle"></i>
+                                <i id="acc-flood" class="bi bi-droplet-fill text-grey-light text-xs transition-colors"
+                                    title="Flood Coolant"></i>
+                                <i id="acc-mist" class="bi bi-cloud-haze-fill text-grey-light text-xs transition-colors"
+                                    title="Mist Coolant"></i>
+                            </div>
+                        </div>
+                        <div class="col-span-2 flex gap-1">
+                            <button class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark"
+                                onclick="window.dro.home()">
+                                <i class="bi bi-house-door-fill"></i> HOME
+                            </button>
+                            <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
+                            <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jog Controls (Compact) -->
+                <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
+
+                    <div class="jog-wrapper">
+                        <!-- XY Pad -->
+                        <div class="jog-pad">
+                            <!-- Row 1 -->
+                            <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
+                                    class="bi bi-arrow-up-left"></i></button>
+
+                            <!-- Y+ (Green, Top Border) -->
+                            <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
+                                data-jog="Y+" aria-label="Jog Y plus"><i
+                                    class="bi bi-caret-up-fill text-2xl"></i></button>
+
+                            <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
+                                    class="bi bi-arrow-up-right"></i></button>
+
+                            <!-- Row 2 -->
+                            <!-- X- (Red, Left Border) -->
+                            <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
+                                data-jog="X-" aria-label="Jog X minus"><i
+                                    class="bi bi-caret-left-fill text-2xl"></i></button>
+
+                            <div class="w-12 h-12 flex items-center justify-center">
+                                <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
+                            </div>
+
+                            <!-- X+ (Red, Right Border) -->
+                            <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
+                                data-jog="X+" aria-label="Jog X plus"><i
+                                    class="bi bi-caret-right-fill text-2xl"></i></button>
+
+                            <!-- Row 3 -->
+                            <button class="jog-btn rounded-bl-xl" data-jog="X-Y-" aria-label="Jog X minus Y minus"><i
+                                    class="bi bi-arrow-down-left"></i></button>
+
+                            <!-- Y- (Green, Bottom Border) -->
+                            <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
+                                data-jog="Y-" aria-label="Jog Y minus"><i
+                                    class="bi bi-caret-down-fill text-2xl"></i></button>
+
+                            <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
+                                    class="bi bi-arrow-down-right"></i></button>
+                        </div>
+
+                        <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
+                        <div class="flex flex-col gap-2 w-28">
+                            <!-- Unlock Button -->
+                            <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
+                                onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
+                                Unlock</button>
+
+                            <!-- Z & A Buttons -->
+                            <div class="flex gap-1.5 justify-center">
+                                <!-- Z Pad (Blue) -->
+                                <div class="jog-extra-col">
+                                    <button
+                                        class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
+                                        data-jog="Z+" aria-label="Jog Z plus">Z+</button>
+                                    <button
+                                        class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
+                                        data-jog="Z-" aria-label="Jog Z minus">Z-</button>
+                                </div>
+                                <!-- A Pad (Orange) -->
+                                <div class="jog-extra-col">
+                                    <button
+                                        class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
+                                        data-jog="A+" aria-label="Jog A plus">A+</button>
+                                    <button
+                                        class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
+                                        data-jog="A-" aria-label="Jog A minus">A-</button>
+                                </div>
+                            </div>
+
+                            <!-- Continuous Toggle -->
+                            <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
+                                <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
+                                <input type="checkbox" id="jogContinuous" class="sr-only peer">
+                                <div
+                                    class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                                </div>
+                                <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Step/Feed -->
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="relative">
+                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
+                            <select id="stepSize" class="input-field pl-10 text-right h-8 py-0"
+                                aria-label="Jog distance step size">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
+                            <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
+                        </div>
+                    </div>
+                </div>
+                <!-- Console (Light Mode) -->
+                <div class="flex-1 flex flex-col min-h-[150px] mb-20 md:mb-0">
+                    <div class="console-wrapper">
+                        <div id="terminal-container" class="w-full h-full"></div>
+                    </div>
+                    <!-- Console Input (Disabled when offline) -->
+                    <div id="console-input-area"
+                        class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
+                        <label for="cmdInput" class="sr-only">G-Code command input</label>
+                        <input type="text" id="cmdInput" class="input-field font-mono h-9 md:h-8"
+                            placeholder="G-Code...">
+
+                        <button class="btn btn-secondary px-3 h-9 md:h-8" onclick="requestFullStatus()"
+                            title="Full Status Report (0x87)">
+                            <i class="bi bi-activity text-xs"></i>
+                        </button>
+
+                        <button id="btnSend" class="btn btn-secondary px-3 h-9 md:h-8"
+                            aria-label="Send G-Code command"><i class="bi bi-send-fill text-xs"></i></button>
+                        <button class="btn-ghost text-xs" onclick="clearTerminal()" aria-label="Clear terminal"><i
+                                class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Right Sidebar Overlay -->
+        <div id="right-sidebar-overlay" class="sidebar-overlay" onclick="toggleRightSidebar()"></div>
     </div>
 
     <!-- Macro Modal -->
@@ -1742,6 +1855,13 @@
             overlay.classList.toggle('hidden');
         }
 
+        function toggleRightSidebar() {
+            const sidebar = document.getElementById('right-sidebar');
+            const overlay = document.getElementById('right-sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
         // New function to scroll the tabs
         function scrollTabs(direction) {
             const container = document.getElementById('tabs-scroll-container');
@@ -1799,6 +1919,7 @@
         let term, fitAddon, statusInterval;
 
         let currentGCodeContent = null;
+        let currentSDFile = null; // Track SD file context
         let gcodeStreamer = { active: false, lines: [], index: 0, paused: false };
         let commandHistory = [];
         let historyIndex = -1;
@@ -1810,6 +1931,7 @@
         let macroHandler = null;
         let toolsHandler = null;
         let editor = null; // NEW GLOBAL
+        window.userRequestedStatus = false;
 
         document.addEventListener('DOMContentLoaded', () => {
             initTerminal();
@@ -1835,8 +1957,10 @@
 
             // SD Handler (Updated to populate Editor)
             sdHandler = new SDCardHandler(ws, term, viewer, {
-                onDownloadComplete: (content, filename) => {
+                onDownloadComplete: (content, filename, fullPath) => {
                     currentGCodeContent = content;
+                    currentSDFile = fullPath; // capture full path from SD
+                    updateRunButtonsState();  // Update UI immediately
 
                     // Populate Editor
                     if (editor) {
@@ -1873,6 +1997,8 @@
             // Hook for generated gcode
             window.addEventListener('gcode-loaded', (e) => {
                 currentGCodeContent = e.detail;
+                currentSDFile = null; // Clear SD context for generated code
+                updateRunButtonsState();
                 // Update editor when Surfacing wizard generates code
                 if (editor) {
                     editor.setValue(e.detail);
@@ -1949,6 +2075,8 @@
                 reader.onload = (evt) => {
                     const content = evt.target.result;
                     currentGCodeContent = content;
+                    currentSDFile = null; // Clear SD context for local file files
+                    updateRunButtonsState();
 
                     viewer.processGCodeString(currentGCodeContent);
 
@@ -1988,9 +2116,43 @@
         });
 
         window.toggleCamera = function () {
-            const mode = viewer.toggleCamera();
-            const icon = mode === 'Perspective' ? 'bi-eye-fill' : 'bi-box-fill';
-            document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${mode}`;
+            // Cycle: Perspective -> Ortho -> Spindle -> Perspective
+            let nextMode = 'Perspective';
+            const currentText = document.getElementById('cam-toggle-btn').innerText.trim();
+
+            if (currentText === 'Perspective') nextMode = 'Orthographic';
+            if (currentText === 'Orthographic') nextMode = 'Spindle View';
+            if (currentText === 'Spindle View') nextMode = 'Perspective';
+
+            let label = nextMode;
+            let icon = 'bi-eye-fill';
+
+            if (nextMode === 'Perspective') {
+                viewer.toggleCamera(); // Toggles to Persp (if not already)
+                if (viewer.cameraMode === 'spindle') viewer.setCameraMode('orbit');
+                // Wait, toggleCamera toggles betwen Persp/Ortho. 
+                // We need explicit setting or smart logic.
+                // Let's rewrite viewer.toggleCamera to be more flexible or just use new logic here.
+                // Actually, viewer.toggleCamera switches Persp<->Ortho and returns string.
+
+                // Let's just force it for now
+                if (viewer.getCameraType() === 'Orthographic') viewer.toggleCamera(); // Switch to Persp
+                viewer.setCameraMode('orbit');
+            }
+            else if (nextMode === 'Orthographic') {
+                if (viewer.getCameraType() === 'Perspective') viewer.toggleCamera(); // Switch to Ortho
+                viewer.setCameraMode('orbit');
+                label = 'Orthographic';
+                icon = 'bi-box-fill';
+            }
+            else if (nextMode === 'Spindle View') {
+                if (viewer.getCameraType() === 'Orthographic') viewer.toggleCamera(); // Back to Persp for Spindle View (usually better)
+                viewer.setCameraMode('spindle');
+                label = 'Spindle View';
+                icon = 'bi-camera-video';
+            }
+
+            document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${label}`;
         };
 
         // New Grid Toggle Function
@@ -2002,6 +2164,10 @@
         window.resetCamera = function () { viewer.resetCamera(); };
         window.sendCmd = function (cmd) { ws.sendCommand(cmd); };
         window.sendRealtime = function (c) { ws.sendRealtime(c); };
+        window.requestFullStatus = function () {
+            window.userRequestedStatus = true;
+            ws.sendRealtime('\x87');
+        };
         window.clearTerminal = function () { term.clear(); }
 
         // Editor Actions
@@ -2050,6 +2216,11 @@
                     if (commandHistory.length > 50) commandHistory.shift();
                 }
                 historyIndex = commandHistory.length;
+
+                if (val === '?' || val === '$G') {
+                    window.userRequestedStatus = true;
+                }
+
                 window.sendCmd(val);
                 i.value = '';
             }
@@ -2127,19 +2298,93 @@
             });
         }
 
+        // New function: Run from SD (Smart)
+        window.runFromSD = function () {
+            // Case 1: File is already on SD (Context Aware)
+            if (currentSDFile) {
+                reporter.showConfirm('Run from SD', `Run ${currentSDFile} directly from SD card?`, () => {
+                    // Start SD Print
+                    ws.sendCommand(`$F=${currentSDFile}`);
+                    // UI will update via status reports
+                });
+                return;
+            }
+
+            // Case 2: Upload Editor Content then Run
+            if (!editor) return;
+            const content = editor.getValue();
+            const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "job.gcode";
+
+            reporter.showPrompt('Upload & Run', 'Upload this job to SD card and run it?', defaultName, (filename) => {
+                if (!filename) return;
+                const file = new File([content], filename, { type: "text/plain" });
+
+                // Switch to SD view to show progress
+                switchTab('sd-view');
+
+                // Start Upload with Callback
+                sdHandler.startUpload(file, (uploadedName) => {
+                    // On Success, Ask to Run
+                    const fullPath = sdHandler.path === '/' ? uploadedName : `${sdHandler.path}/${uploadedName}`;
+                    setTimeout(() => {
+                        reporter.showConfirm('Run Now?', `Upload complete. Run ${uploadedName} now?`, () => {
+                            ws.sendCommand(`$F=${fullPath}`);
+                        });
+                    }, 500);
+                });
+            });
+        };
+
+
+        // UI State Helper for Run Buttons
+        function updateRunButtonsState() {
+            const runJobBtn = document.getElementById('run-job-btn');
+            const runSdBtn = document.getElementById('run-sd-btn');
+
+            if (currentSDFile) {
+                // SD Context: Disable Streaming, Highlight SD Run
+                runJobBtn.classList.add('opacity-50', 'pointer-events-none');
+                runJobBtn.title = "Streaming disabled for SD files. Use 'Run from SD'";
+
+                // Highlight SD Button
+                runSdBtn.classList.remove('opacity-50', 'pointer-events-none'); // Ensure enabled
+                runSdBtn.classList.replace('!bg-secondary', '!bg-primary');
+                runSdBtn.classList.replace('!text-white', '!text-secondary-dark');
+                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`; // Reset text just in case
+
+            } else {
+                // Local Context: Enable Streaming, Reset SD Run
+                if (ws.isConnected) runJobBtn.classList.remove('opacity-50', 'pointer-events-none');
+                runJobBtn.title = "Run Job (Stream)";
+
+                // Reset SD Button to default (Upload & Run)
+                runSdBtn.classList.replace('!bg-primary', '!bg-secondary');
+                runSdBtn.classList.replace('!text-secondary-dark', '!text-white');
+                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
+            }
+        }
+
         function updateUIConnected(state) {
             const btn = document.getElementById('btn-connect');
             const resetBtn = document.getElementById('btn-reset');
-            const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar', 'probe-panel-content'];
+            // Added run-sd-btn to disabledIds
+            const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'run-sd-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar', 'probe-panel-content'];
             if (state) {
-                btn.textContent = 'Disconnect'; btn.className = "btn btn-danger h-8 text-xs shadow-none";
-                document.getElementById('connection-dot').classList.replace('bg-red-500', 'bg-green-500');
-                document.getElementById('connection-text').textContent = 'Online';
+                // ... (Existing code) ...
+                resetBtn.classList.remove('opacity-50', 'pointer-events-none');
                 resetBtn.classList.remove('opacity-50', 'pointer-events-none');
                 disabledIds.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.classList.remove('opacity-50', 'pointer-events-none');
                 });
+
+                // Update Connect Button to Disconnect
+                btn.innerHTML = '<i class="bi bi-usb-plug-fill"></i> Disconnect';
+                btn.className = "btn btn-secondary h-8 text-xs shadow-none border border-white/10 !bg-red-500 hover:!bg-red-600 text-white";
+
+                // Re-apply logic in case we just connected with file loaded
+                updateRunButtonsState();
+
                 setTimeout(() => ws.sendCommand('$EA'), 500);
                 setTimeout(() => ws.sendCommand('$EE'), 1000);
                 setTimeout(() => sdHandler.refresh(), 1500);
@@ -2147,6 +2392,11 @@
                 setTimeout(() => ws.sendCommand('$ES'), 2500);
                 setTimeout(() => ws.sendCommand('$$'), 3000);
                 setTimeout(() => ws.sendCommand('$#'), 3500);
+                setTimeout(() => {
+                    // Initial Full Status Report (0x87) to get all states like SD mount
+                    window.userRequestedStatus = true; // Log this initial full report
+                    ws.sendRealtime('\x87');
+                }, 4000);
                 statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
             } else {
                 if (statusInterval) clearInterval(statusInterval);
@@ -2164,7 +2414,19 @@
         }
 
         function initTerminal() {
-            term = new Terminal({ cursorBlink: true, fontSize: 11, fontFamily: '"JetBrains Mono", monospace', theme: { background: '#FFFFFF', foreground: '#333333', cursor: '#333333', selectionBackground: '#E6F4F5' } });
+            term = new Terminal({
+                cursorBlink: true,
+                fontSize: 11,
+                fontFamily: '"JetBrains Mono", monospace',
+                rightClickSelectsWord: true,
+                theme: {
+                    background: '#FFFFFF',
+                    foreground: '#333333',
+                    cursor: '#333333',
+                    selectionBackground: '#D6EAF8', // Darker blue-ish for visibility
+                    selectionInactiveBackground: '#F2F4F8' // Visible inactive selection
+                }
+            });
             term.attachCustomKeyEventHandler((arg) => {
                 if (arg.ctrlKey && arg.code === "KeyC" && term.hasSelection()) return false;
                 return true;
@@ -2199,6 +2461,11 @@
             }
 
             if (line.startsWith('<')) {
+
+                if (window.userRequestedStatus) {
+                    term.writeln(line);
+                    window.userRequestedStatus = false;
+                }
 
                 droHandler.parseStatus(line);
                 if (viewer) {
@@ -2327,7 +2594,149 @@
             const btn = document.getElementById('pause-job-btn');
             btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
             btn.className = "overlay-btn !bg-yellow-100 !text-yellow-800 border-yellow-300 shadow-lg";
+
+            window.sdJobActive = false; // Reset SD flag
         }
+
+        // --- Shared Job UI Helpers ---
+
+        function startJobUI() {
+            document.getElementById('run-job-btn').classList.add('hidden');
+            document.getElementById('job-active-controls').classList.remove('hidden');
+            document.getElementById('job-active-controls').classList.add('flex');
+            document.getElementById('job-progress-overlay').classList.remove('hidden');
+            jobStartTime = Date.now();
+        }
+
+        function updateJobProgressUI(pct, label) {
+            document.getElementById('job-progress-bar').style.width = `${pct}%`;
+            document.getElementById('job-progress-pct').textContent = `${pct}%`;
+            document.getElementById('job-progress-line').textContent = label;
+
+            // Update elapsed time
+            const elapsed = Math.floor((Date.now() - jobStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('job-progress-time').textContent = `Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- SD Job Progress Listeners ---
+        window.sdJobActive = false;
+
+        window.addEventListener('sd-status', (e) => {
+            const { pct, filename } = e.detail;
+
+            // If SD job just started (or we just noticed it)
+            if (!window.sdJobActive && !gcodeStreamer.active) {
+                window.sdJobActive = true;
+                startJobUI();
+                term.writeln("\x1b[35m[SD Job] Detected active SD print.\x1b[0m");
+            }
+
+            if (window.sdJobActive) {
+                updateJobProgressUI(pct, filename ? `File: ${filename}` : 'Standard Job');
+            }
+        });
+
+        window.addEventListener('sd-job-complete', () => {
+            if (window.sdJobActive) {
+                term.writeln("\x1b[32m[SD Job] Complete/Idle.\x1b[0m");
+                resetJobUI();
+                // Also ensure we are not in Hold
+                const pauseBtn = document.getElementById('pause-job-btn');
+                if (pauseBtn.innerText.includes('Resume')) {
+                    // Reset pause button visual state if it was paused
+                    pauseBtn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
+                    pauseBtn.className = "overlay-btn !bg-yellow-100 !text-yellow-800 border-yellow-300 shadow-lg";
+                }
+            }
+        });
+
+        // SD Mount State Listener
+        window.addEventListener('sd-mount-state', (e) => {
+            const state = e.detail.state;
+            // 0=Unmounted, 1=Mounted, 2=Unmounted(Auto), 3=Mounted(Auto)
+            const isMounted = (state === 1 || state === 3);
+
+            const sdLink = document.querySelector("button[onclick*='switchTab'][onclick*='sd-view']");
+
+            if (isMounted) {
+                // Enabled
+                if (sdLink) {
+                    sdLink.classList.remove('opacity-50', 'pointer-events-none');
+                    // update tooltip or visual?
+                }
+            } else {
+                // Disabled
+                if (sdLink && !window.sdJobActive) { // Don't disable if printing
+                    sdLink.classList.add('opacity-50', 'pointer-events-none');
+                }
+            }
+        });
+
+        // --- Laser Mode & Progress ---
+        window.toggleLaserMode = function () {
+            if (!window.viewer) return;
+            const btn = document.getElementById('laser-toggle-btn');
+            // Toggle
+            const newState = !window.viewer.isLaserMode;
+            window.viewer.setLaserMode(newState);
+
+            if (newState) {
+                btn.innerHTML = '<i class="bi bi-brightness-high-fill text-primary-dark"></i> Laser: ON';
+                btn.classList.add('!bg-primary-light', 'border-primary');
+                btn.classList.remove('text-grey-dark');
+                btn.classList.add('text-primary-dark');
+            } else {
+                btn.innerHTML = '<i class="bi bi-brightness-high-fill text-secondary"></i> Laser Mode';
+                btn.classList.remove('!bg-primary-light', 'border-primary', 'text-primary-dark');
+                btn.classList.add('text-grey-dark');
+            }
+        }
+
+        window.addEventListener('gcode-line', (e) => {
+            if (window.viewer) {
+                window.viewer.updateProgress(e.detail.line);
+            }
+        });
+
+        // Context Menu Handler: Set Work Zero at Machine X,Y
+        window.setWorkZeroAt = function (mX, mY) {
+            let activeP = 1; // Default to G54 (P1)
+            // Try to determine active WCS from DRO handler status string if possible, 
+            // but simpler is to assume G54 OR assume the user knows.
+            // Actually, we can get it from the last status report or droHandler if exposed.
+
+            // Best Effort: If we have window.dro (the DroHandler instance)
+            // Check if it has activeWCS (it sends 'G54', 'G55' etc in update?)
+            // Let's check window.droHandler (it's initialized in init())
+
+            if (window.droHandler && window.droHandler.wcs) {
+                // wcs might be 'G54', 'G55'...
+                const wcsMap = { 'G54': 1, 'G55': 2, 'G56': 3, 'G57': 4, 'G58': 5, 'G59': 6 };
+                if (wcsMap[window.droHandler.activeWCS]) activeP = wcsMap[window.droHandler.activeWCS];
+                // Note: droHandler probably doesn't expose 'activeWCS' publicly as a property... 
+                // It only seems to log it or use it internally. 
+                // Let's check dro.js again? Steps revealed it parses status string but maybe not exposed.
+                // We can parse the laststatus string: window.lastStatus
+            }
+
+            // Simpler fallback: just use G10 L2 P0 (which in some firmwares is active coordinate system)
+            // Spec says L2 P0 is not valid usually (1-9).
+            // Let's try to parse from window.lastStatus if available.
+            if (window.lastStatus) {
+                const match = window.lastStatus.match(/WCS:G(\d+)/);
+                if (match) {
+                    const val = parseInt(match[1]);
+                    if (val >= 54 && val <= 59) activeP = val - 53;
+                }
+            }
+
+            // Command: G10 L2 P<active> X<mX> Y<mY>
+            window.sendCmd(`G10 L2 P${activeP} X${mX} Y${mY}`);
+            window.reporter.showToast(`Set Work Zero (G${53 + activeP}) to X${mX} Y${mY}`);
+        };
+
     </script>
 </body>
 
