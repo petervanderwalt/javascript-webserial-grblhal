@@ -198,7 +198,7 @@ export class AlarmsAndErrors {
                 this.domTitle.textContent = `CRITICAL ALARM ${code}`;
                 this.domTitle.className = "font-bold text-lg text-red-700";
             } else {
-                this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+                this.domHeader.className = "px-6 py-4 border-b border-primary-light bg-grey-bg flex items-center gap-3";
                 this.domIcon.className = "bi bi-exclamation-triangle-fill text-primary-dark text-xl";
                 this.domTitle.textContent = `Alarm ${code}`;
                 this.domTitle.className = "font-bold text-lg text-secondary-dark";
@@ -240,7 +240,7 @@ export class AlarmsAndErrors {
                     this.domFooter.appendChild(btnCancel);
                     this.domFooter.appendChild(btnReset);
                 } else {
-                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark', () => {
                         this.performUnlock();
                         this.closeModal();
                     });
@@ -271,7 +271,7 @@ export class AlarmsAndErrors {
                     this.domFooter.appendChild(btnCancel);
                     this.domFooter.appendChild(btnReset);
                 } else {
-                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark', () => {
                         this.performUnlock();
                         this.closeModal();
                     });
@@ -297,7 +297,7 @@ export class AlarmsAndErrors {
                 this.domFooter.appendChild(btnReset);
             } else {
                 // Regular alarms can be cleared with $X
-                const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark', () => {
                     this.performUnlock();
                     this.closeModal();
                 });
@@ -322,7 +322,7 @@ export class AlarmsAndErrors {
      */
     showConfirm(title, message, onConfirm, onCancel, confirmText = 'OK', cancelText = 'Cancel') {
         // Yellow/primary theme for confirmations
-        this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+        this.domHeader.className = "px-6 py-4 border-b border-primary-light bg-grey-bg flex items-center gap-3";
         this.domIcon.className = "bi bi-question-circle-fill text-primary-dark text-xl";
         this.domTitle.textContent = title;
         this.domTitle.className = "font-bold text-lg text-secondary-dark";
@@ -335,7 +335,7 @@ export class AlarmsAndErrors {
             this.closeModal();
         });
 
-        const btnConfirm = this.createBtn(confirmText, 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
+        const btnConfirm = this.createBtn(confirmText, 'bg-primary text-black hover:bg-primary-dark border border-primary-dark', async () => {
             if (onConfirm) await onConfirm();
             this.closeModal();
         });
@@ -382,7 +382,7 @@ export class AlarmsAndErrors {
      */
     showPrompt(title, message, defaultValue, onSubmit, onCancel) {
         // Primary theme for prompts
-        this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+        this.domHeader.className = "px-6 py-4 border-b border-primary-light bg-grey-bg flex items-center gap-3";
         this.domIcon.className = "bi bi-pencil-square text-primary-dark text-xl";
         this.domTitle.textContent = title;
         this.domTitle.className = "font-bold text-lg text-secondary-dark";
@@ -404,7 +404,7 @@ export class AlarmsAndErrors {
             this.closeModal();
         });
 
-        const btnSubmit = this.createBtn('OK', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', async () => {
+        const btnSubmit = this.createBtn('OK', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark', async () => {
             const value = inputEl.value.trim();
             if (onSubmit) await onSubmit(value);
             this.closeModal();

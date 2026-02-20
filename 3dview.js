@@ -40,7 +40,7 @@ class ParticleSystem {
     }
 
     createChip(pos) {
-        const mat = new THREE.SpriteMaterial({ color: 0xffd700 }); // Goldish
+        const mat = new THREE.SpriteMaterial({ color: COLORS.tool }); // Uses theme tool color
         const sprite = new THREE.Sprite(mat);
         sprite.position.copy(pos);
         sprite.scale.set(1.5, 1.5, 1.5);
@@ -230,8 +230,8 @@ export class GCodeViewer {
         this.renderMachineBox();
         this.renderTool();
 
-        // Instantiate Particle System now that Scene exists
-        this.particleSystem = new ParticleSystem(this.scene);
+        // Instantiate Particle System attached to workOffsetsGroup so it uses local Work coordinates
+        this.particleSystem = new ParticleSystem(this.workOffsetsGroup);
 
         this.animate();
 
@@ -270,7 +270,6 @@ export class GCodeViewer {
         }
 
         if (this.controls) this.controls.update();
-        if (this.controls) this.controls.update();
         if (this.particleSystem) this.particleSystem.update(delta);
 
         // Emit particles if moving and spindle on
@@ -282,25 +281,21 @@ export class GCodeViewer {
             const count = Math.min(Math.floor(dist * 5), 10);
             this.particleSystem.emit(this.currentToolPos, count, type);
         }
-        if (dist > 0.01 && this.spindleSpeed > 0) {
-            // Determine type: 'chip' or 'vapor'
-            // BUGFIX: Ensure 'type' is correct even after switching modes
-            const type = this.isLaserMode ? 'vapor' : 'chip';
-            // Emit count proportional to distance/speed
-            const count = Math.min(Math.floor(dist * 5), 10);
-            this.particleSystem.emit(this.currentToolPos, count, type);
-        }
         this.lastToolPos.copy(this.currentToolPos);
-
         // --- Camera: Spindle View ---
         if (this.cameraMode === 'spindle') {
             // Camera position: Above tool (Z+100), slightly back (Y-50)
             const offset = new THREE.Vector3(0, -50, 100);
-            // We want to look AT the tool
-            // We need to update camera position to follow tool
-            this.camera.position.copy(this.currentToolPos).add(offset);
-            this.camera.lookAt(this.currentToolPos);
-            this.controls.target.copy(this.currentToolPos);
+
+            // Note: currentToolPos is local to workOffsetsGroup
+            // We need the world position of the tool to position the camera correctly
+            const worldToolPos = new THREE.Vector3();
+            this.toolGroup.getWorldPosition(worldToolPos);
+
+            // We want to look AT the tool world position
+            this.camera.position.copy(worldToolPos).add(offset);
+            this.camera.lookAt(worldToolPos);
+            this.controls.target.copy(worldToolPos);
         }
 
         if (this.renderer && this.scene && this.camera) {

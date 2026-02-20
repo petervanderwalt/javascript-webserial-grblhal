@@ -85,6 +85,8 @@ class ConsoleManager {
      * Setup console input event listeners
      */
     setupInputListeners() {
+        document.getElementById('btnSend').addEventListener('click', () => this.sendFromInput());
+
         document.getElementById('cmdInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 this.sendFromInput();

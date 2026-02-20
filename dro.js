@@ -300,24 +300,24 @@ export class DROHandler {
                     if (['E', 'F'].includes(char)) {
                         // Critical: E-Stop, Motor Fault
                         el.classList.add('bg-red-600', 'text-white', 'border-red-700');
-                        el.classList.remove('bg-yellow-500', 'bg-blue-500', 'bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                        el.classList.remove('bg-yellow-500', 'bg-blue-500', 'bg-grey-light', 'text-grey-light', 'border-grey-light');
                     } else if (['M', 'O'].includes(char)) {
                         // Warning: Motor Warning, Probe Disconnected
                         el.classList.add('bg-yellow-500', 'text-white', 'border-yellow-600');
-                        el.classList.remove('bg-red-600', 'bg-blue-500', 'bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                        el.classList.remove('bg-red-600', 'bg-blue-500', 'bg-grey-light', 'text-grey-light', 'border-grey-light');
                     } else if (['X', 'Y', 'Z', 'A', 'B', 'C', 'U', 'V', 'W', 'D'].includes(char)) {
                         // Limits and Door - red
                         el.classList.add('bg-red-500', 'text-white', 'border-red-600');
-                        el.classList.remove('bg-yellow-500', 'bg-blue-500', 'bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                        el.classList.remove('bg-yellow-500', 'bg-blue-500', 'bg-grey-light', 'text-grey-light', 'border-grey-light');
                     } else {
                         // Control switches and probe triggered - blue
                         el.classList.add('bg-blue-500', 'text-white', 'border-blue-600');
-                        el.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                        el.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-grey-light', 'text-grey-light', 'border-grey-light');
                     }
                 } else {
                     // Inactive state
                     el.classList.remove('bg-red-500', 'bg-red-600', 'bg-yellow-500', 'bg-blue-500', 'text-white', 'border-red-600', 'border-red-700', 'border-yellow-600', 'border-blue-600');
-                    el.classList.add('bg-grey-light/20', 'text-grey-light', 'border-grey-light');
+                    el.classList.add('bg-grey-light', 'text-grey-light', 'border-grey-light');
                 }
             }
         });

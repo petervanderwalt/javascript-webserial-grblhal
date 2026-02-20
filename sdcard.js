@@ -259,7 +259,7 @@ export class SDCardHandler {
         const safeId = btoa(name).replace(/=/g, '');
 
         const row = `
-          <tr class="hover:bg-grey-light/30 border-b border-grey-light last:border-b-0 transition-colors group" data-filename="${name}">
+          <tr class="hover:bg-grey-light border-b border-grey-light last:border-b-0 transition-colors group" data-filename="${name}">
               <td class="px-4 py-2 md:px-6 md:py-3 font-medium text-grey-dark align-middle truncate overflow-hidden">
                   <div class="flex flex-col justify-center w-full">
                       <div class="flex items-center gap-2 truncate">
@@ -268,11 +268,11 @@ export class SDCardHandler {
                       </div>
 
                       <!-- Progress Bar (Hidden by default) -->
-                      <div id="sd-prog-${safeId}" class="hidden w-full max-w-[200px] mt-1.5 ml-6 md:ml-0 bg-grey-light/50 rounded-full h-1">
+                      <div id="sd-prog-${safeId}" class="hidden w-full max-w-[200px] mt-1.5 ml-6 md:ml-0 bg-grey-light rounded-full h-1">
                         <div class="bg-primary h-1 rounded-full transition-all duration-200" style="width: 0%"></div>
                       </div>
 
-                      <span class="text-[10px] text-grey/80 font-mono mt-0.5 md:hidden ml-6">${sizeDisplay}</span>
+                      <span class="text-[10px] text-grey opacity-80 font-mono mt-0.5 md:hidden ml-6">${sizeDisplay}</span>
                   </div>
               </td>
 
@@ -343,7 +343,7 @@ export class SDCardHandler {
         const tbody = document.querySelector('#sd-table tbody');
 
         const row = document.createElement('tr');
-        row.className = "hover:bg-grey-light/30 border-b border-grey-light cursor-pointer transition-colors group";
+        row.className = "hover:bg-grey-light border-b border-grey-light cursor-pointer transition-colors group";
         row.onclick = (e) => {
             if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'I' && e.target.tagName !== 'SPAN') {
                 this.enterDir(name);
@@ -353,7 +353,7 @@ export class SDCardHandler {
         row.innerHTML = `
           <td class="px-4 py-3 md:px-6 md:py-3 font-bold text-grey-dark align-middle truncate overflow-hidden">
               <div class="flex items-center gap-2 truncate">
-                  <i class="bi bi-folder-fill text-primary/70 shrink-0"></i>
+                  <i class="bi bi-folder-fill text-primary opacity-70 shrink-0"></i>
                   <span class="truncate" title="${name}">${name}</span>
               </div>
           </td>

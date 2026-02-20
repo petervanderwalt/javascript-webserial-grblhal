@@ -1,159 +1,187 @@
 /**
- * webserial.js - A robust wrapper for the Web Serial API.
+ * webserial.js - Web Serial API wrapper with Grbl v1.1 character-counting flow control.
+ *
+ * Flow control protocol (from https://github.com/gnea/grbl/wiki/Grbl-v1.1-Interface):
+ *   - grblHAL has a 128-byte serial RX buffer.
+ *   - The host tracks how many characters have been sent but not yet acknowledged.
+ *   - Before sending a command, the host checks: charCount + cmdLen < RX_BUF_SIZE
+ *   - Each 'ok' or 'error:N' response frees the space used by the oldest pending command.
+ *   - Realtime characters (?, !, ~, 0x18, 0x84..0x8F) bypass the buffer tracking entirely.
  */
 
 export class WebSerial {
     constructor() {
         this.port = null;
         this.reader = null;
-        this.writer = null;
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
         this.isConnected = false;
 
-        // Event listeners storage
+        // Event listeners
         this.listeners = {
             connect: [],
             disconnect: [],
-            line: [], // Standard text lines received
-            raw: [],  // Raw Uint8Array chunks (for YMODEM)
-            sent: [],  // Commands sent (for UI echo)
-            error: [] // New: Error reporting
+            line: [],
+            raw: [],
+            sent: [],
+            error: []
         };
 
-        // If set, this function receives raw bytes instead of the text decoder
         this.rawModeCallback = null;
+
+        // --- Grbl v1.1 Character-Counting Flow Control ---
+        this._rxBufSize = 128;    // grblHAL serial RX buffer size
+        this._rxBufUsed = 0;      // Bytes currently occupying grblHAL's RX buffer
+        this._pendingLens = [];   // FIFO of command byte-lengths awaiting ok/error
+        this._sendQueue = [];     // Commands waiting for buffer space: {len, bytes, resolve, reject}
+
+        // Internal flow-control listener - registered first so it fires before UI listeners
+        this._onLine = (line) => {
+            if (line === 'ok' || line.startsWith('error:')) {
+                const len = this._pendingLens.shift();
+                if (len !== undefined) {
+                    this._rxBufUsed -= len;
+                    this._flushSendQueue();
+                }
+            }
+        };
+        this.on('line', this._onLine);
     }
 
-    /**
-     * Subscribe to an event.
-     * @param {string} event - 'connect', 'disconnect', 'line', 'raw', 'sent', 'error'
-     * @param {function} callback
-     */
+    // ---- Flow Control Helpers ----
+
+    _resetFlowControl() {
+        this._rxBufUsed = 0;
+        this._pendingLens = [];
+        const queue = this._sendQueue;
+        this._sendQueue = [];
+        queue.forEach(item => item.reject(new Error('Connection reset')));
+    }
+
+    _flushSendQueue() {
+        while (this._sendQueue.length > 0) {
+            const item = this._sendQueue[0];
+            if (this._rxBufUsed + item.len < this._rxBufSize) {
+                this._sendQueue.shift();
+                this._rxBufUsed += item.len;
+                this._pendingLens.push(item.len);
+                item.resolve();
+            } else {
+                break; // Next item still doesn't fit
+            }
+        }
+    }
+
+    // ---- Public API ----
+
     on(event, callback) {
+        if (this.listeners[event]) this.listeners[event].push(callback);
+    }
+
+    off(event, callback) {
         if (this.listeners[event]) {
-            this.listeners[event].push(callback);
+            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
         }
     }
 
     emit(event, data) {
-        if (this.listeners[event]) {
-            this.listeners[event].forEach(cb => cb(data));
-        }
+        if (this.listeners[event]) this.listeners[event].forEach(cb => cb(data));
     }
 
-    /**
-     * Request user to select a port and open it.
-     * @param {number} baudRate
-     */
     async connect(baudRate = 115200) {
         if (!navigator.serial) {
-            const err = new Error("Web Serial is not supported in this browser.");
+            const err = new Error('Web Serial is not supported in this browser.');
             this.emit('error', err);
             throw err;
         }
-
         try {
             this.port = await navigator.serial.requestPort();
-            await this.port.open({ baudRate: baudRate });
-
+            await this.port.open({ baudRate });
+            this._resetFlowControl();
             this.isConnected = true;
             this.listeners.connect.forEach(cb => cb());
-
-            // Start the read loop
             this.readLoop();
         } catch (err) {
-            console.error("Serial Connect Error:", err);
-            // Ignore "NotFoundError" which happens when user clicks 'Cancel' in the browser dialog
-            if (err.name !== 'NotFoundError') {
-                this.emit('error', err);
-            }
+            console.error('Serial Connect Error:', err);
+            if (err.name !== 'NotFoundError') this.emit('error', err);
             throw err;
         }
     }
 
-    /**
-     * Close the port and cleanup.
-     */
     async disconnect() {
         if (!this.isConnected && !this.port) return;
-
-        // Reset state immediately to prevent re-entry/double-calls
         const wasConnected = this.isConnected;
         this.isConnected = false;
+        this._resetFlowControl();
 
         try {
             if (this.reader) {
-                try {
-                    // Try to cancel the reader, but don't hang if it's already in a bad state
-                    await this.reader.cancel();
-                } catch (e) {
-                    console.debug("WebSerial: Error canceling reader during disconnect (expected if device lost):", e);
+                try { await this.reader.cancel(); } catch (e) {
+                    console.debug('WebSerial: reader cancel (expected):', e);
                 }
                 this.reader = null;
             }
             if (this.port) {
-                try {
-                    await this.port.close();
-                } catch (e) {
-                    console.debug("WebSerial: Error closing port during disconnect (expected if device lost):", e);
+                try { await this.port.close(); } catch (e) {
+                    console.debug('WebSerial: port close (expected):', e);
                 }
                 this.port = null;
             }
         } finally {
-            if (wasConnected) {
-                this.emit('disconnect');
-            }
+            if (wasConnected) this.emit('disconnect');
         }
     }
 
     /**
-     * Send text data (automatically encodes to bytes).
-     * @param {string} text - String to send
-     */
-    async write(text) {
-        const data = this.encoder.encode(text);
-        await this.writeRaw(data);
-    }
-
-    /**
-     * Send a line of G-code (appends \n) and emits 'sent' event.
-     * @param {string} line
+     * Send a G-code or system command with character-counting flow control.
+     * Waits if grblHAL's RX buffer would overflow.
      */
     async sendCommand(line) {
-        await this.write(line + '\n');
+        const bytes = this.encoder.encode(line + '\n');
+        const len = bytes.length;
+
+        // Block until there is room in grblHAL's RX buffer
+        if (this._rxBufUsed + len >= this._rxBufSize) {
+            await new Promise((resolve, reject) => {
+                this._sendQueue.push({ len, resolve, reject });
+            });
+            // Space was claimed by _flushSendQueue when it resolved us
+        } else {
+            // Claim space immediately
+            this._rxBufUsed += len;
+            this._pendingLens.push(len);
+        }
+
+        if (!this.isConnected) return;
+
+        await this.writeRaw(bytes);
         this.listeners.sent.forEach(cb => cb(line));
     }
 
     /**
-     * Send a single realtime character (no newline).
-     * @param {string} char
+     * Send a single realtime command byte.
+     * These are intercepted by grblHAL before entering its line buffer,
+     * so they do NOT count toward the RX buffer usage.
      */
     async sendRealtime(char) {
-        await this.write(char);
+        const data = this.encoder.encode(char);
+        await this.writeRaw(data);
     }
 
     /**
-     * Low-level write function with locking/retry logic.
-     * @param {Uint8Array} data
+     * Low-level write with lock-retry (original proven approach).
      */
     async writeRaw(data) {
-        if (!this.isConnected || !this.port || !this.port.writable) return;
+        if (!this.port || !this.port.writable) return;
 
-        // Wait if the writer is locked (e.g., by another ongoing write)
         let retries = 0;
-        try {
-            while (this.port.writable.locked && retries < 20) {
-                await new Promise(r => setTimeout(r, 10)); // Wait 10ms
-                retries++;
-            }
-        } catch (e) {
-            this.disconnect();
-            return;
+        while (this.port.writable.locked && retries < 20) {
+            await new Promise(r => setTimeout(r, 10));
+            retries++;
         }
 
         if (this.port.writable.locked) {
-            console.warn("Serial write dropped: Stream locked");
+            console.warn('Serial write dropped: stream still locked after retries');
             return;
         }
 
@@ -161,60 +189,42 @@ export class WebSerial {
         try {
             await writer.write(data);
         } catch (e) {
-            console.error("Serial Write Error:", e);
-            // If we hit a network or state error during write, the port is likely dead
-            if (e.name === 'NetworkError' || e.name === 'InvalidStateError') {
-                this.disconnect();
-            }
+            console.error('Serial Write Error:', e);
+            this.emit('error', e);
         } finally {
-            try {
-                writer.releaseLock();
-            } catch (e) { }
+            writer.releaseLock();
         }
     }
 
-    /**
-     * Enable/Disable Raw Mode for binary protocols like YMODEM.
-     * @param {function|null} callback - Function to handle Uint8Array, or null to disable.
-     */
     setRawHandler(callback) {
         this.rawModeCallback = callback;
     }
 
-    /**
-     * Internal Read Loop
-     */
     async readLoop() {
         this.reader = this.port.readable.getReader();
 
-        // Listen for device removal at the browser level
         const onDisconnect = (event) => {
             if (event.port === this.port) {
-                console.warn("WebSerial: Hardware device disconnected.");
+                console.warn('WebSerial: hardware device disconnected.');
                 this.disconnect();
             }
         };
         navigator.serial.addEventListener('disconnect', onDisconnect);
 
         try {
-            let textBuffer = "";
+            let textBuffer = '';
             while (true) {
                 const { value, done } = await this.reader.read();
                 if (done) break;
                 if (value) {
-                    // 1. Raw Mode (YMODEM)
                     if (this.rawModeCallback) {
                         this.rawModeCallback(value);
                         continue;
                     }
-
-                    // 2. Text Mode (Grbl)
                     const chunk = this.decoder.decode(value, { stream: true });
                     textBuffer += chunk;
-
                     const lines = textBuffer.split('\n');
                     textBuffer = lines.pop();
-
                     for (const line of lines) {
                         const trimmed = line.trim();
                         if (trimmed) this.emit('line', trimmed);
@@ -222,17 +232,14 @@ export class WebSerial {
                 }
             }
         } catch (err) {
-            console.error("WebSerial Read Error:", err);
+            console.error('WebSerial Read Error:', err);
             if (this.isConnected) {
-                this.emit('error', new Error("Connection lost: " + err.message));
-                // We call disconnect, but the finally block will release the reader lock first
+                this.emit('error', new Error('Connection lost: ' + err.message));
                 this.disconnect();
             }
         } finally {
             if (this.reader) {
-                try {
-                    this.reader.releaseLock();
-                } catch (e) { }
+                try { this.reader.releaseLock(); } catch (e) { }
                 this.reader = null;
             }
             navigator.serial.removeEventListener('disconnect', onDisconnect);

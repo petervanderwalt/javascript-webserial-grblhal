@@ -50,7 +50,7 @@ class JoggingController {
 
             const stopJog = (e) => {
                 if (!toggle.checked) return;
-                window.ws.sendRealtime('\\x85');
+                window.ws.sendRealtime('\x85');
             };
 
             const clickJog = () => {

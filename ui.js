@@ -36,22 +36,25 @@ class UIManager {
             // Update Run button states in case we just connected with file loaded
             this.updateRunButtonsState();
 
-            // Initialization Sequence - Delay to allow board to fully boot
-            setTimeout(() => {
-                window.userRequestedStatus = true;
-                ws.sendRealtime('\\x87'); // Get extended status including alarm state
-                this.statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
-            }, 1000);
 
-            // Then send initialization commands (delayed further so board is ready)
-            setTimeout(() => ws.sendCommand('$EE'), 2000);  // Error codes first (safe)
-            setTimeout(() => ws.sendCommand('$EA'), 2500);  // Alarm codes (safe)
-            setTimeout(() => ws.sendCommand('$EG'), 3000);  // Setting groups (safe)
-            setTimeout(() => ws.sendCommand('$ES'), 3500);  // Setting enumerations (safe)
-            setTimeout(() => ws.sendCommand('$$'), 4000);  // Settings (safe)
-            setTimeout(() => ws.sendCommand('$#'), 4500);  // Parameters (safe)
-            setTimeout(() => ws.sendCommand('$I+'), 5000);  // Build info (safe)
-            setTimeout(() => sdHandler.refresh(), 5500);  // SD card (may fail in alarm)
+            // Start status polling immediately (realtime character, safe from the start)
+            this.statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
+
+            // Initialization Sequence - $E* commands first, status request LAST
+            // (Sending \x87 early causes a large 155-char response that collides with $EE)
+            setTimeout(() => ws.sendCommand('$EA'), 500);   // Alarm codes
+            setTimeout(() => ws.sendCommand('$EE'), 1000);  // Error codes
+            setTimeout(() => sdHandler.refresh(), 1500);    // SD card
+            setTimeout(() => ws.sendCommand('$EG'), 2000);  // Setting groups
+            setTimeout(() => ws.sendCommand('$ES'), 2500);  // Setting enumerations
+            setTimeout(() => ws.sendCommand('$$'), 3000);   // Settings
+            setTimeout(() => ws.sendCommand('$#'), 3500);   // Parameters
+            setTimeout(() => ws.sendCommand('$I+'), 4000);  // Build info
+            setTimeout(() => {
+                // Extended status LAST - its large response no longer collides with init commands
+                window.userRequestedStatus = true;
+                ws.sendRealtime('\x87');
+            }, 4500);
         } else {
             if (this.statusInterval) clearInterval(this.statusInterval);
             btn.textContent = 'Connect';

@@ -12,7 +12,7 @@ class EditorIntegration {
 
         window.viewer.processGCodeString(content);
         window.switchTab('viewer-view');
-        window.term.writeln("\\x1b[32m[Editor] Job updated from editor.\\x1b[0m");
+        window.term.writeln("\x1b[32m[Editor] Job updated from editor.\x1b[0m");
     }
 
     /**

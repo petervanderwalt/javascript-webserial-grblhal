@@ -163,6 +163,17 @@ export class GrblSettings {
                 desc: this.settings[id]?.desc || ''
             };
 
+            // Force 744 and 745 to be axis bitmasks
+            if (id === '744' || id === '745') {
+                this.settings[id].type = 1; // 1 = Bitmask
+                if (!this.settings[id].format) {
+                    // Try to borrow axis names format from $23 (Homing dir invert), or default
+                    this.settings[id].format = (this.settings['23'] && this.settings['23'].format)
+                        ? this.settings['23'].format
+                        : 'X,Y,Z,A,B,C';
+                }
+            }
+
             if (this.activeGroupId === null) this.activeGroupId = parts[1];
 
             this.debounceRender();
@@ -338,7 +349,7 @@ export class GrblSettings {
                 const isActive = (g.id == this.activeGroupId) && (this.searchQuery === "");
                 const activeClass = isActive
                     ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm'
-                    : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
+                    : 'text-grey-dark hover:bg-grey-light border-l-4 border-transparent';
                 const isSubGroup = g.parentId && g.parentId !== '0';
                 const indent = isSubGroup ? 'ml-2 md:ml-4' : '';
                 html += `
@@ -353,7 +364,7 @@ export class GrblSettings {
         const hasUngrouped = Object.values(this.settings).some(s => !this.groups[s.groupId]);
         if (hasUngrouped) {
             const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
-            const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light/50 border-l-4 border-transparent';
+            const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light border-l-4 border-transparent';
             html += `
                 <button onclick="window.grblSettings.setActiveGroup('ungrouped')"
                     class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all ${activeClass} border-t border-grey-light mt-1">
@@ -380,7 +391,7 @@ export class GrblSettings {
         // 1. Render Subgroups (if any)
         if (childGroups.length > 0) {
             hasContent = true;
-            html += `<div class="p-4 bg-grey-bg/30 border-b border-grey-light">`;
+            html += `<div class="p-4 bg-grey-bg border-b border-grey-light">`;
             html += `<h4 class="text-[10px] font-bold text-grey uppercase tracking-wider mb-2">Subcategories</h4>`;
             html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">`;
 
@@ -485,7 +496,7 @@ export class GrblSettings {
 
             const options = s.format.split(',');
             // Stacked vertical on mobile
-            let html = `<div class="flex flex-col gap-1 border border-grey-light rounded p-1 bg-grey-bg/30">`;
+            let html = `<div class="flex flex-col gap-1 border border-grey-light rounded p-1 bg-grey-bg">`;
 
             options.forEach((label, index) => {
                 if (!label || label.toUpperCase() === 'N/A') return;

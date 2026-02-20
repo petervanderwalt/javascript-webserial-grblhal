@@ -1,0 +1,311 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    /* Ooznest Teal */
+    --color-primary-light: #529A9F;
+    --color-primary: #30797F;
+    --color-primary-dark: #245d61;
+
+    /* Ooznest Orange */
+    --color-secondary-light: #FB903A;
+    --color-secondary: #F76406;
+    --color-secondary-dark: #e67618;
+
+    /* Sleek Grays matching their UI */
+    --color-grey-light: #e2e8f0;
+    --color-grey: #64748b;
+    --color-grey-dark: #1e293b;
+
+    --color-bg: #f3f5f6;
+    /* Very subtle greyish teal background */
+    --color-surface: #ffffff;
+
+    --color-axis-x: #ef4444;
+    --color-axis-y: #25D466;
+    /* Ooznest Green */
+    --color-axis-z: #3b82f6;
+    --color-axis-a: #F76406;
+    /* Ooznest Orange */
+
+    --ooz-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif !important;
+}
+
+/* ---------------- Viewport & Canvas ---------------- */
+.app-container {
+    background: var(--color-bg) !important;
+}
+
+main {
+    background: transparent !important;
+}
+
+/* ---------------- Sidebar ---------------- */
+.machine-sidebar {
+    background: transparent !important;
+    border: none !important;
+    width: 380px !important;
+    padding: 0 0 0 0 !important;
+    /* Spacing from screen edge */
+}
+
+/* The actual scrollable sidebar panel */
+.machine-sidebar>div:not(.md\:hidden) {
+    background: var(--color-surface) !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--ooz-shadow) !important;
+    margin: 0 !important;
+    padding: 4px !important;
+    gap: 12px !important;
+    overflow-y: auto !important;
+}
+
+/* Sidebar Custom Scrollbar */
+.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar {
+    width: 6px;
+}
+
+.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Soften internal sidebar containers */
+.machine-sidebar .bg-secondary-dark,
+.machine-sidebar .dro-panel,
+.machine-sidebar>div:not(.md\:hidden)>div {
+    background: transparent !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--color-grey-light) !important;
+    box-shadow: none !important;
+    margin-bottom: 0 !important;
+}
+
+/* ---------------- Header ---------------- */
+.app-container>main>div:first-child {
+    background: var(--color-surface) !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--ooz-shadow) !important;
+    margin: 16px 16px 16px 16px !important;
+    height: 64px !important;
+    padding: 0 16px !important;
+}
+
+.app-container>main>div:first-child button {
+    border-color: transparent !important;
+    background: transparent !important;
+    color: var(--color-grey-dark) !important;
+}
+
+/* Ooznest Header Branding */
+.app-container>main>div:first-child h1,
+.app-container>main>div:first-child img,
+.app-container>main>div:first-child span {
+    color: var(--color-grey-dark) !important;
+    /* Keep it dark grey, not orange */
+}
+
+.app-container>main>div:first-child select {
+    background: var(--color-surface) !important;
+    color: var(--color-primary) !important;
+    border: 1px solid var(--color-grey-light) !important;
+    font-weight: bold;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+}
+
+
+/* ---------------- Tabs ---------------- */
+#tabs-scroll-container {
+    background: transparent !important;
+    gap: 6px !important;
+    padding: 0 10px !important;
+    align-items: center !important;
+}
+
+.tab-btn {
+    background: transparent !important;
+    border-radius: 8px !important;
+    color: var(--color-grey) !important;
+    box-shadow: none !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border: none !important;
+    transition: all 0.2s !important;
+    height: auto !important;
+}
+
+.tab-btn:hover {
+    color: var(--color-primary) !important;
+    background: rgba(48, 121, 127, 0.05) !important;
+    transform: none !important;
+}
+
+.tab-btn.active {
+    background: var(--color-primary) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(48, 121, 127, 0.2) !important;
+}
+
+.tab-badge {
+    background: var(--color-secondary) !important;
+    color: white !important;
+}
+
+
+/* ---------------- Main Content Workspace ---------------- */
+.app-container>main>.flex-1.relative.overflow-hidden {
+    padding: 0 0 0 0 !important;
+    overflow: visible !important;
+}
+
+.tab-pane {
+    background: var(--color-surface) !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--ooz-shadow) !important;
+    height: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+}
+
+.tab-pane::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tab-pane::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tab-pane::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.tab-pane::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+#viewer-view {
+    /* Gradient Background for Viewport per reference */
+    background: linear-gradient(180deg, #ffffff, #f3f5f6) !important;
+}
+
+
+/* ---------------- Buttons & Details ---------------- */
+button.btn-primary {
+    background: var(--color-primary) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(48, 121, 127, 0.2) !important;
+}
+
+button.btn-primary:active,
+button.btn-primary:hover {
+    background: var(--color-primary-dark) !important;
+}
+
+/* Reset button stylings (outline style) */
+#btn-reset {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-secondary) !important;
+    color: var(--color-secondary) !important;
+    font-weight: 700 !important;
+    opacity: 1 !important;
+}
+
+#btn-reset:hover {
+    background: var(--color-secondary) !important;
+    color: white !important;
+}
+
+/* DRO Panel details */
+.dro-card {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-grey-light) !important;
+    border-radius: 6px !important;
+    border-left: 4px solid !important;
+}
+
+.dro-card.border-l-axis-x {
+    border-left-color: var(--color-axis-x) !important;
+}
+
+.dro-card.border-l-axis-y {
+    border-left-color: var(--color-axis-y) !important;
+}
+
+.dro-card.border-l-axis-z {
+    border-left-color: var(--color-axis-z) !important;
+}
+
+.dro-card.border-l-axis-a {
+    border-left-color: var(--color-axis-a) !important;
+}
+
+/* Prevent weird text bleeding on probe blocks by enforcing white text where it should be */
+.tab-pane .bg-primary {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+
+.tab-pane .text-primary {
+    color: var(--color-primary) !important;
+}
+
+/* Fix text readability for buttons forced to primary color with dark text initially designed for the yellow theme */
+button.\!bg-primary.\!text-secondary-dark,
+button.\!bg-primary.\!text-black {
+    color: #ffffff !important;
+}
+
+button.\!bg-primary.\!text-secondary-dark i,
+button.\!bg-primary.\!text-black i {
+    color: #ffffff !important;
+}
+
+/* Same for secondary (Orange) backgrounds - prevent text from being black/dark on it */
+button.\!bg-secondary.\!text-secondary-dark,
+label.\!bg-secondary.\!text-secondary-dark,
+button.\!bg-secondary.\!text-black,
+label.\!bg-secondary.\!text-black,
+button.\!bg-secondary.\!text-white,
+label.\!bg-secondary.\!text-white {
+    color: #ffffff !important;
+}
+
+button.\!bg-secondary.\!text-secondary-dark i,
+label.\!bg-secondary.\!text-secondary-dark i,
+button.\!bg-secondary.\!text-black i,
+label.\!bg-secondary.\!text-black i,
+button.\!bg-secondary.\!text-white i,
+label.\!bg-secondary.\!text-white i {
+    color: #ffffff !important;
+}
+
+label.\!bg-primary.\!text-secondary-dark,
+label.\!bg-primary.\!text-black {
+    color: #ffffff !important;
+}
+
+label.\!bg-primary.\!text-secondary-dark i,
+label.\!bg-primary.\!text-black i {
+    color: #ffffff !important;
+}

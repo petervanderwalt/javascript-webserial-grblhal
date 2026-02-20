@@ -24,7 +24,7 @@ class JobController {
             if (!this.sdJobActive && !this.gcodeStreamer.active) {
                 this.sdJobActive = true;
                 this.startJobUI();
-                window.term.writeln("\\x1b[35m[SD Job] Detected active SD print.\\x1b[0m");
+                window.term.writeln("\x1b[35m[SD Job] Detected active SD print.\x1b[0m");
             }
 
             if (this.sdJobActive) {
@@ -34,7 +34,7 @@ class JobController {
 
         window.addEventListener('sd-job-complete', () => {
             if (this.sdJobActive) {
-                window.term.writeln("\\x1b[32m[SD Job] Complete/Idle.\\x1b[0m");
+                window.term.writeln("\x1b[32m[SD Job] Complete/Idle.\x1b[0m");
                 this.resetJobUI();
                 // Also ensure we are not in Hold
                 const pauseBtn = document.getElementById('pause-job-btn');
@@ -56,7 +56,7 @@ class JobController {
             return;
         }
         window.reporter.showConfirm('Run Job', 'Are you sure you want to run the job currently loaded in the 3D viewer?', () => {
-            this.gcodeStreamer.lines = window.currentGCodeContent.split('\\n').filter(line => line.trim().length > 0);
+            this.gcodeStreamer.lines = window.currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
             this.gcodeStreamer.index = 0;
             this.gcodeStreamer.active = true;
             this.gcodeStreamer.paused = false;
@@ -69,7 +69,7 @@ class JobController {
             document.getElementById('job-progress-overlay').classList.remove('hidden');
             this.jobStartTime = Date.now();
 
-            window.term.writeln("\\x1b[35m[Job Stream] Starting...\\x1b[0m");
+            window.term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
             this.advanceGCodeStream();
         });
     }
@@ -88,14 +88,14 @@ class JobController {
             btn.classList.replace('!bg-yellow-100', '!bg-green-100');
             btn.classList.replace('!text-yellow-800', '!text-green-800');
             btn.classList.replace('border-yellow-300', 'border-green-300');
-            window.term.writeln("\\x1b[33m[Job Stream] Paused.\\x1b[0m");
+            window.term.writeln("\x1b[33m[Job Stream] Paused.\x1b[0m");
         } else {
             window.ws.sendRealtime('~');
             btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
             btn.classList.replace('!bg-green-100', '!bg-yellow-100');
             btn.classList.replace('!text-green-800', '!text-yellow-800');
             btn.classList.replace('border-green-300', 'border-yellow-300');
-            window.term.writeln("\\x1b[32m[Job Stream] Resuming...\\x1b[0m");
+            window.term.writeln("\x1b[32m[Job Stream] Resuming...\x1b[0m");
         }
     }
 
@@ -105,7 +105,7 @@ class JobController {
     stopJob() {
         if (!this.gcodeStreamer.active) return;
         window.reporter.showConfirm('Stop Job', 'Stop Job? This will reset the machine.', () => {
-            window.ws.sendRealtime('\\x18');
+            window.ws.sendRealtime('\x18');
             this.abortGCodeStream("User Stopped");
         });
     }
@@ -141,7 +141,7 @@ class JobController {
      */
     finishGCodeStream() {
         this.gcodeStreamer.active = false;
-        window.term.writeln("\\x1b[32m[Job Stream] Complete.\\x1b[0m");
+        window.term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
         this.resetJobUI();
     }
 
@@ -150,7 +150,7 @@ class JobController {
      */
     abortGCodeStream(error) {
         this.gcodeStreamer.active = false;
-        window.term.writeln(`\\x1b[31m[Job Stream] Aborted: ${error}\\x1b[0m`);
+        window.term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
         this.resetJobUI();
     }
 

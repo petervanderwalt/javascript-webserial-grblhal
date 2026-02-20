@@ -1,0 +1,26 @@
+:root {
+    --color-primary-light: #FFF2AE;
+    --color-primary: #FFD949;
+    --color-primary-dark: #D7B232;
+
+    --color-secondary-light: #B0B0AF;
+    --color-secondary: #6A6B6A;
+    --color-secondary-dark: #383838;
+
+    --color-grey-light: #CBD5E1;
+    --color-grey: #6B6B6B;
+    --color-grey-dark: #2F373C;
+    --color-bg: #EDF2F7;
+
+    --color-surface: #FFFFFF;
+
+    --color-axis-x: #EF4444;
+    --color-axis-y: #22C55E;
+    --color-axis-z: #3B82F6;
+    --color-axis-a: #F59E0B;
+}
+
+.tab-badge {
+    background: var(--color-secondary);
+    color: white;
+}

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSerial CNC Control</title>
+    <!-- Prevent favicon 404 error -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 
     <!-- Fonts: Nunito & Roboto -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +19,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
 
+    <!-- Theme Engine -->
+    <link id="theme-stylesheet" rel="stylesheet" href="">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -25,28 +30,28 @@
                 extend: {
                     colors: {
                         primary: {
-                            DEFAULT: '#FFD949',
-                            dark: '#D7B232',
-                            light: '#FFF2AE'
-                        }, // Solar Yellow
-                        secondary: {
-                            DEFAULT: '#6A6B6A',
-                            dark: '#383838',
-                            light: '#B0B0AF' // Darkened from #D9D9D8
-                        }, // Techno Graphite
-                        grey: {
-                            dark: '#2F373C',
-                            DEFAULT: '#6B6B6B', // Darkened from #909090 for better contrast
-                            light: '#CBD5E1', // Darkened from #E2E8F0 (Slate-300 feel)
-                            bg: '#EDF2F7'    // Darkened from #F8F9FA (more defined background)
+                            DEFAULT: 'var(--color-primary, #FFD949)',
+                            dark: 'var(--color-primary-dark, #D7B232)',
+                            light: 'var(--color-primary-light, #FFF2AE)'
                         },
-                        surface: '#FFFFFF',
+                        secondary: {
+                            DEFAULT: 'var(--color-secondary, #6A6B6A)',
+                            dark: 'var(--color-secondary-dark, #383838)',
+                            light: 'var(--color-secondary-light, #B0B0AF)'
+                        },
+                        grey: {
+                            dark: 'var(--color-grey-dark, #2F373C)',
+                            DEFAULT: 'var(--color-grey, #6B6B6B)',
+                            light: 'var(--color-grey-light, #CBD5E1)',
+                            bg: 'var(--color-bg, #EDF2F7)'
+                        },
+                        surface: 'var(--color-surface, #FFFFFF)',
                         // CNC Standard Axis Colors
                         axis: {
-                            x: '#EF4444', // Red
-                            y: '#22C55E', // Green
-                            z: '#3B82F6', // Blue
-                            a: '#F59E0B'  // Orange
+                            x: 'var(--color-axis-x, #EF4444)',
+                            y: 'var(--color-axis-y, #22C55E)',
+                            z: 'var(--color-axis-z, #3B82F6)',
+                            a: 'var(--color-axis-a, #F59E0B)'
                         }
                     },
                     fontFamily: {
@@ -90,7 +95,7 @@
             .btn-icon { @apply p-2 rounded-md hover:bg-grey-bg transition-colors; }
 
             /* Overrides Button */
-            .btn-ovr { @apply h-9 md:h-7 w-full bg-grey-light/50 hover:bg-secondary hover:text-white rounded text-[12px] font-bold text-grey-dark transition-colors border border-grey-light touch-manipulation; }
+            .btn-ovr { @apply h-9 md:h-7 w-full bg-grey-light hover:bg-secondary hover:text-white rounded text-[12px] font-bold text-grey-dark transition-colors border border-grey-light touch-manipulation; }
 
             /* Inputs */
             .input-field { @apply w-full rounded-md border-2 border-grey-light bg-grey-bg px-3 py-2 text-sm font-bold text-grey-dark focus:border-secondary focus:bg-white outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
@@ -111,10 +116,10 @@
             .dro-val-lg { @apply font-mono text-[20px] md:text-[24px] font-black tracking-tight text-grey-dark leading-none text-right flex-1 tabular-nums mb-0 self-center; }
 
             /* Machine Position (Small) */
-            .dro-val-sm { @apply font-mono text-[11px] md:text-[16px] font-bold text-grey/80 tracking-wider leading-none text-right w-16 md:w-28 flex-shrink-0 tabular-nums self-center; }
+            .dro-val-sm { @apply font-mono text-[11px] md:text-[16px] font-bold text-grey opacity-80 tracking-wider leading-none text-right w-16 md:w-28 flex-shrink-0 tabular-nums self-center; }
 
             /* The Zero Button inside the card */
-            .dro-zero-btn { @apply w-10 md:w-10 border-l border-grey-light bg-grey-bg/30 hover:bg-primary hover:text-black hover:border-primary text-[9px] md:text-[9px] font-bold text-grey uppercase transition-colors flex items-center justify-center active:bg-primary; }
+            .dro-zero-btn { @apply w-10 md:w-10 border-l border-grey-light bg-grey-bg hover:bg-primary hover:text-black hover:border-primary text-[9px] md:text-[9px] font-bold text-grey uppercase transition-colors flex items-center justify-center active:bg-primary; }
 
             /* Sub-Controls (G28/G30) */
             .dro-sub-btn {
@@ -175,7 +180,7 @@
             <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
 
                 <!-- Handshake & Connection -->
-                <div class="bg-secondary-dark p-2 rounded-xl border border-white/10 shadow-md flex gap-2">
+                <div class="bg-secondary-dark p-2 rounded-xl border border-grey-dark shadow-md flex gap-2">
                     <button id="btn-reset"
                         class="btn flex-1 h-9 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0 bg-white/10 text-white hover:bg-white/20"
                         onclick="sendRealtime('\x18')" title="Soft Reset"><i
@@ -299,7 +304,7 @@
 
 
                     <!-- Footer Actions -->
-                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light">
                         <div class="col-span-1 flex flex-col gap-1 items-center justify-center">
                             <span id="machine-state"
                                 class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
@@ -404,7 +409,7 @@
                                 <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
                                 <input type="checkbox" id="jogContinuous" class="sr-only peer">
                                 <div
-                                    class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                                    class="relative w-8 h-4 bg-grey-light border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
                                 </div>
                                 <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
                             </label>
@@ -443,7 +448,7 @@
                                 <button onclick="sendRealtime('\x9A')"
                                     class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
                                 <button onclick="sendRealtime('\x99')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary/20 hover:bg-primary/30 transition-colors font-bold text-[8px]"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary-light hover:bg-primary transition-colors font-bold text-[8px]"
                                     title="Reset to 100%">RST</button>
                             </div>
                         </div>
@@ -457,7 +462,7 @@
                                 <button onclick="sendRealtime('\x91')"
                                     class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
                                 <button onclick="sendRealtime('\x90')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary/20 hover:bg-primary/30 transition-colors font-bold text-[8px]"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary-light hover:bg-primary transition-colors font-bold text-[8px]"
                                     title="Reset to 100%">RST</button>
                             </div>
                         </div>
@@ -587,18 +592,16 @@
                 <div class="flex items-center h-full overflow-hidden shrink-0">
                     <!-- Unified Machine Sidebar Toggle -->
                     <button
-                        class="h-full px-4 text-primary hover:text-white border-r border-white/10 flex items-center justify-center transition-colors bg-secondary-dark/50"
+                        class="h-full px-4 text-primary hover:text-white border-r border-grey-dark flex items-center justify-center transition-colors bg-secondary-dark"
                         onclick="toggleMachineSidebar()" aria-label="Toggle machine controls">
                         <i class="bi bi-list text-xl"></i>
                     </button>
 
                     <div class="flex items-center gap-2 pl-2 border-r border-white/10 h-full pr-2">
-                        <img src="logo.png" alt="Logo" class="h-6 md:h-7">
-                        <div
-                            class="hidden sm:flex items-center bg-black/20 px-2 py-0.5 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-wider">
-                            <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>
-                            <span id="connection-text">Offline</span>
-                        </div>
+                        <img src="logo.png" alt="Logo" id="app-logo" class="h-6 md:h-7">
+                        <!-- Hidden elements kept for JS compatibility -->
+                        <div id="connection-dot" class="hidden"></div>
+                        <span id="connection-text" class="hidden"></span>
                     </div>
                 </div>
 
@@ -619,30 +622,42 @@
                     <button class="tab-btn" onclick="switchTab('tools-view', this)">
                         Tools
                         <span id="tools-badge"
-                            class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
+                            class="hidden ml-2 tab-badge text-[10px] font-bold px-1.5 py-0 rounded-full text-white">0</span>
                     </button>
                     <button class="tab-btn" onclick="switchTab('sd-view', this)">
                         SD Card
                         <span id="sd-badge"
-                            class="hidden ml-2 bg-secondary text-white text-[10px] font-bold px-1.5 py-0 rounded-full">0</span>
+                            class="hidden ml-2 tab-badge text-[10px] font-bold px-1.5 py-0 rounded-full text-white">0</span>
                     </button>
                     <button class="tab-btn" onclick="switchTab('settings-view', this)">Settings</button>
                 </div>
 
                 <!-- Right Scroll Arrow -->
                 <button
-                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
+                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors border-r border-grey-dark"
                     onclick="scrollTabs('right')" aria-label="Scroll tabs right">
                     <i class="bi bi-chevron-right text-xs"></i>
                 </button>
+
+                <!-- Theme Selector -->
+                <div class="h-full flex items-center px-4 bg-transparent shrink-0">
+                    <select id="theme-selector"
+                        class="bg-secondary text-white text-xs px-2 py-1 rounded border border-white/10 outline-none cursor-pointer"
+                        onchange="window.changeTheme(this.value)">
+                        <option value="solar-yellow">Solar Yellow</option>
+                        <option value="ooznest">Ooznest</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Content -->
             <div class="flex-1 relative overflow-hidden"> <!-- Added overflow-hidden here for strict constraint -->
 
                 <!-- 3D Viewer (Default) -->
-                <div id="viewer-view" class="tab-pane w-full h-full relative bg-grey-light/30">
-                    <div id="viewer-container" class="absolute inset-0"></div>
+                <div id="viewer-view" class="tab-pane w-full h-full relative bg-grey-bg overflow-hidden"
+                    style="overflow: hidden !important;">
+                    <div id="viewer-container" class="absolute inset-0 overflow-hidden"
+                        style="overflow: hidden !important;"></div>
 
                     <!-- Loading Overlay -->
                     <div id="loading-overlay"
@@ -893,7 +908,7 @@
                                         Options</h3>
 
                                     <div
-                                        class="flex items-center justify-between bg-grey-bg/50 p-3 rounded-lg border border-grey-light mb-2">
+                                        class="flex items-center justify-between bg-grey-bg p-3 rounded-lg border border-grey-light mb-2">
                                         <span class="text-xs font-bold text-secondary-dark">Use Coolant (M8)?</span>
                                         <label class="inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="surf-coolant" class="sr-only peer">
@@ -904,7 +919,7 @@
                                     </div>
 
                                     <div
-                                        class="flex items-center justify-between bg-grey-bg/50 p-3 rounded-lg border border-grey-light">
+                                        class="flex items-center justify-between bg-grey-bg p-3 rounded-lg border border-grey-light">
                                         <span class="text-xs font-bold text-secondary-dark">Add Framing Pass?</span>
                                         <label class="inline-flex items-center cursor-pointer">
                                             <input type="checkbox" id="surf-framing" class="sr-only peer">
@@ -1025,7 +1040,7 @@
                             <div
                                 class="lg:col-span-4 xl:col-span-3 bg-white rounded-xl border border-grey-light shadow-soft flex flex-col overflow-hidden">
                                 <div
-                                    class="p-3 border-b border-grey-light bg-grey-bg/50 font-bold text-xs text-grey uppercase tracking-wider flex justify-between">
+                                    class="p-3 border-b border-grey-light bg-grey-bg font-bold text-xs text-grey uppercase tracking-wider flex justify-between">
                                     <span>Library</span>
                                     <span id="tool-count-badge">0</span>
                                 </div>
@@ -1144,7 +1159,7 @@
 
                                     <!-- Actions -->
                                     <div
-                                        class="flex flex-col justify-between bg-grey-bg/30 p-4 rounded-xl border border-grey-light/50">
+                                        class="flex flex-col justify-between bg-white p-4 rounded-xl border border-grey-light">
                                         <div class="space-y-3">
                                             <p class="text-xs text-grey font-bold uppercase"><i
                                                     class="bi bi-info-circle-fill"></i> Description</p>
@@ -1238,7 +1253,7 @@
                                     <div class="space-y-3">
                                         <!-- Plate Toggle -->
                                         <div
-                                            class="bg-grey-bg/50 p-2 rounded border border-grey-light flex justify-between items-center">
+                                            class="bg-grey-bg p-2 rounded border border-grey-light flex justify-between items-center">
                                             <span class="text-xs font-bold text-secondary-dark">Touch Plate?</span>
                                             <label class="inline-flex items-center cursor-pointer">
                                                 <input type="checkbox" id="prb-use-plate-main" class="sr-only peer"
@@ -1266,7 +1281,7 @@
                                                 class="input-field font-mono text-xs h-8" step="0.01">
                                         </div>
 
-                                        <hr class="border-grey-light/50">
+                                        <hr class="border-grey-light">
 
                                         <!-- Speeds -->
                                         <div class="grid grid-cols-2 gap-2">
@@ -1358,7 +1373,7 @@
                                                     Coordinate System (G54...).
                                                 </div>
 
-                                                <div class="bg-grey-bg/50 p-3 rounded-lg border border-grey-light">
+                                                <div class="bg-grey-bg p-3 rounded-lg border border-grey-light">
                                                     <h4 class="text-xs font-bold text-grey uppercase mb-2">Fixed Tool
                                                         Setter Location (G53)</h4>
                                                     <div class="grid grid-cols-3 gap-2">
@@ -1655,7 +1670,7 @@
                     <label class="text-[11px] font-bold text-grey uppercase">Icon</label>
                     <input type="hidden" id="macro-icon-input">
                     <div id="macro-icon-grid"
-                        class="flex flex-wrap gap-2 p-2 border border-grey-light rounded-lg bg-grey-bg/30">
+                        class="flex flex-wrap gap-2 p-2 border border-grey-light rounded-lg bg-grey-bg">
                         <!-- Populated by JS -->
                     </div>
                 </div>
@@ -1798,6 +1813,24 @@
                 container.scrollLeft += scrollAmount;
             }
         }
+
+        // Apply and save Theme
+        window.changeTheme = function (themeName) {
+            const link = document.getElementById('theme-stylesheet');
+            if (link) {
+                link.href = `themes/${themeName}.css`;
+            }
+            // Update Logo
+            const logo = document.getElementById('app-logo');
+            if (logo) {
+                logo.src = `themes/${themeName}-logo.png`;
+                // Add fallback in case theme doesn't have a logo
+                logo.onerror = function () { this.src = 'logo.png'; this.onerror = null; };
+            }
+            if (window.store) {
+                window.store.set('uiTheme', themeName);
+            }
+        }
     </script>
 
     <script type="module">
@@ -1868,6 +1901,14 @@
         let surfacingHandler = null;
         // DOMContentLoaded - Initialize all modules
         document.addEventListener('DOMContentLoaded', () => {
+            // Apply Saved Theme
+            const savedTheme = window.store ? window.store.get('uiTheme') : null;
+            if (savedTheme) {
+                window.changeTheme(savedTheme);
+                const themeSelector = document.getElementById('theme-selector');
+                if (themeSelector) themeSelector.value = savedTheme;
+            }
+
             // Sync Grid Toggle Button Text on Init
             const gridBtn = document.getElementById('grid-toggle-btn');
             if (gridBtn && viewer.gridMode === 'machine') {
@@ -1890,20 +1931,19 @@
             window.grblSettings = grblSettings;
             grblSettings.init('grbl-settings-container');
 
-            const sdHandler = new SDCardHandler(ws, window.term, {
-                onFileLoaded: (filename, content) => {
+            const sdHandler = new SDCardHandler(ws, window.term, viewer, {
+                onDownloadComplete: (content, filename, fullPath) => {
                     window.currentGCodeContent = content;
-                    window.currentSDFile = filename;
+                    window.currentSDFile = fullPath;
                     window.uiManager.updateRunButtonsState();
-                    viewer.processGCodeString(content);
                     if (editor) {
                         editor.setValue(content);
                         const lineCount = editor.getValue().split('\n').length;
                         document.getElementById('editor-line-count').innerText = lineCount;
                         document.getElementById('editor-file-name').innerText = filename;
                     }
-                    window.switchTab('viewer-view');
                 },
+                switchToViewer: () => window.switchTab('viewer-view'),
                 pausePolling: () => {
                     if (window.uiManager.statusInterval) clearInterval(window.uiManager.statusInterval);
                 },
@@ -1981,67 +2021,10 @@
             }
         });
 
-        document.getElementById('btnSend').addEventListener('click', () => window.consoleManager.sendFromInput());
-
-        document.getElementById('cmdInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                window.consoleManager.sendFromInput();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                window.consoleManager.navigateHistory(-1);
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                window.consoleManager.navigateHistory(1);
-            }
-        });
-
-        // File Input Listener (Updated for Editor)
-        document.getElementById('gcode-file-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            document.getElementById('editor-file-name').innerText = file.name;
-
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const content = evt.target.result;
-                window.currentGCodeContent = content;
-                window.currentSDFile = null; // Clear SD context for local file files
-                window.uiManager.updateRunButtonsState();
-
-                viewer.processGCodeString(window.currentGCodeContent);
-
-                // Update Editor
-                if (window.editor) {
-                    window.editor.setValue(content);
-                    const lineCount = window.editor.getValue().split('\n').length;
-                    document.getElementById('editor-line-count').innerText = lineCount;
-                }
-
-                e.target.value = '';
-            };
-            reader.readAsText(file);
-        });
-
-        document.getElementById('sd-upload-input').addEventListener('change', (e) => {
-            window.sdHandler.startUpload(e.target.files[0]);
-            e.target.value = '';
-        });
-
-        window.addEventListener('resize', () => { window.fitAddon.fit(); viewer.resize(); });
-        window.addEventListener('tab-shown', (e) => {
-            if (e.detail.id === 'viewer-view') {
-                requestAnimationFrame(() => {
-                    viewer.resize();
-                    if (viewer.controls.target.length() === 0) viewer.resetCamera();
-                });
-            }
-            if (e.detail.id === 'settings-view' && ws.isConnected) {
-                if (Object.keys(window.grblSettings.settings).length === 0) {
-                    window.grblSettings.fetchSettings();
-                }
-            }
-        });
+        // Note: btnSend click and cmdInput keydown are registered in console.js via setupInputListeners()
+        // Note: gcode-file-input and sd-upload-input are registered in editor-integration.js via setupFileInputListeners()
+        // Note: resize and tab-shown window listeners are registered in init.js
+        // All called from initializeApp() - duplicate listeners here would cause double-send / double-processing
 
         // New Grid Toggle Function
         window.toggleGridMode = function () {

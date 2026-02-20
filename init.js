@@ -75,18 +75,7 @@ export function initializeApp(ws, store, viewer, reporter, term) {
         }
     });
 
-    // WebSerial event handlers
-    ws.on('connect', () => {
-        window.uiManager.updateConnectionState(true, ws, window.sdHandler);
-    });
-
-    ws.on('disconnect', () => {
-        window.uiManager.updateConnectionState(false, ws, window.sdHandler);
-    });
-
-    ws.on('data', (line) => {
-        window.lineProcessor.processLine(line);
-    });
+    // Note: connect/disconnect/line handlers are registered in index.html to avoid duplicates
 }
 
 // Helper functions exposed globally
@@ -94,6 +83,6 @@ window.sendCmd = function (cmd) { window.ws.sendCommand(cmd); };
 window.sendRealtime = function (c) { window.ws.sendRealtime(c); };
 window.requestFullStatus = function () {
     window.userRequestedStatus = true;
-    window.ws.sendRealtime('\\x87');
+    window.ws.sendRealtime('\x87');
 };
 window.clearTerminal = function () { if (window.term) window.term.clear(); };
