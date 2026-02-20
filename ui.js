@@ -33,25 +33,25 @@ class UIManager {
             document.getElementById('connection-dot').classList.replace('bg-red-500', 'bg-green-500');
             document.getElementById('connection-text').textContent = 'Online';
 
-            // Re-apply logic in case we just connected with file loaded
+            // Update Run button states in case we just connected with file loaded
             this.updateRunButtonsState();
 
-            // Initialization Sequence - Check alarm status FIRST before sending commands
+            // Initialization Sequence - Delay to allow board to fully boot
             setTimeout(() => {
                 window.userRequestedStatus = true;
                 ws.sendRealtime('\\x87'); // Get extended status including alarm state
-            }, 500);
-            this.statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
+                this.statusInterval = setInterval(() => ws.sendRealtime('?'), 100);
+            }, 1000);
 
-            // Then send initialization commands (these may fail if in alarm state)
-            setTimeout(() => ws.sendCommand('$EE'), 1000);  // Error codes first (safe)
-            setTimeout(() => ws.sendCommand('$EA'), 1500);  // Alarm codes (safe)
-            setTimeout(() => ws.sendCommand('$EG'), 2000);  // Setting groups (safe)
-            setTimeout(() => ws.sendCommand('$ES'), 2500);  // Setting enumerations (safe)
-            setTimeout(() => ws.sendCommand('$$'), 3000);   // Settings (safe)
-            setTimeout(() => ws.sendCommand('$#'), 3500);   // Parameters (safe)
-            setTimeout(() => ws.sendCommand('$I+'), 3800);  // Build info (safe)
-            setTimeout(() => sdHandler.refresh(), 4000);    // SD card (may fail in alarm)
+            // Then send initialization commands (delayed further so board is ready)
+            setTimeout(() => ws.sendCommand('$EE'), 2000);  // Error codes first (safe)
+            setTimeout(() => ws.sendCommand('$EA'), 2500);  // Alarm codes (safe)
+            setTimeout(() => ws.sendCommand('$EG'), 3000);  // Setting groups (safe)
+            setTimeout(() => ws.sendCommand('$ES'), 3500);  // Setting enumerations (safe)
+            setTimeout(() => ws.sendCommand('$$'), 4000);  // Settings (safe)
+            setTimeout(() => ws.sendCommand('$#'), 4500);  // Parameters (safe)
+            setTimeout(() => ws.sendCommand('$I+'), 5000);  // Build info (safe)
+            setTimeout(() => sdHandler.refresh(), 5500);  // SD card (may fail in alarm)
         } else {
             if (this.statusInterval) clearInterval(this.statusInterval);
             btn.textContent = 'Connect';

@@ -206,13 +206,16 @@ export class GrblSettings {
 
     debounceRender() {
         if (this.renderTimeout) clearTimeout(this.renderTimeout);
-        this.renderTimeout = setTimeout(() => this.render(), 100);
+        // Use a longer debounce so we don't block the UI thread constantly while reading hundreds of settings
+        this.renderTimeout = setTimeout(() => {
+            requestAnimationFrame(() => this.render());
+        }, 500);
     }
 
     setActiveGroup(id) {
         this.activeGroupId = id;
         this.searchQuery = ""; // Clear search when picking a group
-        this.render();
+        requestAnimationFrame(() => this.render());
     }
 
     setSearchQuery(query) {

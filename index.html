@@ -1878,6 +1878,9 @@
             const editor = new GCodeEditor('gcode-editor');
             window.editor = editor;
 
+            // Initialize core modules first (which sets up window.term)
+            initializeApp(ws, store, viewer, reporter, null);
+
             // Initialize Helpers
             const droHandler = new DROHandler(ws, window.term, store);
             window.droHandler = droHandler;
@@ -1885,6 +1888,7 @@
 
             const grblSettings = new GrblSettings(ws, window.term);
             window.grblSettings = grblSettings;
+            grblSettings.init('grbl-settings-container');
 
             const sdHandler = new SDCardHandler(ws, window.term, {
                 onFileLoaded: (filename, content) => {
@@ -1920,9 +1924,6 @@
 
             const toolsHandler = new ToolsHandler(ws, window.term, store);
             window.toolsHandler = toolsHandler;
-
-            // Initialize all modules
-            initializeApp(ws, store, viewer, reporter, window.term);
         });
 
         window.addEventListener('gcode-loaded', (e) => {

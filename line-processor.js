@@ -45,19 +45,24 @@ class LineProcessor {
 
         // Settings handler
         if (window.grblSettings.handleLine(line)) {
+            // Debounce the viewer updates so we don't recalculate 3D bounds for every single setting parsed
             if (window.viewer && window.grblSettings.settings['130'] && window.grblSettings.settings['131'] && window.grblSettings.settings['132']) {
-                window.viewer.setMachineLimits(
-                    parseFloat(window.grblSettings.settings['130'].val),
-                    parseFloat(window.grblSettings.settings['131'].val),
-                    parseFloat(window.grblSettings.settings['132'].val)
-                );
+                if (window._viewerSettingsUpdateTimeout) clearTimeout(window._viewerSettingsUpdateTimeout);
+                window._viewerSettingsUpdateTimeout = setTimeout(() => {
+                    window.viewer.setMachineLimits(
+                        parseFloat(window.grblSettings.settings['130'].val),
+                        parseFloat(window.grblSettings.settings['131'].val),
+                        parseFloat(window.grblSettings.settings['132'].val)
+                    );
 
-                if (window.grblSettings.settings['23']) {
-                    window.viewer.setHomingDirMask(parseInt(window.grblSettings.settings['23'].val));
-                }
+                    if (window.grblSettings.settings['23']) {
+                        window.viewer.setHomingDirMask(parseInt(window.grblSettings.settings['23'].val));
+                    }
 
-                window.viewer.resetCamera();
+                    window.viewer.resetCamera();
+                }, 500);
             }
+            return; // We parsed it, skip further handlers
         }
 
         // Reporter (errors/alarms)
