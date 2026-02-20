@@ -76,16 +76,35 @@ export class WebSerial {
      * Close the port and cleanup.
      */
     async disconnect() {
-        if (this.reader) {
-            await this.reader.cancel();
-            this.reader = null;
-        }
-        if (this.port) {
-            await this.port.close();
-            this.port = null;
-        }
+        if (!this.isConnected && !this.port) return;
+
+        // Reset state immediately to prevent re-entry/double-calls
+        const wasConnected = this.isConnected;
         this.isConnected = false;
-        this.listeners.disconnect.forEach(cb => cb());
+
+        try {
+            if (this.reader) {
+                try {
+                    // Try to cancel the reader, but don't hang if it's already in a bad state
+                    await this.reader.cancel();
+                } catch (e) {
+                    console.debug("WebSerial: Error canceling reader during disconnect (expected if device lost):", e);
+                }
+                this.reader = null;
+            }
+            if (this.port) {
+                try {
+                    await this.port.close();
+                } catch (e) {
+                    console.debug("WebSerial: Error closing port during disconnect (expected if device lost):", e);
+                }
+                this.port = null;
+            }
+        } finally {
+            if (wasConnected) {
+                this.emit('disconnect');
+            }
+        }
     }
 
     /**
@@ -119,13 +138,18 @@ export class WebSerial {
      * @param {Uint8Array} data
      */
     async writeRaw(data) {
-        if (!this.port || !this.port.writable) return;
+        if (!this.isConnected || !this.port || !this.port.writable) return;
 
         // Wait if the writer is locked (e.g., by another ongoing write)
         let retries = 0;
-        while (this.port.writable.locked && retries < 20) {
-            await new Promise(r => setTimeout(r, 10)); // Wait 10ms
-            retries++;
+        try {
+            while (this.port.writable.locked && retries < 20) {
+                await new Promise(r => setTimeout(r, 10)); // Wait 10ms
+                retries++;
+            }
+        } catch (e) {
+            this.disconnect();
+            return;
         }
 
         if (this.port.writable.locked) {
@@ -138,9 +162,14 @@ export class WebSerial {
             await writer.write(data);
         } catch (e) {
             console.error("Serial Write Error:", e);
-            this.emit('error', e);
+            // If we hit a network or state error during write, the port is likely dead
+            if (e.name === 'NetworkError' || e.name === 'InvalidStateError') {
+                this.disconnect();
+            }
         } finally {
-            writer.releaseLock();
+            try {
+                writer.releaseLock();
+            } catch (e) { }
         }
     }
 
@@ -157,14 +186,22 @@ export class WebSerial {
      */
     async readLoop() {
         this.reader = this.port.readable.getReader();
-        let textBuffer = "";
+
+        // Listen for device removal at the browser level
+        const onDisconnect = (event) => {
+            if (event.port === this.port) {
+                console.warn("WebSerial: Hardware device disconnected.");
+                this.disconnect();
+            }
+        };
+        navigator.serial.addEventListener('disconnect', onDisconnect);
 
         try {
+            let textBuffer = "";
             while (true) {
                 const { value, done } = await this.reader.read();
                 if (done) break;
                 if (value) {
-
                     // 1. Raw Mode (YMODEM)
                     if (this.rawModeCallback) {
                         this.rawModeCallback(value);
@@ -176,23 +213,29 @@ export class WebSerial {
                     textBuffer += chunk;
 
                     const lines = textBuffer.split('\n');
-                    textBuffer = lines.pop(); // Keep partial line in buffer
+                    textBuffer = lines.pop();
 
                     for (const line of lines) {
                         const trimmed = line.trim();
-                        if (trimmed) {
-                            this.listeners.line.forEach(cb => cb(trimmed));
-                        }
+                        if (trimmed) this.emit('line', trimmed);
                     }
                 }
             }
         } catch (err) {
-            console.error("Read Error:", err);
-            // Emit error so UI can show "Connection Lost"
-            this.emit('error', new Error("Connection lost: " + err.message));
-            this.disconnect();
+            console.error("WebSerial Read Error:", err);
+            if (this.isConnected) {
+                this.emit('error', new Error("Connection lost: " + err.message));
+                // We call disconnect, but the finally block will release the reader lock first
+                this.disconnect();
+            }
         } finally {
-            this.reader.releaseLock();
+            if (this.reader) {
+                try {
+                    this.reader.releaseLock();
+                } catch (e) { }
+                this.reader = null;
+            }
+            navigator.serial.removeEventListener('disconnect', onDisconnect);
         }
     }
 }

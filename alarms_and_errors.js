@@ -122,8 +122,20 @@ export class AlarmsAndErrors {
         this.errors = { ...STANDARD_ERRORS };
         this.alarms = { ...STANDARD_ALARMS };
 
+        // Track current active alarm
+        this.currentAlarm = null;
+        this.currentAlarmCode = null;
+
         // Initialize the DOM elements for the modal
         this.initModal();
+
+        // Listen for active alarm events from status reports
+        window.addEventListener('active-alarm', (e) => {
+            if (e.detail && e.detail.code) {
+                this.currentAlarmCode = e.detail.code;
+                this.currentAlarm = this.alarms[e.detail.code] || 'Unknown Alarm';
+            }
+        });
     }
 
     initModal() {
@@ -164,6 +176,14 @@ export class AlarmsAndErrors {
     }
 
     showModal(type, code, message) {
+        // Close any existing modal first (only show the most recent alarm/error)
+        if (!this.overlay.classList.contains('hidden')) {
+            this.closeModal();
+        }
+
+        // Check if alarm is critical (based on grblHAL source: alarms.h)
+        const isCritical = this.isAlarmCritical(code);
+
         // Configure styles based on type
         if (type === 'ERROR') {
             this.domHeader.className = "px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-3";
@@ -171,29 +191,119 @@ export class AlarmsAndErrors {
             this.domTitle.textContent = `Error ${code}`;
             this.domTitle.className = "font-bold text-lg text-red-700";
         } else {
-            this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
-            this.domIcon.className = "bi bi-exclamation-triangle-fill text-primary-dark text-xl";
-            this.domTitle.textContent = `Alarm ${code}`;
-            this.domTitle.className = "font-bold text-lg text-secondary-dark";
+            // Use darker red for critical alarms
+            if (isCritical) {
+                this.domHeader.className = "px-6 py-4 border-b border-red-200 bg-red-100 flex items-center gap-3";
+                this.domIcon.className = "bi bi-exclamation-triangle-fill text-red-600 text-xl";
+                this.domTitle.textContent = `CRITICAL ALARM ${code}`;
+                this.domTitle.className = "font-bold text-lg text-red-700";
+            } else {
+                this.domHeader.className = "px-6 py-4 border-b border-primary/20 bg-primary/10 flex items-center gap-3";
+                this.domIcon.className = "bi bi-exclamation-triangle-fill text-primary-dark text-xl";
+                this.domTitle.textContent = `Alarm ${code}`;
+                this.domTitle.className = "font-bold text-lg text-secondary-dark";
+            }
         }
 
-        this.domBody.textContent = message;
+        // Add E-Stop warning for Alarm 10
+        let displayMessage = message;
+        if (type === 'ALARM' && code === '10') {
+            displayMessage = '⚠️ RELEASE THE E-STOP SWITCH FIRST!\n\n' + message;
+        }
+
+        this.domBody.textContent = displayMessage;
+        this.domBody.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
         this.domFooter.innerHTML = ''; // Clear buttons
 
         // Create Buttons
         if (type === 'ERROR') {
-            const btnOk = this.createBtn('OK', 'bg-secondary text-white hover:bg-secondary-dark', () => this.closeModal());
-            this.domFooter.appendChild(btnOk);
+            // Special handling for Error 9 (commands locked during alarm/jog)
+            if (code === '9' && this.currentAlarmCode) {
+                const alarmDesc = this.alarms[this.currentAlarmCode] || 'Unknown Alarm';
+                const isCurrentCritical = this.isAlarmCritical(this.currentAlarmCode);
+
+                // Show underlying alarm info
+                let errorMsg = `${message}\n\nLast Alarm ${this.currentAlarmCode}: ${alarmDesc}\n\nClear the alarm to unlock G-code commands.`;
+                if (this.currentAlarmCode === '10') {
+                    errorMsg = '⚠️ RELEASE THE E-STOP SWITCH FIRST!\n\n' + errorMsg;
+                }
+                this.domBody.textContent = errorMsg;
+
+                // Add appropriate buttons
+                const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', () => this.closeModal());
+
+                if (isCurrentCritical) {
+                    const btnReset = this.createBtn('Reset & Unlock', 'bg-red-500 text-white hover:bg-red-600 border border-red-600', () => {
+                        this.performCriticalReset();
+                        this.closeModal();
+                    });
+                    this.domFooter.appendChild(btnCancel);
+                    this.domFooter.appendChild(btnReset);
+                } else {
+                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                        this.performUnlock();
+                        this.closeModal();
+                    });
+                    this.domFooter.appendChild(btnCancel);
+                    this.domFooter.appendChild(btnClear);
+                }
+            }
+            // Special handling for Error 79 (critical event active)
+            else if (code === '79' && this.currentAlarmCode) {
+                const alarmDesc = this.alarms[this.currentAlarmCode] || 'Unknown Alarm';
+                const isCurrentCritical = this.isAlarmCritical(this.currentAlarmCode);
+
+                // Show underlying alarm info
+                let errorMsg = `${message}\n\nActive Alarm ${this.currentAlarmCode}: ${alarmDesc}`;
+                if (this.currentAlarmCode === '10') {
+                    errorMsg = '⚠️ RELEASE THE E-STOP SWITCH FIRST!\n\n' + errorMsg;
+                }
+                this.domBody.textContent = errorMsg;
+
+                // Add appropriate buttons
+                const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', () => this.closeModal());
+
+                if (isCurrentCritical) {
+                    const btnReset = this.createBtn('Reset & Unlock', 'bg-red-500 text-white hover:bg-red-600 border border-red-600', () => {
+                        this.performCriticalReset();
+                        this.closeModal();
+                    });
+                    this.domFooter.appendChild(btnCancel);
+                    this.domFooter.appendChild(btnReset);
+                } else {
+                    const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                        this.performUnlock();
+                        this.closeModal();
+                    });
+                    this.domFooter.appendChild(btnCancel);
+                    this.domFooter.appendChild(btnClear);
+                }
+            } else {
+                // Regular error - just OK button
+                const btnOk = this.createBtn('OK', 'bg-secondary text-white hover:bg-secondary-dark', () => this.closeModal());
+                this.domFooter.appendChild(btnOk);
+            }
         } else {
             // Alarm Buttons
             const btnCancel = this.createBtn('Cancel', 'bg-white border border-grey-light text-grey-dark hover:text-black', () => this.closeModal());
-            const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
-                this.performUnlock();
-                this.closeModal();
-            });
 
-            this.domFooter.appendChild(btnCancel);
-            this.domFooter.appendChild(btnClear);
+            if (isCritical) {
+                // Critical alarms require full reset sequence
+                const btnReset = this.createBtn('Reset & Unlock', 'bg-red-500 text-white hover:bg-red-600 border border-red-600', () => {
+                    this.performCriticalReset();
+                    this.closeModal();
+                });
+                this.domFooter.appendChild(btnCancel);
+                this.domFooter.appendChild(btnReset);
+            } else {
+                // Regular alarms can be cleared with $X
+                const btnClear = this.createBtn('Clear Alarm', 'bg-primary text-black hover:bg-primary-dark border border-primary-dark/20', () => {
+                    this.performUnlock();
+                    this.closeModal();
+                });
+                this.domFooter.appendChild(btnCancel);
+                this.domFooter.appendChild(btnClear);
+            }
         }
 
         this.overlay.classList.remove('hidden');
@@ -331,6 +441,33 @@ export class AlarmsAndErrors {
         return btn;
     }
 
+    // Check if alarm code is critical (based on grblHAL alarms.h)
+    isAlarmCritical(code) {
+        const criticalAlarms = [1, 2, 10, 17, 20];
+        // 1: Hard Limit
+        // 2: Soft Limit
+        // 10: E-Stop
+        // 17: Motor Fault
+        // 20: Expander Exception
+        return criticalAlarms.includes(parseInt(code));
+    }
+
+    // Perform critical alarm reset sequence
+    // Critical alarms require: Reset (Ctrl-X) -> Wait for reboot -> Unlock ($X)
+    performCriticalReset() {
+        if (this.ws) {
+            // Step 1: Send Ctrl-X (0x18) to reset
+            this.ws.sendRealtime('\x18');
+
+            // Step 2: Wait for controller to reboot (typically 2-3 seconds)
+            setTimeout(() => {
+                // Step 3: Send unlock command
+                this.ws.sendCommand('$X');
+            }, 3000); // 3 second delay for reboot
+        }
+    }
+
+    // Perform regular unlock (for non-critical alarms)
     performUnlock() {
         // Send Soft Reset then Unlock
         if (this.ws) {
@@ -410,8 +547,19 @@ export class AlarmsAndErrors {
             const desc = this.alarms[code] || "Unknown Alarm";
             const msg = desc;
 
+            // Track current alarm state
+            this.currentAlarm = desc;
+            this.currentAlarmCode = code;
+
             this.showModal('ALARM', code, msg);
             return `\x1b[33mAlarm ${code}: ${desc}\x1b[0m`;
+        }
+
+        // 7. Check for alarm cleared (Idle state or similar)
+        // When machine returns to Idle, clear the alarm tracking
+        if (line.startsWith('<Idle') || line.startsWith('<Run') || line.startsWith('<Jog')) {
+            this.currentAlarm = null;
+            this.currentAlarmCode = null;
         }
 
         return false; // Not an error or alarm line

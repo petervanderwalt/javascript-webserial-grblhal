@@ -137,6 +137,8 @@ export class GCodeViewer {
         // Defaults
         this.gridBounds = null; // Force calculation on first render
         this.machineLimits = { x: 200, y: 200, z: 100 };
+        this.isPositiveSpace = false; // Based on build info [OPT:Z]
+        this.homingDirMask = 0;      // Based on $23 setting
         this.wco = { x: 0, y: 0, z: 0 };
 
         // Tweening State
@@ -407,14 +409,30 @@ export class GCodeViewer {
 
             const mx = this.machineLimits.x;
             const my = this.machineLimits.y;
-            const ox = -this.wco.x; // Origin X (Machine Home in Local space)
-            const oy = -this.wco.y; // Origin Y (Machine Home in Local space)
+            const ox = -this.wco.x; // Machine Origin (Home) in Local Space
+            const oy = -this.wco.y; // Machine Origin (Home) in Local Space
+
+            let xMin, xMax, yMin, yMax;
+
+            if (this.isPositiveSpace) {
+                // X Axis
+                if (this.homingDirMask & 1) { xMin = 0; xMax = mx; } // Home to Min
+                else { xMin = -mx; xMax = 0; }                      // Home to Max
+
+                // Y Axis
+                if (this.homingDirMask & 2) { yMin = 0; yMax = my; } // Home to Min
+                else { yMin = -my; yMax = 0; }                      // Home to Max
+            } else {
+                // Standard CNC: Home at Max, Travel Negative
+                xMin = -mx; xMax = 0;
+                yMin = -my; yMax = 0;
+            }
 
             this.gridBounds = {
-                xmin: ox - mx, // Left/South edge
-                ymin: oy - my, // Bottom/South edge
-                xmax: ox,      // Right/North edge (Home)
-                ymax: oy,      // Top/North edge (Home)
+                xmin: ox + xMin,
+                ymin: oy + yMin,
+                xmax: ox + xMax,
+                ymax: oy + yMax,
                 zmin: 0
             };
         } else {
@@ -603,11 +621,30 @@ export class GCodeViewer {
         // Machine Box is now static at World (0,0,0) -> Machine Home
         const { x, y, z } = this.machineLimits;
 
-        // Standard CNC: Home is (0,0,0). Travel is negative.
-        // x,y,z passed here are magnitudes (e.g. 300, 300, 80).
-        const xMin = -x; const xMax = 0;
-        const yMin = -y; const yMax = 0;
-        const zMin = -z; const zMax = 0;
+        // Origin after homing logic ($23 and Z option):
+        // isPositiveSpace (Z option): Set origin (0,0,0) at home position.
+        // Homing Dir ($23 bit): 0 = Home to MAX (travel is negative), 1 = Home to MIN (travel is positive).
+
+        let xMin, xMax, yMin, yMax, zMin, zMax;
+
+        if (this.isPositiveSpace) {
+            // X Axis
+            if (this.homingDirMask & 1) { xMin = 0; xMax = x; } // Home to Min
+            else { xMin = -x; xMax = 0; }                      // Home to Max
+
+            // Y Axis
+            if (this.homingDirMask & 2) { yMin = 0; yMax = y; } // Home to Min
+            else { yMin = -y; yMax = 0; }                      // Home to Max
+
+            // Z Axis
+            if (this.homingDirMask & 4) { zMin = 0; zMax = z; } // Home to Min
+            else { zMin = -z; zMax = 0; }                      // Home to Max
+        } else {
+            // Standard CNC (non-Z): Usually Home at Max, Travel is Negative
+            xMin = -x; xMax = 0;
+            yMin = -y; yMax = 0;
+            zMin = -z; zMax = 0;
+        }
 
         const vertices = [];
         const addLine = (a, b) => vertices.push(...a, ...b);
@@ -1188,9 +1225,15 @@ export class GCodeViewer {
                 <i class="bi bi-crosshair mr-2"></i> Set XY Zero Here
             </button>
         `;
-
         menu.style.left = `${x}px`;
         menu.style.top = `${y}px`;
         menu.classList.remove('hidden');
+    }
+
+    setHomingDirMask(mask) {
+        this.homingDirMask = mask;
+        this.renderMachineBox();
+        this.updateGridBounds();
+        this.renderCoolGrid();
     }
 }

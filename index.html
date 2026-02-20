@@ -68,21 +68,13 @@
             /* Layout - Mobile Responsive */
             .app-container { @apply flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-grey-bg text-grey-dark font-body relative; }
 
-            /* Sidebar: Full width on mobile, Fixed width on desktop */
-            .sidebar {
-                @apply w-full md:w-80 flex-shrink-0 bg-white border-r border-grey-light flex flex-col shadow-soft;
+            /* Unified Machine Sidebar (Left) */
+            .machine-sidebar {
+                @apply w-full md:w-80 lg:w-96 flex-shrink-0 bg-white border-r border-grey-light flex flex-col shadow-soft;
                 @apply fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out;
                 @apply -translate-x-full md:translate-x-0;
             }
-            .sidebar.open { @apply translate-x-0; }
-
-            /* Right Sidebar */
-            .sidebar-right {
-                @apply w-full md:w-96 flex-shrink-0 bg-white border-l border-grey-light flex flex-col shadow-soft;
-                @apply fixed md:relative inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out;
-                @apply translate-x-full md:translate-x-0;
-            }
-            .sidebar-right.open { @apply translate-x-0; }
+            .machine-sidebar.open { @apply translate-x-0; }
 
             /* Sidebar Overlay */
             .sidebar-overlay {
@@ -136,7 +128,7 @@
             .jog-btn-extra { @apply w-12 md:w-12 h-[44px] md:h-[42px] bg-white border-2 border-grey-light rounded-xl text-sm font-bold text-grey-dark hover:border-secondary hover:text-secondary hover:bg-secondary-light active:bg-secondary active:text-white transition-all shadow-sm flex items-center justify-center touch-manipulation; }
 
             /* Console */
-            .console-wrapper { @apply flex-1 bg-white rounded-lg overflow-hidden p-1 md:p-2 shadow-inner border border-grey-light relative min-h-[100px] md:min-h-[150px]; }
+            .console-wrapper { @apply bg-white rounded-lg overflow-hidden p-1 md:p-2 shadow-inner border border-grey-light relative h-32 md:h-40; }
 
             /* Tabs */
             .tab-btn { @apply py-3 md:py-3 px-3 md:px-4 text-xs md:text-sm font-bold text-grey-light transition-all flex items-center hover:text-white whitespace-nowrap min-w-fit touch-manipulation; }
@@ -153,6 +145,11 @@
         }
 
         .xterm-viewport { overflow-y: auto !important; }
+        
+        /* Improve xterm selection visibility */
+        .xterm .xterm-selection div {
+            background-color: rgba(255, 255, 0, 0.5) !important; /* Bright yellow highlight */
+        }
     </style>
 
 
@@ -165,208 +162,445 @@
 
     <div class="app-container">
 
-        <!-- Mobile Sidebar Overlay -->
-        <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-        <!-- Sidebar (Added 'open' class for default open state on mobile) -->
-        <aside class="sidebar open" id="main-sidebar">
-            <!-- Header -->
+        <!-- Machine Sidebar (Unified) -->
+        <aside class="machine-sidebar" id="machine-sidebar">
+            <!-- Mobile Header -->
             <div
-                class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
-                <div class="flex items-center gap-3">
-                    <!-- Sidebar Burger Menu (Mobile Only) -->
-                    <button class="md:hidden text-primary hover:text-white transition-colors mr-1"
-                        onclick="toggleSidebar()" aria-label="Toggle sidebar menu">
-                        <i class="bi bi-list text-xl"></i>
-                    </button>
-
-                    <a href="#"><img src="logo.png" alt="CNC Control" class="h-10"></a>
-                    <h1 class="sr-only">WebSerial CNC Control</h1>
-                    <!-- Connection Status Pill -->
-                    <div
-                        class="flex items-center bg-black/20 px-2.5 py-0 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-wider">
-                        <div id="connection-dot" class="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
-                        <span id="connection-text">Offline</span>
-                    </div>
-                </div>
-
-                <div class="flex gap-2">
-                    <!-- Reset Button -->
-                    <button id="btn-reset"
-                        class="btn h-8 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0"
-                        onclick="sendRealtime('\x18')" title="Soft Reset"><i
-                            class="bi bi-exclamation-octagon-fill"></i>Reset
-                    </button>
-                    <!-- Connect Button -->
-                    <button id="btn-connect"
-                        class="btn btn-primary h-8 text-xs shadow-none border border-white/10">Connect</button>
-                </div>
+                class="md:hidden h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
+                <span class="font-bold">Machine Controls</span>
+                <button class="text-white" onclick="toggleMachineSidebar()"><i class="bi bi-x-lg"></i></button>
             </div>
 
             <!-- Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
 
-                <!-- Machine Controls Wrapper (Disabled when offline) -->
-                <div id="machine-controls"
-                    class="flex flex-col gap-1 opacity-50 pointer-events-none transition-opacity duration-200">
+                <!-- Handshake & Connection -->
+                <div class="bg-secondary-dark p-2 rounded-xl border border-white/10 shadow-md flex gap-2">
+                    <button id="btn-reset"
+                        class="btn flex-1 h-9 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0 bg-white/10 text-white hover:bg-white/20"
+                        onclick="sendRealtime('\x18')" title="Soft Reset"><i
+                            class="bi bi-exclamation-octagon-fill"></i>Reset
+                    </button>
+                    <button id="btn-connect"
+                        class="btn btn-primary flex-1 h-9 text-xs shadow-none border border-white/10 px-2 py-0">Connect</button>
+                </div>
 
-                    <!-- DRO (New Card Design - Side by Side) -->
-                    <div class="dro-panel">
+                <!-- DRO Panel -->
+                <div class="dro-panel">
+                    <!-- Header: WCS & Units -->
+                    <div class="flex justify-between items-center mb-1.5 px-1">
 
-                        <!-- DRO moved to Right Sidebar -->
-
-
-
-
-                        <!-- Spindle & Feedrate Display -->
-                        <div class="flex flex-col gap-1.5">
-                            <!-- Spindle RPM with Controls -->
-                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
-                                <div class="flex items-baseline justify-between mb-0.5">
-                                    <span class="text-[10px] font-bold text-grey uppercase"><i class="bi bi-fan"></i>
-                                        Spindle</span>
-                                    <div class="flex items-baseline gap-1">
-                                        <span id="spindle-rpm"
-                                            class="text-sm font-mono font-black text-grey-dark">0</span>
-                                        <span class="text-[9px] text-grey">RPM</span>
-                                        <span id="spindle-ovr"
-                                            class="text-[10px] font-bold text-secondary-dark ml-1">100%</span>
-                                    </div>
-                                </div>
-                                <div class="flex gap-0.5">
-                                    <button
-                                        class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x9B')" title="-10%">-10</button>
-                                    <button
-                                        class="btn-ovr flex-1 !bg-white !text-black border-grey-light !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x99')" title="Reset 100%">Reset</button>
-                                    <button
-                                        class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x9A')" title="+10%">+10</button>
-                                </div>
+                        <!-- Units Toggle -->
+                        <label
+                            class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
+                            <!-- UPDATED: text-[10px] -> text-xs -->
+                            <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
+                            <input type="checkbox" id="unitToggle" class="sr-only peer" checked
+                                onchange="window.dro.toggleUnits()">
+                            <div
+                                class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary">
                             </div>
+                        </label>
 
-                            <!-- Feedrate with Controls -->
-                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
-                                <div class="flex items-baseline justify-between mb-0.5">
-                                    <span class="text-[10px] font-bold text-grey uppercase"><i
-                                            class="bi bi-speedometer2"></i> Feed</span>
-                                    <div class="flex items-baseline gap-1">
-                                        <span id="feed-rate"
-                                            class="text-sm font-mono font-black text-grey-dark">0</span>
-                                        <span id="feed-rate-unit" class="text-[9px] text-grey">mm/min</span>
-                                        <span id="feed-ovr"
-                                            class="text-[10px] font-bold text-secondary-dark ml-1">100%</span>
-                                    </div>
-                                </div>
-                                <div class="flex gap-0.5">
-                                    <button
-                                        class="btn-ovr flex-1 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-100 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x92')" title="-10%">-10</button>
-                                    <button
-                                        class="btn-ovr flex-1 !bg-white !text-black border-grey-light !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x90')" title="Reset 100%">Reset</button>
-                                    <button
-                                        class="btn-ovr flex-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-100 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x91')" title="+10%">+10</button>
-                                </div>
-                            </div>
-
-                            <!-- Rapids Override -->
-                            <div class="bg-grey-bg/30 rounded p-1.5 border border-grey-light/50">
-                                <div class="flex items-center justify-between mb-0.5">
-                                    <span class="text-[10px] font-bold text-grey uppercase"><i
-                                            class="bi bi-lightning-charge-fill"></i> Rapids</span>
-                                </div>
-                                <div class="flex gap-0.5">
-                                    <button class="btn-ovr flex-1 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x97')">25%</button>
-                                    <button class="btn-ovr flex-1 !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x96')">50%</button>
-                                    <button class="btn-ovr flex-1 !bg-white !text-black !h-5 !text-[10px]"
-                                        onclick="sendRealtime('\x95')">100%</button>
-                                </div>
-                            </div>
+                        <!-- WCS Select -->
+                        <div
+                            class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
+                            <!-- UPDATED: text-[10px] -> text-xs -->
+                            <span class="text-xs font-black text-grey uppercase">WCS</span>
+                            <select
+                                class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
+                                onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
+                                <option value="G54" selected>G54</option>
+                                <option value="G55">G55</option>
+                                <option value="G56">G56</option>
+                                <option value="G57">G57</option>
+                                <option value="G58">G58</option>
+                                <option value="G59">G59</option>
+                            </select>
                         </div>
 
-
-
-                        <!-- Predefined Positions Grid -->
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <!-- G28 -->
-                            <div class="flex gap-1 bg-white p-0">
-                                <!-- UPDATED: text-[9px] -> text-xs, w-6 -> w-8 -->
-                                <span
-                                    class="text-xs font-black text-grey w-8 flex items-center justify-center">G28</span>
-                                <button class="dro-sub-btn" onclick="window.dro.goToPredefined(28)" title="Go To"><i
-                                        class="bi bi-play-fill"></i> Go</button>
-                                <button class="dro-sub-btn" onclick="window.dro.setPredefined(28)" title="Set Here"><i
-                                        class="bi bi-crosshair"></i> Set</button>
-                            </div>
-                            <!-- G30 -->
-                            <div class="flex gap-1 bg-white p-0">
-                                <!-- UPDATED: text-[9px] -> text-xs, w-6 -> w-8 -->
-                                <span
-                                    class="text-xs font-black text-grey w-8 flex items-center justify-center">G30</span>
-                                <button class="dro-sub-btn" onclick="window.dro.goToPredefined(30)" title="Go To"><i
-                                        class="bi bi-play-fill"></i> Go</button>
-                                <button class="dro-sub-btn" onclick="window.dro.setPredefined(30)" title="Set Here"><i
-                                        class="bi bi-crosshair"></i> Set</button>
-                            </div>
-                        </div>
 
                     </div>
 
-                    <!-- Pin Diagnostics Widget -->
-                    <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[10px] font-black text-grey uppercase tracking-wider">Signals</h3>
+                    <!-- Accessories Status (Moved to Footer) -->
+
+                    <!-- X Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-x">
+                        <div class="dro-label-box">
+                            <span>X</span>
+                            <button id="homing-btn-x"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('X')" title="Home X">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
                         </div>
-                        <div class="grid grid-cols-4 gap-2">
-                            <div id="pin-indicator-X"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                        <div class="dro-readout">
+                            <span id="dro-x-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-x" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('X')"
+                            aria-label="Zero X axis">Zero</button>
+                    </div>
+
+                    <!-- Y Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-y">
+                        <div class="dro-label-box">
+                            <span>Y</span>
+                            <button id="homing-btn-y"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('Y')" title="Home Y">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-y-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-y" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('Y')"
+                            aria-label="Zero Y axis">Zero</button>
+                    </div>
+
+                    <!-- Z Axis -->
+                    <div class="dro-card border-l-4 border-l-axis-z">
+                        <div class="dro-label-box">
+                            <span>Z</span>
+                            <button id="homing-btn-z"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('Z')" title="Home Z">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-z-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-z" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('Z')"
+                            aria-label="Zero Z axis">Zero</button>
+                    </div>
+
+                    <!-- A Axis (Hidden by default) -->
+                    <div class="dro-row hidden dro-card border-l-4 border-l-axis-a">
+                        <div class="dro-label-box">
+                            <span>A</span>
+                            <button id="homing-btn-a"
+                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
+                                onclick="window.dro.homeAxis('A')" title="Home A">
+                                <i class="bi bi-house-door-fill"></i>
+                            </button>
+                        </div>
+                        <div class="dro-readout">
+                            <span id="dro-a-m" class="dro-val-sm">0.000</span>
+                            <span id="dro-a" class="dro-val-lg">0.000</span>
+                        </div>
+                        <button class="dro-zero-btn" onclick="window.dro.setZero('A')"
+                            aria-label="Zero A axis">Zero</button>
+                    </div>
+
+
+
+                    <!-- Footer Actions -->
+                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
+                        <div class="col-span-1 flex flex-col gap-1 items-center justify-center">
+                            <span id="machine-state"
+                                class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
+                            <!-- Icons Moved Here -->
+                            <div class="flex justify-center gap-3">
+                                <i id="acc-spindle" class="bi bi-fan text-grey-light text-xs transition-colors"
+                                    title="Spindle"></i>
+                                <i id="acc-flood" class="bi bi-droplet-fill text-grey-light text-xs transition-colors"
+                                    title="Flood Coolant"></i>
+                                <i id="acc-mist" class="bi bi-cloud-haze-fill text-grey-light text-xs transition-colors"
+                                    title="Mist Coolant"></i>
+                            </div>
+                        </div>
+                        <div class="col-span-2 flex gap-1">
+                            <button class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark"
+                                onclick="window.dro.home()">
+                                <i class="bi bi-house-door-fill"></i> HOME
+                            </button>
+                            <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
+                            <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jog Controls (Compact) -->
+                <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
+
+                    <div class="jog-wrapper">
+                        <!-- XY Pad -->
+                        <div class="jog-pad">
+                            <!-- Row 1 -->
+                            <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
+                                    class="bi bi-arrow-up-left"></i></button>
+
+                            <!-- Y+ (Green, Top Border) -->
+                            <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
+                                data-jog="Y+" aria-label="Jog Y plus"><i
+                                    class="bi bi-caret-up-fill text-2xl"></i></button>
+
+                            <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
+                                    class="bi bi-arrow-up-right"></i></button>
+
+                            <!-- Row 2 -->
+                            <!-- X- (Red, Left Border) -->
+                            <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
+                                data-jog="X-" aria-label="Jog X minus"><i
+                                    class="bi bi-caret-left-fill text-2xl"></i></button>
+
+                            <div class="w-12 h-12 flex items-center justify-center">
+                                <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
+                            </div>
+
+                            <!-- X+ (Red, Right Border) -->
+                            <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
+                                data-jog="X+" aria-label="Jog X plus"><i
+                                    class="bi bi-caret-right-fill text-2xl"></i></button>
+
+                            <!-- Row 3 -->
+                            <button class="jog-btn rounded-bl-xl" data-jog="X-Y-" aria-label="Jog X minus Y minus"><i
+                                    class="bi bi-arrow-down-left"></i></button>
+
+                            <!-- Y- (Green, Bottom Border) -->
+                            <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
+                                data-jog="Y-" aria-label="Jog Y minus"><i
+                                    class="bi bi-caret-down-fill text-2xl"></i></button>
+
+                            <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
+                                    class="bi bi-arrow-down-right"></i></button>
+                        </div>
+
+                        <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
+                        <div class="flex flex-col gap-2 w-28">
+                            <!-- Unlock Button -->
+                            <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
+                                onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
+                                Unlock</button>
+
+                            <!-- Z & A Buttons -->
+                            <div class="flex gap-1.5 justify-center">
+                                <!-- Z Pad (Blue) -->
+                                <div class="jog-extra-col">
+                                    <button
+                                        class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
+                                        data-jog="Z+" aria-label="Jog Z plus">Z+</button>
+                                    <button
+                                        class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
+                                        data-jog="Z-" aria-label="Jog Z minus">Z-</button>
+                                </div>
+                                <!-- A Pad (Orange) -->
+                                <div class="jog-extra-col">
+                                    <button
+                                        class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
+                                        data-jog="A+" aria-label="Jog A plus">A+</button>
+                                    <button
+                                        class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
+                                        data-jog="A-" aria-label="Jog A minus">A-</button>
+                                </div>
+                            </div>
+
+                            <!-- Continuous Toggle -->
+                            <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
+                                <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
+                                <input type="checkbox" id="jogContinuous" class="sr-only peer">
+                                <div
+                                    class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                                </div>
+                                <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Step/Feed -->
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="relative">
+                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
+                            <select id="stepSize" class="input-field pl-10 text-right h-8 py-0"
+                                aria-label="Jog distance step size">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
+                            <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
+                        </div>
+                    </div>
+                </div>
+                <!-- Overrides & Signals (Merged from Left) -->
+                <div class="grid grid-cols-2 gap-2">
+                    <!-- Overrides -->
+                    <div class="flex flex-col gap-1.5 bg-white p-2 rounded-xl border border-grey-light shadow-card">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-bold text-grey uppercase">Overrides</span>
+                        </div>
+                        <!-- Spindle -->
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-grey-dark">Spindle</span>
+                            <div class="flex gap-1 items-center">
+                                <button onclick="sendRealtime('\x9B')"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">-</button>
+                                <span id="spindle-ovr" class="min-w-[35px] text-center font-bold">100%</span>
+                                <button onclick="sendRealtime('\x9A')"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
+                                <button onclick="sendRealtime('\x99')"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary/20 hover:bg-primary/30 transition-colors font-bold text-[8px]"
+                                    title="Reset to 100%">RST</button>
+                            </div>
+                        </div>
+                        <!-- Feed -->
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-grey-dark">Feed</span>
+                            <div class="flex gap-1 items-center">
+                                <button onclick="sendRealtime('\x92')"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">-</button>
+                                <span id="feed-ovr" class="min-w-[35px] text-center font-bold">100%</span>
+                                <button onclick="sendRealtime('\x91')"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
+                                <button onclick="sendRealtime('\x90')"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary/20 hover:bg-primary/30 transition-colors font-bold text-[8px]"
+                                    title="Reset to 100%">RST</button>
+                            </div>
+                        </div>
+                        <!-- Rapids -->
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-grey-dark">Rapids</span>
+                            <div class="flex gap-1 items-center">
+                                <span id="rapid-ovr" class="min-w-[35px] text-center font-bold">100%</span>
+                                <button onclick="sendRealtime('\x97')"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
+                                    title="Set to 25%">25</button>
+                                <button onclick="sendRealtime('\x96')"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
+                                    title="Set to 50%">50</button>
+                                <button onclick="sendRealtime('\x95')"
+                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
+                                    title="Set to 100%">100</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signals -->
+                    <div class="bg-white p-2 rounded-xl border border-grey-light shadow-card">
+                        <span class="text-[9px] font-bold text-grey uppercase block mb-1">Input Signals</span>
+                        <div class="grid grid-cols-5 gap-0.5 max-h-24 overflow-y-auto">
+                            <!-- Limit Switches -->
+                            <div id="pin-indicator-X" title="X Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
                                 X</div>
-                            <div id="pin-indicator-Y"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                            <div id="pin-indicator-Y" title="Y Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
                                 Y</div>
-                            <div id="pin-indicator-Z"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
+                            <div id="pin-indicator-Z" title="Z Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
                                 Z</div>
-                            <div id="pin-indicator-P"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
-                                PRB</div>
-                            <div id="pin-indicator-D"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
-                                DR</div>
-                            <div id="pin-indicator-H"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
-                                HLD</div>
-                            <div id="pin-indicator-R"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
-                                RST</div>
-                            <div id="pin-indicator-S"
-                                class="text-[10px] font-bold text-center border border-grey-light bg-grey-light/20 text-grey-light rounded py-0.5 transition-colors">
-                                ST</div>
+                            <div id="pin-indicator-A" title="A Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                A</div>
+                            <div id="pin-indicator-B" title="B Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                B</div>
+                            <div id="pin-indicator-C" title="C Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                C</div>
+                            <div id="pin-indicator-U" title="U Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                U</div>
+                            <div id="pin-indicator-V" title="V Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                V</div>
+                            <div id="pin-indicator-W" title="W Limit"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                W</div>
+                            <!-- Probe -->
+                            <div id="pin-indicator-P" title="Probe Triggered"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                P</div>
+                            <div id="pin-indicator-O" title="Probe Disconnected"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                O</div>
+                            <!-- Control Switches -->
+                            <div id="pin-indicator-D" title="Door"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                D</div>
+                            <div id="pin-indicator-R" title="Reset"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                R</div>
+                            <div id="pin-indicator-H" title="Feed Hold"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                H</div>
+                            <div id="pin-indicator-S" title="Cycle Start"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                S</div>
+                            <div id="pin-indicator-E" title="E-Stop"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                E</div>
+                            <div id="pin-indicator-L" title="Block Delete"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                L</div>
+                            <div id="pin-indicator-T" title="Optional Stop"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                T</div>
+                            <div id="pin-indicator-Q" title="Single Step"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                Q</div>
+                            <!-- Motor Status -->
+                            <div id="pin-indicator-M" title="Motor Warning"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                M</div>
+                            <div id="pin-indicator-F" title="Motor Fault"
+                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
+                                F</div>
                         </div>
                     </div>
+                </div>
 
 
 
+            </div> <!-- End Machine Controls (id="machine-controls") -->
 
+            <!-- Console (Light Mode) -->
+            <div class="flex flex-col mb-10 md:mb-0">
+                <div class="console-wrapper">
+                    <div id="terminal-container" class="w-full h-full"></div>
+                </div>
+                <!-- Console Input -->
+                <div id="console-input-area"
+                    class="flex gap-1 mt-1 opacity-50 pointer-events-none transition-opacity duration-200">
+                    <input type="text" id="cmdInput" class="input-field font-mono h-8 text-xs flex-1"
+                        placeholder="G-Code...">
+                    <button id="btnSend" class="btn btn-secondary px-2 h-8"><i
+                            class="bi bi-send-fill text-[10px]"></i></button>
+                </div>
+            </div>
         </aside>
+
+        <!-- Sidebar Overlay (Unified) -->
+        <div id="machine-sidebar-overlay" class="sidebar-overlay hidden" onclick="toggleMachineSidebar()"></div>
 
         <!-- Main Content -->
         <main class="flex-1 flex flex-col bg-grey-bg relative overflow-hidden h-full">
 
-            <!-- Navigation (Updated with Burger and Arrows) -->
-            <div
-                class="h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
-                <!-- Burger Menu (Mobile Only) -->
-                <button
-                    class="md:hidden h-full px-4 text-primary hover:text-white border-r border-white/10 flex items-center justify-center transition-colors"
-                    onclick="toggleSidebar()" aria-label="Toggle sidebar menu">
-                    <i class="bi bi-list text-xl"></i>
-                </button>
+            <!-- Navigation (Updated with Logo and Unified Sidebar Trigger) -->
+            <div class="h-10 flex items-center bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
+
+                <!-- Sidebar Trigger & Logo & Status -->
+                <div class="flex items-center h-full overflow-hidden shrink-0">
+                    <!-- Unified Machine Sidebar Toggle -->
+                    <button
+                        class="h-full px-4 text-primary hover:text-white border-r border-white/10 flex items-center justify-center transition-colors bg-secondary-dark/50"
+                        onclick="toggleMachineSidebar()" aria-label="Toggle machine controls">
+                        <i class="bi bi-list text-xl"></i>
+                    </button>
+
+                    <div class="flex items-center gap-2 pl-2 border-r border-white/10 h-full pr-2">
+                        <img src="logo.png" alt="Logo" class="h-6 md:h-7">
+                        <div
+                            class="hidden sm:flex items-center bg-black/20 px-2 py-0.5 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-wider">
+                            <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></div>
+                            <span id="connection-text">Offline</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Left Scroll Arrow -->
                 <button
@@ -400,13 +634,6 @@
                     class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
                     onclick="scrollTabs('right')" aria-label="Scroll tabs right">
                     <i class="bi bi-chevron-right text-xs"></i>
-                </button>
-
-                <!-- Right Sidebar Toggle (Mobile) -->
-                <button
-                    class="md:hidden h-full px-4 text-primary hover:text-white border-l border-white/10 flex items-center justify-center transition-colors"
-                    onclick="toggleRightSidebar()" aria-label="Toggle controls">
-                    <i class="bi bi-dpad-fill text-xl"></i>
                 </button>
             </div>
 
@@ -485,19 +712,6 @@
                             </button>
                         </div>
 
-                        <!-- Camera View Shortcuts -->
-                        <div class="flex gap-1 bg-white/90 p-1 rounded-lg shadow-md mt-4 backdrop-blur">
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Top')" aria-label="Top camera view">Top</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Front')"
-                                aria-label="Front camera view">Frt</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Left')" aria-label="Left camera view">Lft</button>
-                            <button class="btn-ghost text-[10px] font-bold uppercase w-8"
-                                onclick="window.viewer.setCameraView('Iso')"
-                                aria-label="Isometric camera view">Iso</button>
-                        </div>
 
                         <button class="overlay-btn" onclick="resetCamera()">
                             <i class="bi bi-camera-video-fill text-secondary"></i> Reset
@@ -1407,289 +1621,6 @@
 
             </div>
         </main>
-
-        <!-- Right Sidebar (Controls) -->
-        <aside class="sidebar-right" id="right-sidebar">
-            <!-- Mobile Header for Right Sidebar -->
-            <div
-                class="md:hidden h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
-                <span class="font-bold">Controls</span>
-                <button class="text-white" onclick="toggleRightSidebar()"><i class="bi bi-x-lg"></i></button>
-            </div>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
-
-                <!-- DRO Panel (Moved from Left) -->
-                <div class="dro-panel mb-2">
-                    <!-- Header: WCS & Units -->
-                    <div class="flex justify-between items-center mb-1.5 px-1">
-
-                        <!-- Units Toggle -->
-                        <label
-                            class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
-                            <!-- UPDATED: text-[10px] -> text-xs -->
-                            <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
-                            <input type="checkbox" id="unitToggle" class="sr-only peer" checked
-                                onchange="window.dro.toggleUnits()">
-                            <div
-                                class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary">
-                            </div>
-                        </label>
-
-                        <!-- WCS Select -->
-                        <div
-                            class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
-                            <!-- UPDATED: text-[10px] -> text-xs -->
-                            <span class="text-xs font-black text-grey uppercase">WCS</span>
-                            <select
-                                class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
-                                onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
-                                <option value="G54" selected>G54</option>
-                                <option value="G55">G55</option>
-                                <option value="G56">G56</option>
-                                <option value="G57">G57</option>
-                                <option value="G58">G58</option>
-                                <option value="G59">G59</option>
-                            </select>
-                        </div>
-
-
-                    </div>
-
-                    <!-- Accessories Status (Moved to Footer) -->
-
-                    <!-- X Axis -->
-                    <div class="dro-card border-l-4 border-l-axis-x">
-                        <div class="dro-label-box">
-                            <span>X</span>
-                            <button id="homing-btn-x"
-                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
-                                onclick="window.dro.homeAxis('X')" title="Home X">
-                                <i class="bi bi-house-door-fill"></i>
-                            </button>
-                        </div>
-                        <div class="dro-readout">
-                            <span id="dro-x-m" class="dro-val-sm">0.000</span>
-                            <span id="dro-x" class="dro-val-lg">0.000</span>
-                        </div>
-                        <button class="dro-zero-btn" onclick="window.dro.setZero('X')"
-                            aria-label="Zero X axis">Zero</button>
-                    </div>
-
-                    <!-- Y Axis -->
-                    <div class="dro-card border-l-4 border-l-axis-y">
-                        <div class="dro-label-box">
-                            <span>Y</span>
-                            <button id="homing-btn-y"
-                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
-                                onclick="window.dro.homeAxis('Y')" title="Home Y">
-                                <i class="bi bi-house-door-fill"></i>
-                            </button>
-                        </div>
-                        <div class="dro-readout">
-                            <span id="dro-y-m" class="dro-val-sm">0.000</span>
-                            <span id="dro-y" class="dro-val-lg">0.000</span>
-                        </div>
-                        <button class="dro-zero-btn" onclick="window.dro.setZero('Y')"
-                            aria-label="Zero Y axis">Zero</button>
-                    </div>
-
-                    <!-- Z Axis -->
-                    <div class="dro-card border-l-4 border-l-axis-z">
-                        <div class="dro-label-box">
-                            <span>Z</span>
-                            <button id="homing-btn-z"
-                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
-                                onclick="window.dro.homeAxis('Z')" title="Home Z">
-                                <i class="bi bi-house-door-fill"></i>
-                            </button>
-                        </div>
-                        <div class="dro-readout">
-                            <span id="dro-z-m" class="dro-val-sm">0.000</span>
-                            <span id="dro-z" class="dro-val-lg">0.000</span>
-                        </div>
-                        <button class="dro-zero-btn" onclick="window.dro.setZero('Z')"
-                            aria-label="Zero Z axis">Zero</button>
-                    </div>
-
-                    <!-- A Axis (Hidden by default) -->
-                    <div class="dro-row hidden dro-card border-l-4 border-l-axis-a">
-                        <div class="dro-label-box">
-                            <span>A</span>
-                            <button id="homing-btn-a"
-                                class="text-[10px] text-grey-light hover:text-primary transition-colors"
-                                onclick="window.dro.homeAxis('A')" title="Home A">
-                                <i class="bi bi-house-door-fill"></i>
-                            </button>
-                        </div>
-                        <div class="dro-readout">
-                            <span id="dro-a-m" class="dro-val-sm">0.000</span>
-                            <span id="dro-a" class="dro-val-lg">0.000</span>
-                        </div>
-                        <button class="dro-zero-btn" onclick="window.dro.setZero('A')"
-                            aria-label="Zero A axis">Zero</button>
-                    </div>
-
-
-
-                    <!-- Footer Actions -->
-                    <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light/50">
-                        <div class="col-span-1 flex flex-col gap-1 items-center justify-center">
-                            <span id="machine-state"
-                                class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
-                            <!-- Icons Moved Here -->
-                            <div class="flex justify-center gap-3">
-                                <i id="acc-spindle" class="bi bi-fan text-grey-light text-xs transition-colors"
-                                    title="Spindle"></i>
-                                <i id="acc-flood" class="bi bi-droplet-fill text-grey-light text-xs transition-colors"
-                                    title="Flood Coolant"></i>
-                                <i id="acc-mist" class="bi bi-cloud-haze-fill text-grey-light text-xs transition-colors"
-                                    title="Mist Coolant"></i>
-                            </div>
-                        </div>
-                        <div class="col-span-2 flex gap-1">
-                            <button class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark"
-                                onclick="window.dro.home()">
-                                <i class="bi bi-house-door-fill"></i> HOME
-                            </button>
-                            <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
-                            <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Jog Controls (Compact) -->
-                <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
-
-                    <div class="jog-wrapper">
-                        <!-- XY Pad -->
-                        <div class="jog-pad">
-                            <!-- Row 1 -->
-                            <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
-                                    class="bi bi-arrow-up-left"></i></button>
-
-                            <!-- Y+ (Green, Top Border) -->
-                            <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
-                                data-jog="Y+" aria-label="Jog Y plus"><i
-                                    class="bi bi-caret-up-fill text-2xl"></i></button>
-
-                            <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
-                                    class="bi bi-arrow-up-right"></i></button>
-
-                            <!-- Row 2 -->
-                            <!-- X- (Red, Left Border) -->
-                            <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
-                                data-jog="X-" aria-label="Jog X minus"><i
-                                    class="bi bi-caret-left-fill text-2xl"></i></button>
-
-                            <div class="w-12 h-12 flex items-center justify-center">
-                                <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
-                            </div>
-
-                            <!-- X+ (Red, Right Border) -->
-                            <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
-                                data-jog="X+" aria-label="Jog X plus"><i
-                                    class="bi bi-caret-right-fill text-2xl"></i></button>
-
-                            <!-- Row 3 -->
-                            <button class="jog-btn rounded-bl-xl" data-jog="X-Y-" aria-label="Jog X minus Y minus"><i
-                                    class="bi bi-arrow-down-left"></i></button>
-
-                            <!-- Y- (Green, Bottom Border) -->
-                            <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
-                                data-jog="Y-" aria-label="Jog Y minus"><i
-                                    class="bi bi-caret-down-fill text-2xl"></i></button>
-
-                            <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
-                                    class="bi bi-arrow-down-right"></i></button>
-                        </div>
-
-                        <!-- Right Column: Unlock + Z & A, CONTINUOUS -->
-                        <div class="flex flex-col gap-2 w-28">
-                            <!-- Unlock Button -->
-                            <button class="btn btn-secondary w-full h-9 md:h-8 text-xs justify-center shadow-none"
-                                onclick="sendCmd('$X')" title="Unlock ($X)"><i class="bi bi-unlock-fill"></i>
-                                Unlock</button>
-
-                            <!-- Z & A Buttons -->
-                            <div class="flex gap-1.5 justify-center">
-                                <!-- Z Pad (Blue) -->
-                                <div class="jog-extra-col">
-                                    <button
-                                        class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
-                                        data-jog="Z+" aria-label="Jog Z plus">Z+</button>
-                                    <button
-                                        class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
-                                        data-jog="Z-" aria-label="Jog Z minus">Z-</button>
-                                </div>
-                                <!-- A Pad (Orange) -->
-                                <div class="jog-extra-col">
-                                    <button
-                                        class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
-                                        data-jog="A+" aria-label="Jog A plus">A+</button>
-                                    <button
-                                        class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
-                                        data-jog="A-" aria-label="Jog A minus">A-</button>
-                                </div>
-                            </div>
-
-                            <!-- Continuous Toggle -->
-                            <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
-                                <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
-                                <input type="checkbox" id="jogContinuous" class="sr-only peer">
-                                <div
-                                    class="relative w-8 h-4 bg-grey-light/50 border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
-                                </div>
-                                <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Step/Feed -->
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <div class="relative">
-                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Dist</span>
-                            <select id="stepSize" class="input-field pl-10 text-right h-8 py-0"
-                                aria-label="Jog distance step size">
-                                <!-- Populated by JS -->
-                            </select>
-                        </div>
-                        <div class="relative">
-                            <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
-                            <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
-                        </div>
-                    </div>
-                </div>
-                <!-- Console (Light Mode) -->
-                <div class="flex-1 flex flex-col min-h-[150px] mb-20 md:mb-0">
-                    <div class="console-wrapper">
-                        <div id="terminal-container" class="w-full h-full"></div>
-                    </div>
-                    <!-- Console Input (Disabled when offline) -->
-                    <div id="console-input-area"
-                        class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
-                        <label for="cmdInput" class="sr-only">G-Code command input</label>
-                        <input type="text" id="cmdInput" class="input-field font-mono h-9 md:h-8"
-                            placeholder="G-Code...">
-
-                        <button class="btn btn-secondary px-3 h-9 md:h-8" onclick="requestFullStatus()"
-                            title="Full Status Report (0x87)">
-                            <i class="bi bi-activity text-xs"></i>
-                        </button>
-
-                        <button id="btnSend" class="btn btn-secondary px-3 h-9 md:h-8"
-                            aria-label="Send G-Code command"><i class="bi bi-send-fill text-xs"></i></button>
-                        <button class="btn-ghost text-xs" onclick="clearTerminal()" aria-label="Clear terminal"><i
-                                class="bi bi-trash"></i></button>
-                    </div>
-                </div>
-
-            </div>
-        </aside>
-
-        <!-- Right Sidebar Overlay -->
-        <div id="right-sidebar-overlay" class="sidebar-overlay" onclick="toggleRightSidebar()"></div>
     </div>
 
     <!-- Macro Modal -->
@@ -1841,25 +1772,20 @@
                 if (window.macroHandler) window.macroHandler.render();
             }
 
-            // Close sidebar on mobile when tab is clicked
-            if (window.innerWidth < 768) {
-                document.querySelector('.sidebar').classList.remove('open');
-                document.getElementById('sidebar-overlay').classList.add('hidden');
+            // Close machine sidebar on mobile when tab is clicked
+            if (window.innerWidth < 1024) { // Match lg breakpoint
+                const sidebar = document.getElementById('machine-sidebar');
+                const overlay = document.getElementById('machine-sidebar-overlay');
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.add('hidden');
             }
         }
 
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('hidden');
-        }
-
-        function toggleRightSidebar() {
-            const sidebar = document.getElementById('right-sidebar');
-            const overlay = document.getElementById('right-sidebar-overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('hidden');
+        function toggleMachineSidebar() {
+            const sidebar = document.getElementById('machine-sidebar');
+            const overlay = document.getElementById('machine-sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('hidden');
         }
 
         // New function to scroll the tabs
@@ -1886,7 +1812,17 @@
         import { SurfacingHandler } from './surfacing.js';
         import { MacroHandler } from './macros.js';
         import { ToolsHandler } from './tools.js';
-        import { GCodeEditor } from './editor.js'; // NEW IMPORT
+        import { GCodeEditor } from './editor.js';
+        import { initializeApp } from './init.js';
+
+        // Import new modules
+        import './ui.js';
+        import './job-control.js';
+        import './jogging.js';
+        import './console.js';
+        import './editor-integration.js';
+        import './camera-controls.js';
+        import './line-processor.js';
 
         // Globals
         const ws = new WebSerial();
@@ -1928,232 +1864,180 @@
         let grblSettings = null;
         let probeHandler = null;
         let surfacingHandler = null;
-        let macroHandler = null;
-        let toolsHandler = null;
-        let editor = null; // NEW GLOBAL
-        window.userRequestedStatus = false;
-
+        // DOMContentLoaded - Initialize all modules
         document.addEventListener('DOMContentLoaded', () => {
-            initTerminal();
-
             // Sync Grid Toggle Button Text on Init
             const gridBtn = document.getElementById('grid-toggle-btn');
             if (gridBtn && viewer.gridMode === 'machine') {
                 gridBtn.innerHTML = `<i class="bi bi-grid-3x3 text-secondary"></i> Grid: Machine`;
             }
 
-
             // Initialize Editor
-            editor = new GCodeEditor('gcode-editor');
+            const editor = new GCodeEditor('gcode-editor');
             window.editor = editor;
 
-            // Initialize Helpers with Store
-            droHandler = new DROHandler(ws, term, store);
-            window.dro = droHandler;
+            // Initialize Helpers
+            const droHandler = new DROHandler(ws, window.term, store);
+            window.droHandler = droHandler;
 
-            grblSettings = new GrblSettings(ws, term);
-            grblSettings.init('grbl-settings-container');
+            const grblSettings = new GrblSettings(ws, window.term);
             window.grblSettings = grblSettings;
 
-            // SD Handler (Updated to populate Editor)
-            sdHandler = new SDCardHandler(ws, term, viewer, {
-                onDownloadComplete: (content, filename, fullPath) => {
-                    currentGCodeContent = content;
-                    currentSDFile = fullPath; // capture full path from SD
-                    updateRunButtonsState();  // Update UI immediately
-
-                    // Populate Editor
+            const sdHandler = new SDCardHandler(ws, window.term, {
+                onFileLoaded: (filename, content) => {
+                    window.currentGCodeContent = content;
+                    window.currentSDFile = filename;
+                    window.uiManager.updateRunButtonsState();
+                    viewer.processGCodeString(content);
                     if (editor) {
                         editor.setValue(content);
                         const lineCount = editor.getValue().split('\n').length;
                         document.getElementById('editor-line-count').innerText = lineCount;
-                        if (filename) document.getElementById('editor-file-name').innerText = filename;
+                        document.getElementById('editor-file-name').innerText = filename;
                     }
-                },
-                switchToViewer: () => {
-                    switchTab('viewer-view');
+                    window.switchTab('viewer-view');
                 },
                 pausePolling: () => {
-                    if (statusInterval) clearInterval(statusInterval);
+                    if (window.uiManager.statusInterval) clearInterval(window.uiManager.statusInterval);
                 },
                 resumePolling: () => {
-                    statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
+                    window.uiManager.statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
                 }
             });
             window.sdHandler = sdHandler;
 
-            probeHandler = new ProbeHandler(ws, term, store);
+            const probeHandler = new ProbeHandler(ws, window.term, store);
             window.probeHandler = probeHandler;
 
-            surfacingHandler = new SurfacingHandler(viewer, sdHandler, term, store);
+            const surfacingHandler = new SurfacingHandler(viewer, sdHandler, window.term, store);
             window.surfacing = surfacingHandler;
 
-            macroHandler = new MacroHandler(ws, term);
+            const macroHandler = new MacroHandler(ws, window.term);
             window.macroHandler = macroHandler;
 
-            toolsHandler = new ToolsHandler(ws, term, store);
+            const toolsHandler = new ToolsHandler(ws, window.term, store);
             window.toolsHandler = toolsHandler;
 
-            // Hook for generated gcode
-            window.addEventListener('gcode-loaded', (e) => {
-                currentGCodeContent = e.detail;
-                currentSDFile = null; // Clear SD context for generated code
-                updateRunButtonsState();
-                // Update editor when Surfacing wizard generates code
-                if (editor) {
-                    editor.setValue(e.detail);
-                    const lineCount = editor.getValue().split('\n').length;
-                    document.getElementById('editor-line-count').innerText = lineCount;
-                    document.getElementById('editor-file-name').innerText = "Surfacing_Job.gcode";
-                }
-            });
-
-            window.addEventListener('tab-shown', (e) => {
-                if (e.detail.id === 'tools-view') window.toolsHandler.refresh();
-            });
-
-            // Unit Syncing
-            const unitToggle = document.getElementById('unitToggle');
-            unitToggle.addEventListener('change', () => {
-                const units = unitToggle.checked ? 'mm' : 'inch';
-                if (window.viewer) window.viewer.setUnits(units);
-            });
-
-            window.addEventListener('viewer-units-changed', (e) => {
-                const isMm = e.detail.units === 'mm';
-                if (unitToggle.checked !== isMm) {
-                    unitToggle.checked = isMm;
-                    const label = document.getElementById('unitLabel');
-                    if (label) label.innerText = isMm ? 'MM' : 'IN';
-                }
-            });
-
-            ws.on('connect', () => updateUIConnected(true));
-            ws.on('disconnect', () => updateUIConnected(false));
-            ws.on('line', (line) => {
-                processLine(line);
-                window.toolsHandler.handleLine(line);
-            });
-            ws.on('sent', (line) => {
-                if (window.sdHandler?.isDownloading) return;
-                if (gcodeStreamer.active) return;
-                if (line === '?' || line === '$G') return;
-                term.writeln(`\x1b[2m> ${line}\x1b[0m`);
-            });
-
-            const connectBtn = document.getElementById('btn-connect');
-            connectBtn.addEventListener('click', () => {
-                if (ws.isConnected) {
-                    ws.disconnect();
-                } else {
-                    ws.connect(115200).catch(e => { });
-                }
-            });
-
-            document.getElementById('btnSend').addEventListener('click', sendFromInput);
-
-            document.getElementById('cmdInput').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    sendFromInput();
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    navigateHistory(-1);
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    navigateHistory(1);
-                }
-            });
-
-            // File Input Listener (Updated for Editor)
-            document.getElementById('gcode-file-input').addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                document.getElementById('editor-file-name').innerText = file.name;
-
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    const content = evt.target.result;
-                    currentGCodeContent = content;
-                    currentSDFile = null; // Clear SD context for local file files
-                    updateRunButtonsState();
-
-                    viewer.processGCodeString(currentGCodeContent);
-
-                    // Update Editor
-                    if (editor) {
-                        editor.setValue(content);
-                        const lineCount = editor.getValue().split('\n').length;
-                        document.getElementById('editor-line-count').innerText = lineCount;
-                    }
-
-                    e.target.value = '';
-                };
-                reader.readAsText(file);
-            });
-
-            document.getElementById('sd-upload-input').addEventListener('change', (e) => {
-                sdHandler.startUpload(e.target.files[0]);
-                e.target.value = '';
-            });
-
-            window.addEventListener('resize', () => { fitAddon.fit(); viewer.resize(); });
-            window.addEventListener('tab-shown', (e) => {
-                if (e.detail.id === 'viewer-view') {
-                    requestAnimationFrame(() => {
-                        viewer.resize();
-                        if (viewer.controls.target.length() === 0) viewer.resetCamera();
-                    });
-                }
-                if (e.detail.id === 'settings-view' && ws.isConnected) {
-                    if (Object.keys(grblSettings.settings).length === 0) {
-                        grblSettings.fetchSettings();
-                    }
-                }
-            });
-
-            initJogging();
+            // Initialize all modules
+            initializeApp(ws, store, viewer, reporter, window.term);
         });
 
-        window.toggleCamera = function () {
-            // Cycle: Perspective -> Ortho -> Spindle -> Perspective
-            let nextMode = 'Perspective';
-            const currentText = document.getElementById('cam-toggle-btn').innerText.trim();
-
-            if (currentText === 'Perspective') nextMode = 'Orthographic';
-            if (currentText === 'Orthographic') nextMode = 'Spindle View';
-            if (currentText === 'Spindle View') nextMode = 'Perspective';
-
-            let label = nextMode;
-            let icon = 'bi-eye-fill';
-
-            if (nextMode === 'Perspective') {
-                viewer.toggleCamera(); // Toggles to Persp (if not already)
-                if (viewer.cameraMode === 'spindle') viewer.setCameraMode('orbit');
-                // Wait, toggleCamera toggles betwen Persp/Ortho. 
-                // We need explicit setting or smart logic.
-                // Let's rewrite viewer.toggleCamera to be more flexible or just use new logic here.
-                // Actually, viewer.toggleCamera switches Persp<->Ortho and returns string.
-
-                // Let's just force it for now
-                if (viewer.getCameraType() === 'Orthographic') viewer.toggleCamera(); // Switch to Persp
-                viewer.setCameraMode('orbit');
+        window.addEventListener('gcode-loaded', (e) => {
+            window.currentGCodeContent = e.detail;
+            window.currentSDFile = null; // Clear SD context for generated code
+            window.uiManager.updateRunButtonsState();
+            // Update editor when Surfacing wizard generates code
+            if (window.editor) {
+                window.editor.setValue(e.detail);
+                const lineCount = window.editor.getValue().split('\n').length;
+                document.getElementById('editor-line-count').innerText = lineCount;
+                document.getElementById('editor-file-name').innerText = "Surfacing_Job.gcode";
             }
-            else if (nextMode === 'Orthographic') {
-                if (viewer.getCameraType() === 'Perspective') viewer.toggleCamera(); // Switch to Ortho
-                viewer.setCameraMode('orbit');
-                label = 'Orthographic';
-                icon = 'bi-box-fill';
-            }
-            else if (nextMode === 'Spindle View') {
-                if (viewer.getCameraType() === 'Orthographic') viewer.toggleCamera(); // Back to Persp for Spindle View (usually better)
-                viewer.setCameraMode('spindle');
-                label = 'Spindle View';
-                icon = 'bi-camera-video';
-            }
+        });
 
-            document.getElementById('cam-toggle-btn').innerHTML = `<i class="bi ${icon} text-secondary"></i> ${label}`;
-        };
+        window.addEventListener('tab-shown', (e) => {
+            if (e.detail.id === 'tools-view') window.toolsHandler.refresh();
+        });
+
+        // Unit Syncing
+        const unitToggle = document.getElementById('unitToggle');
+        unitToggle.addEventListener('change', () => {
+            const units = unitToggle.checked ? 'mm' : 'inch';
+            if (window.viewer) window.viewer.setUnits(units);
+        });
+
+        window.addEventListener('viewer-units-changed', (e) => {
+            const isMm = e.detail.units === 'mm';
+            if (unitToggle.checked !== isMm) {
+                unitToggle.checked = isMm;
+                const label = document.getElementById('unitLabel');
+                if (label) label.innerText = isMm ? 'MM' : 'IN';
+            }
+        });
+
+        ws.on('connected', () => window.uiManager.updateConnectionState(true, ws, window.sdHandler));
+        ws.on('disconnected', () => window.uiManager.updateConnectionState(false, ws, window.sdHandler));
+        ws.on('line', (line) => {
+            window.lineProcessor.processLine(line);
+            window.toolsHandler.handleLine(line);
+        });
+        ws.on('sent', (line) => {
+            if (window.sdHandler?.isDownloading) return;
+            if (window.jobController.gcodeStreamer.active) return;
+            if (line === '?' || line === '$G') return;
+            window.term.writeln(`\x1b[2m> ${line}\x1b[0m`);
+        });
+
+        const connectBtn = document.getElementById('btn-connect');
+        connectBtn.addEventListener('click', () => {
+            if (ws.isConnected) {
+                ws.disconnect();
+            } else {
+                ws.connect(115200).catch(e => { });
+            }
+        });
+
+        document.getElementById('btnSend').addEventListener('click', () => window.consoleManager.sendFromInput());
+
+        document.getElementById('cmdInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                window.consoleManager.sendFromInput();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                window.consoleManager.navigateHistory(-1);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                window.consoleManager.navigateHistory(1);
+            }
+        });
+
+        // File Input Listener (Updated for Editor)
+        document.getElementById('gcode-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('editor-file-name').innerText = file.name;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const content = evt.target.result;
+                window.currentGCodeContent = content;
+                window.currentSDFile = null; // Clear SD context for local file files
+                window.uiManager.updateRunButtonsState();
+
+                viewer.processGCodeString(window.currentGCodeContent);
+
+                // Update Editor
+                if (window.editor) {
+                    window.editor.setValue(content);
+                    const lineCount = window.editor.getValue().split('\n').length;
+                    document.getElementById('editor-line-count').innerText = lineCount;
+                }
+
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        document.getElementById('sd-upload-input').addEventListener('change', (e) => {
+            window.sdHandler.startUpload(e.target.files[0]);
+            e.target.value = '';
+        });
+
+        window.addEventListener('resize', () => { window.fitAddon.fit(); viewer.resize(); });
+        window.addEventListener('tab-shown', (e) => {
+            if (e.detail.id === 'viewer-view') {
+                requestAnimationFrame(() => {
+                    viewer.resize();
+                    if (viewer.controls.target.length() === 0) viewer.resetCamera();
+                });
+            }
+            if (e.detail.id === 'settings-view' && ws.isConnected) {
+                if (Object.keys(window.grblSettings.settings).length === 0) {
+                    window.grblSettings.fetchSettings();
+                }
+            }
+        });
 
         // New Grid Toggle Function
         window.toggleGridMode = function () {
@@ -2168,22 +2052,22 @@
             window.userRequestedStatus = true;
             ws.sendRealtime('\x87');
         };
-        window.clearTerminal = function () { term.clear(); }
+        window.clearTerminal = function () { window.term.clear(); }
 
         // Editor Actions
         window.applyEditorChanges = function () {
-            if (!editor) return;
-            const content = editor.getValue();
-            currentGCodeContent = content;
+            if (!window.editor) return;
+            const content = window.editor.getValue();
+            window.currentGCodeContent = content;
 
             viewer.processGCodeString(content);
             switchTab('viewer-view');
-            term.writeln("\x1b[32m[Editor] Job updated from editor.\x1b[0m");
+            window.term.writeln("\x1b[32m[Editor] Job updated from editor.\x1b[0m");
         };
 
         window.downloadFromEditor = function () {
-            if (!editor) return;
-            const content = editor.getValue();
+            if (!window.editor) return;
+            const content = window.editor.getValue();
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -2194,8 +2078,8 @@
         };
 
         window.uploadEditorToSD = function () {
-            if (!editor) return;
-            const content = editor.getValue();
+            if (!window.editor) return;
+            const content = window.editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "edited.gcode";
             reporter.showPrompt('Upload to SD Card', 'Enter filename for SD Card:', defaultName, (filename) => {
 
@@ -2203,116 +2087,25 @@
 
                 const file = new File([content], filename, { type: "text/plain" });
                 switchTab('sd-view');
-                sdHandler.startUpload(file);
+                window.sdHandler.startUpload(file);
             });
         };
-
-        function sendFromInput() {
-            const i = document.getElementById('cmdInput');
-            const val = i.value.trim();
-            if (val) {
-                if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== val) {
-                    commandHistory.push(val);
-                    if (commandHistory.length > 50) commandHistory.shift();
-                }
-                historyIndex = commandHistory.length;
-
-                if (val === '?' || val === '$G') {
-                    window.userRequestedStatus = true;
-                }
-
-                window.sendCmd(val);
-                i.value = '';
-            }
-        }
-
-        function navigateHistory(direction) {
-            if (commandHistory.length === 0) return;
-            historyIndex += direction;
-            if (historyIndex < 0) historyIndex = 0;
-            if (historyIndex > commandHistory.length) historyIndex = commandHistory.length;
-            const input = document.getElementById('cmdInput');
-            if (historyIndex < commandHistory.length) {
-                input.value = commandHistory[historyIndex];
-            } else {
-                input.value = '';
-            }
-        }
-
-        function initJogging() {
-            const btns = document.querySelectorAll('[data-jog]');
-            const toggle = document.getElementById('jogContinuous');
-            toggle.checked = store.get('jog.continuous');
-            document.getElementById('stepSize').disabled = toggle.checked;
-
-            toggle.addEventListener('change', () => {
-                store.set('jog.continuous', toggle.checked);
-                document.getElementById('stepSize').disabled = toggle.checked;
-            });
-            document.getElementById('stepSize').addEventListener('change', (e) => {
-                store.set('jog.step', parseFloat(e.target.value));
-            });
-            document.getElementById('feedRate').addEventListener('change', (e) => {
-                store.set('jog.feed', parseFloat(e.target.value));
-            });
-
-            btns.forEach(btn => {
-                const dir = btn.dataset.jog;
-                const startJog = (e) => {
-                    if (!toggle.checked) return;
-                    e.preventDefault();
-                    const f = document.getElementById('feedRate').value;
-                    const isMm = store.get('general.units') === 'mm';
-                    const unit = isMm ? 'G21' : 'G20';
-                    const dist = isMm ? '1000' : '50';
-                    let move = "";
-                    if (dir.includes('X')) move += `X${dir.includes('X-') ? '-' : ''}${dist} `;
-                    if (dir.includes('Y')) move += `Y${dir.includes('Y-') ? '-' : ''}${dist} `;
-                    if (dir.includes('Z')) move += `Z${dir.includes('Z-') ? '-' : ''}${dist} `;
-                    if (dir.includes('A')) move += `A${dir.includes('A-') ? '-' : ''}${dist} `;
-                    ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
-                };
-                const stopJog = (e) => {
-                    if (!toggle.checked) return;
-                    ws.sendRealtime('\x85');
-                };
-                const clickJog = () => {
-                    if (toggle.checked) return;
-                    const s = document.getElementById('stepSize').value;
-                    const f = document.getElementById('feedRate').value;
-                    const isMm = store.get('general.units') === 'mm';
-                    const unit = isMm ? 'G21' : 'G20';
-                    let move = "";
-                    if (dir.includes('X')) move += `X${dir.includes('X-') ? '-' : ''}${s} `;
-                    if (dir.includes('Y')) move += `Y${dir.includes('Y-') ? '-' : ''}${s} `;
-                    if (dir.includes('Z')) move += `Z${dir.includes('Z-') ? '-' : ''}${s} `;
-                    if (dir.includes('A')) move += `A${dir.includes('A-') ? '-' : ''}${s} `;
-                    ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
-                };
-                btn.addEventListener('mousedown', startJog);
-                btn.addEventListener('mouseup', stopJog);
-                btn.addEventListener('mouseleave', stopJog);
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); startJog(e); }, { passive: false });
-                btn.addEventListener('touchend', (e) => { e.preventDefault(); stopJog(e); });
-                btn.addEventListener('click', clickJog);
-            });
-        }
 
         // New function: Run from SD (Smart)
         window.runFromSD = function () {
             // Case 1: File is already on SD (Context Aware)
-            if (currentSDFile) {
-                reporter.showConfirm('Run from SD', `Run ${currentSDFile} directly from SD card?`, () => {
+            if (window.currentSDFile) {
+                reporter.showConfirm('Run from SD', `Run ${window.currentSDFile} directly from SD card?`, () => {
                     // Start SD Print
-                    ws.sendCommand(`$F=${currentSDFile}`);
+                    ws.sendCommand(`$F=${window.currentSDFile}`);
                     // UI will update via status reports
                 });
                 return;
             }
 
             // Case 2: Upload Editor Content then Run
-            if (!editor) return;
-            const content = editor.getValue();
+            if (!window.editor) return;
+            const content = window.editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "job.gcode";
 
             reporter.showPrompt('Upload & Run', 'Upload this job to SD card and run it?', defaultName, (filename) => {
@@ -2323,9 +2116,9 @@
                 switchTab('sd-view');
 
                 // Start Upload with Callback
-                sdHandler.startUpload(file, (uploadedName) => {
+                window.sdHandler.startUpload(file, (uploadedName) => {
                     // On Success, Ask to Run
-                    const fullPath = sdHandler.path === '/' ? uploadedName : `${sdHandler.path}/${uploadedName}`;
+                    const fullPath = window.sdHandler.path === '/' ? uploadedName : `${window.sdHandler.path}/${uploadedName}`;
                     setTimeout(() => {
                         reporter.showConfirm('Run Now?', `Upload complete. Run ${uploadedName} now?`, () => {
                             ws.sendCommand(`$F=${fullPath}`);
@@ -2335,290 +2128,7 @@
             });
         };
 
-
-        // UI State Helper for Run Buttons
-        function updateRunButtonsState() {
-            const runJobBtn = document.getElementById('run-job-btn');
-            const runSdBtn = document.getElementById('run-sd-btn');
-
-            if (currentSDFile) {
-                // SD Context: Disable Streaming, Highlight SD Run
-                runJobBtn.classList.add('opacity-50', 'pointer-events-none');
-                runJobBtn.title = "Streaming disabled for SD files. Use 'Run from SD'";
-
-                // Highlight SD Button
-                runSdBtn.classList.remove('opacity-50', 'pointer-events-none'); // Ensure enabled
-                runSdBtn.classList.replace('!bg-secondary', '!bg-primary');
-                runSdBtn.classList.replace('!text-white', '!text-secondary-dark');
-                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`; // Reset text just in case
-
-            } else {
-                // Local Context: Enable Streaming, Reset SD Run
-                if (ws.isConnected) runJobBtn.classList.remove('opacity-50', 'pointer-events-none');
-                runJobBtn.title = "Run Job (Stream)";
-
-                // Reset SD Button to default (Upload & Run)
-                runSdBtn.classList.replace('!bg-primary', '!bg-secondary');
-                runSdBtn.classList.replace('!text-secondary-dark', '!text-white');
-                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
-            }
-        }
-
-        function updateUIConnected(state) {
-            const btn = document.getElementById('btn-connect');
-            const resetBtn = document.getElementById('btn-reset');
-            // Added run-sd-btn to disabledIds
-            const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'run-sd-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar', 'probe-panel-content'];
-            if (state) {
-                // ... (Existing code) ...
-                resetBtn.classList.remove('opacity-50', 'pointer-events-none');
-                resetBtn.classList.remove('opacity-50', 'pointer-events-none');
-                disabledIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.classList.remove('opacity-50', 'pointer-events-none');
-                });
-
-                // Update Connect Button to Disconnect
-                btn.innerHTML = '<i class="bi bi-usb-plug-fill"></i> Disconnect';
-                btn.className = "btn btn-secondary h-8 text-xs shadow-none border border-white/10 !bg-red-500 hover:!bg-red-600 text-white";
-
-                // Re-apply logic in case we just connected with file loaded
-                updateRunButtonsState();
-
-                setTimeout(() => ws.sendCommand('$EA'), 500);
-                setTimeout(() => ws.sendCommand('$EE'), 1000);
-                setTimeout(() => sdHandler.refresh(), 1500);
-                setTimeout(() => ws.sendCommand('$EG'), 2000);
-                setTimeout(() => ws.sendCommand('$ES'), 2500);
-                setTimeout(() => ws.sendCommand('$$'), 3000);
-                setTimeout(() => ws.sendCommand('$#'), 3500);
-                setTimeout(() => {
-                    // Initial Full Status Report (0x87) to get all states like SD mount
-                    window.userRequestedStatus = true; // Log this initial full report
-                    ws.sendRealtime('\x87');
-                }, 4000);
-                statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
-            } else {
-                if (statusInterval) clearInterval(statusInterval);
-                btn.textContent = 'Connect'; btn.className = "btn btn-primary h-8 text-xs shadow-none border border-white/10";
-                document.getElementById('connection-dot').classList.replace('bg-green-500', 'bg-red-500');
-                document.getElementById('connection-text').textContent = 'Offline';
-                resetBtn.classList.add('opacity-50', 'pointer-events-none');
-                document.getElementById('run-job-btn').classList.add('opacity-50', 'pointer-events-none');
-                document.getElementById('dro-alarm-btn')?.classList.add('hidden'); // Hide alarm button when offline
-                disabledIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.classList.add('opacity-50', 'pointer-events-none');
-                });
-            }
-        }
-
-        function initTerminal() {
-            term = new Terminal({
-                cursorBlink: true,
-                fontSize: 11,
-                fontFamily: '"JetBrains Mono", monospace',
-                rightClickSelectsWord: true,
-                theme: {
-                    background: '#FFFFFF',
-                    foreground: '#333333',
-                    cursor: '#333333',
-                    selectionBackground: '#D6EAF8', // Darker blue-ish for visibility
-                    selectionInactiveBackground: '#F2F4F8' // Visible inactive selection
-                }
-            });
-            term.attachCustomKeyEventHandler((arg) => {
-                if (arg.ctrlKey && arg.code === "KeyC" && term.hasSelection()) return false;
-                return true;
-            });
-            fitAddon = new FitAddon.FitAddon(); term.loadAddon(fitAddon); term.open(document.getElementById('terminal-container')); fitAddon.fit();
-        }
-
-        function processLine(line) {
-            if (!line) return;
-            line = line.trim();
-            if (line.startsWith('[PRB:')) {
-                term.writeln(line);
-                probeHandler.handleProbeResult(line);
-                return;
-            }
-            if (sdHandler.processLine(line)) return;
-            if (grblSettings.handleLine(line)) {
-                if (viewer && grblSettings.settings['130'] && grblSettings.settings['131'] && grblSettings.settings['132']) {
-                    viewer.setMachineLimits(
-                        parseFloat(grblSettings.settings['130'].val),
-                        parseFloat(grblSettings.settings['131'].val),
-                        parseFloat(grblSettings.settings['132'].val)
-                    );
-                    viewer.resetCamera();
-                }
-                return;
-            }
-            const report = reporter.handleLine(line);
-            if (report) {
-                if (typeof report === 'string') term.writeln(report);
-                return;
-            }
-
-            if (line.startsWith('<')) {
-
-                if (window.userRequestedStatus) {
-                    term.writeln(line);
-                    window.userRequestedStatus = false;
-                }
-
-                droHandler.parseStatus(line);
-                if (viewer) {
-                    viewer.updateWCS(droHandler.wco);
-                    if (droHandler.wpos) {
-                        viewer.updateToolPosition(droHandler.wpos[0], droHandler.wpos[1], droHandler.wpos[2]);
-                    }
-                    // Pass the parsed spindle speed (if available) to the viewer for animation.
-                    if (droHandler.spindleSpeed !== undefined) {
-                        viewer.setSpindleSpeed(droHandler.spindleSpeed);
-                    }
-                }
-                return;
-            }
-
-            if (gcodeStreamer.active && (line === 'ok' || line.toLowerCase().startsWith('error:'))) {
-                if (line.toLowerCase().startsWith('error:')) abortGCodeStream(line);
-                else advanceGCodeStream();
-                return;
-            }
-            term.writeln(line);
-        }
-
-        window.runCurrentJob = function () {
-            if (!currentGCodeContent || gcodeStreamer.active) {
-                reporter.showAlert('No G-Code', 'No G-Code loaded in the viewer to run!');
-                return;
-            }
-            reporter.showConfirm('Run Job', 'Are you sure you want to run the job currently loaded in the 3D viewer?', () => {
-                gcodeStreamer.lines = currentGCodeContent.split('\n').filter(line => line.trim().length > 0);
-                gcodeStreamer.index = 0;
-                gcodeStreamer.active = true;
-                gcodeStreamer.paused = false;
-
-                document.getElementById('run-job-btn').classList.add('hidden');
-                document.getElementById('job-active-controls').classList.remove('hidden');
-                document.getElementById('job-active-controls').classList.add('flex');
-
-                // Show job progress overlay
-                document.getElementById('job-progress-overlay').classList.remove('hidden');
-                jobStartTime = Date.now();
-
-                term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
-                advanceGCodeStream();
-            });
-        }
-
-        window.pauseJob = function () {
-            if (!gcodeStreamer.active) return;
-            const btn = document.getElementById('pause-job-btn');
-            gcodeStreamer.paused = !gcodeStreamer.paused;
-
-            if (gcodeStreamer.paused) {
-                ws.sendRealtime('!');
-                btn.innerHTML = '<i class="bi bi-play-fill text-lg"></i> Resume';
-                btn.classList.replace('!bg-yellow-100', '!bg-green-100');
-                btn.classList.replace('!text-yellow-800', '!text-green-800');
-                btn.classList.replace('border-yellow-300', 'border-green-300');
-                term.writeln("\x1b[33m[Job Stream] Paused.\x1b[0m");
-            } else {
-                ws.sendRealtime('~');
-                btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
-                btn.classList.replace('!bg-green-100', '!bg-yellow-100');
-                btn.classList.replace('!text-green-800', '!text-yellow-800');
-                btn.classList.replace('border-green-300', 'border-yellow-300');
-                term.writeln("\x1b[32m[Job Stream] Resuming...\x1b[0m");
-            }
-        }
-
-        window.stopJob = function () {
-            if (!gcodeStreamer.active) return;
-            reporter.showConfirm('Stop Job', 'Stop Job? This will reset the machine.', () => {
-                ws.sendRealtime('\x18');
-                abortGCodeStream("User Stopped");
-            });
-        }
-
-        let jobStartTime = 0;
-
-        function advanceGCodeStream() {
-            if (!gcodeStreamer.active) return;
-            if (gcodeStreamer.index >= gcodeStreamer.lines.length) {
-                finishGCodeStream();
-                return;
-            }
-            const line = gcodeStreamer.lines[gcodeStreamer.index];
-            ws.sendCommand(line);
-            gcodeStreamer.index++;
-
-            // Update job progress
-            const pct = Math.round((gcodeStreamer.index / gcodeStreamer.lines.length) * 100);
-            document.getElementById('job-progress-bar').style.width = `${pct}%`;
-            document.getElementById('job-progress-pct').textContent = `${pct}%`;
-            document.getElementById('job-progress-line').textContent = `Line ${gcodeStreamer.index} of ${gcodeStreamer.lines.length}`;
-
-            // Update elapsed time
-            const elapsed = Math.floor((Date.now() - jobStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            document.getElementById('job-progress-time').textContent = `Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function finishGCodeStream() {
-            gcodeStreamer.active = false;
-            term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
-            resetJobUI();
-        }
-        function abortGCodeStream(error) {
-            gcodeStreamer.active = false;
-            term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
-            resetJobUI();
-        }
-
-        function resetJobUI() {
-            // Hide job progress overlay
-            document.getElementById('job-progress-overlay').classList.add('hidden');
-            document.getElementById('job-progress-bar').style.width = '0%';
-            document.getElementById('job-progress-pct').textContent = '0%';
-            document.getElementById('job-progress-line').textContent = 'Line 0 of 0';
-            document.getElementById('job-progress-time').textContent = 'Elapsed: 0:00';
-
-            // Reset buttons
-            document.getElementById('run-job-btn').classList.remove('hidden');
-            document.getElementById('job-active-controls').classList.add('hidden');
-            document.getElementById('job-active-controls').classList.remove('flex');
-            const btn = document.getElementById('pause-job-btn');
-            btn.innerHTML = '<i class="bi bi-pause-fill text-lg"></i> Pause';
-            btn.className = "overlay-btn !bg-yellow-100 !text-yellow-800 border-yellow-300 shadow-lg";
-
-            window.sdJobActive = false; // Reset SD flag
-        }
-
         // --- Shared Job UI Helpers ---
-
-        function startJobUI() {
-            document.getElementById('run-job-btn').classList.add('hidden');
-            document.getElementById('job-active-controls').classList.remove('hidden');
-            document.getElementById('job-active-controls').classList.add('flex');
-            document.getElementById('job-progress-overlay').classList.remove('hidden');
-            jobStartTime = Date.now();
-        }
-
-        function updateJobProgressUI(pct, label) {
-            document.getElementById('job-progress-bar').style.width = `${pct}%`;
-            document.getElementById('job-progress-pct').textContent = `${pct}%`;
-            document.getElementById('job-progress-line').textContent = label;
-
-            // Update elapsed time
-            const elapsed = Math.floor((Date.now() - jobStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            document.getElementById('job-progress-time').textContent = `Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
 
         // --- SD Job Progress Listeners ---
         window.sdJobActive = false;
@@ -2627,21 +2137,21 @@
             const { pct, filename } = e.detail;
 
             // If SD job just started (or we just noticed it)
-            if (!window.sdJobActive && !gcodeStreamer.active) {
+            if (!window.sdJobActive && !window.jobControl.gcodeStreamer.active) {
                 window.sdJobActive = true;
-                startJobUI();
-                term.writeln("\x1b[35m[SD Job] Detected active SD print.\x1b[0m");
+                window.jobControl.startJobUI();
+                window.term.writeln("\x1b[35m[SD Job] Detected active SD print.\x1b[0m");
             }
 
             if (window.sdJobActive) {
-                updateJobProgressUI(pct, filename ? `File: ${filename}` : 'Standard Job');
+                window.jobControl.updateJobProgressUI(pct, filename ? `File: ${filename}` : 'Standard Job');
             }
         });
 
         window.addEventListener('sd-job-complete', () => {
             if (window.sdJobActive) {
-                term.writeln("\x1b[32m[SD Job] Complete/Idle.\x1b[0m");
-                resetJobUI();
+                window.term.writeln("\x1b[32m[SD Job] Complete/Idle.\x1b[0m");
+                window.jobControl.resetJobUI();
                 // Also ensure we are not in Hold
                 const pauseBtn = document.getElementById('pause-job-btn');
                 if (pauseBtn.innerText.includes('Resume')) {
