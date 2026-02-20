@@ -76,11 +76,11 @@ export function initializeApp(ws, store, viewer, reporter, term) {
     });
 
     // WebSerial event handlers
-    ws.on('connected', () => {
+    ws.on('connect', () => {
         window.uiManager.updateConnectionState(true, ws, window.sdHandler);
     });
 
-    ws.on('disconnected', () => {
+    ws.on('disconnect', () => {
         window.uiManager.updateConnectionState(false, ws, window.sdHandler);
     });
 

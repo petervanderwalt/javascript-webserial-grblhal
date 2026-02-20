@@ -1827,6 +1827,8 @@
         // Globals
         const ws = new WebSerial();
         const store = new AppStore();
+        window.ws = ws;
+        window.store = store;
 
         window.addEventListener('beforeunload', (e) => {
             if (ws && ws.isConnected) {
@@ -1879,6 +1881,7 @@
             // Initialize Helpers
             const droHandler = new DROHandler(ws, window.term, store);
             window.droHandler = droHandler;
+            window.dro = droHandler;
 
             const grblSettings = new GrblSettings(ws, window.term);
             window.grblSettings = grblSettings;
@@ -1955,8 +1958,8 @@
             }
         });
 
-        ws.on('connected', () => window.uiManager.updateConnectionState(true, ws, window.sdHandler));
-        ws.on('disconnected', () => window.uiManager.updateConnectionState(false, ws, window.sdHandler));
+        ws.on('connect', () => window.uiManager.updateConnectionState(true, ws, window.sdHandler));
+        ws.on('disconnect', () => window.uiManager.updateConnectionState(false, ws, window.sdHandler));
         ws.on('line', (line) => {
             window.lineProcessor.processLine(line);
             window.toolsHandler.handleLine(line);
