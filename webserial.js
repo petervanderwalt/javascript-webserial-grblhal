@@ -28,6 +28,7 @@ export class WebSerial {
         };
 
         this.rawModeCallback = null;
+        this._writeLock = Promise.resolve();
 
         // --- Grbl v1.1 Character-Counting Flow Control ---
         this._rxBufSize = 128;    // grblHAL serial RX buffer size
@@ -169,31 +170,31 @@ export class WebSerial {
     }
 
     /**
-     * Low-level write with lock-retry (original proven approach).
+     * Low-level write with Promise-based Mutex queue.
+     * Prevents lock assertion failures and prevents data dropout under load.
      */
     async writeRaw(data) {
         if (!this.port || !this.port.writable) return;
 
-        let retries = 0;
-        while (this.port.writable.locked && retries < 20) {
-            await new Promise(r => setTimeout(r, 10));
-            retries++;
-        }
+        // Chain the new write onto the existing promise chain
+        const writePromise = this._writeLock.then(async () => {
+            if (!this.port || !this.port.writable) return;
+            const writer = this.port.writable.getWriter();
+            try {
+                await writer.write(data);
+            } catch (e) {
+                console.error('Serial Write Error:', e);
+                this.emit('error', e);
+            } finally {
+                writer.releaseLock();
+            }
+        });
 
-        if (this.port.writable.locked) {
-            console.warn('Serial write dropped: stream still locked after retries');
-            return;
-        }
+        // Update the lock to point to this new promise, catch errors so chain doesn't break
+        this._writeLock = writePromise.catch(() => { });
 
-        const writer = this.port.writable.getWriter();
-        try {
-            await writer.write(data);
-        } catch (e) {
-            console.error('Serial Write Error:', e);
-            this.emit('error', e);
-        } finally {
-            writer.releaseLock();
-        }
+        // Wait for this specific write to finish
+        await writePromise;
     }
 
     setRawHandler(callback) {

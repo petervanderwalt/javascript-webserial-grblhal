@@ -20,7 +20,19 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
 
     <!-- Theme Engine -->
-    <link id="theme-stylesheet" rel="stylesheet" href="">
+    <link id="theme-stylesheet" rel="stylesheet" href="themes/solar-yellow.css">
+    <script>
+        // Synchronously apply saved theme to prevent FOUC (Flash of Unstyled Content)
+        try {
+            const stored = localStorage.getItem('cnc_app_config');
+            if (stored) {
+                const config = JSON.parse(stored);
+                if (config.uiTheme) {
+                    document.getElementById('theme-stylesheet').href = `themes/${config.uiTheme}.css`;
+                }
+            }
+        } catch (e) { console.error("Theme Init:", e); }
+    </script>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
