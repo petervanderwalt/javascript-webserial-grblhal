@@ -1010,16 +1010,16 @@ export class GCodeViewer {
             this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
             this.controls.update();
         } else {
-            // 2. Try Machine Limits (Machine Focus)
-            const machineBox = new THREE.Box3().setFromObject(this.machineGroup);
+            // 2. Try Grid Box (Grid Focus) - using WORLD coordinates
+            const gridBox = new THREE.Box3().setFromObject(this.gridGroup);
 
-            if (!machineBox.isEmpty()) {
-                const center = machineBox.getCenter(new THREE.Vector3());
-                const size = machineBox.getSize(new THREE.Vector3());
+            if (!gridBox.isEmpty() && isFinite(gridBox.min.x)) {
+                const center = gridBox.getCenter(new THREE.Vector3());
+                const size = gridBox.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z || 100);
 
                 this.controls.target.copy(center);
-                // Position camera to see the full machine bed
+                // Position camera to see the full grid
                 this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
                 this.controls.update();
             } else {
@@ -1040,11 +1040,17 @@ export class GCodeViewer {
             const size = box.getSize(new THREE.Vector3());
             const maxDim = Math.max(size.x, size.y, size.z || 1);
             dist = maxDim * 2;
-        }
-
-        // Use Work Zero (workOffsetsGroup position) if no gcode
-        if (box.isEmpty() && this.workOffsetsGroup) {
-            center.copy(this.workOffsetsGroup.position);
+        } else {
+            // Use Grid Box (Grid Focus) if no gcode
+            const gridBox = new THREE.Box3().setFromObject(this.gridGroup);
+            if (!gridBox.isEmpty() && isFinite(gridBox.min.x)) {
+                center = gridBox.getCenter(new THREE.Vector3());
+                const size = gridBox.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z || 100);
+                dist = maxDim * 2;
+            } else if (this.workOffsetsGroup) {
+                center.copy(this.workOffsetsGroup.position);
+            }
         }
 
         this.controls.target.copy(center);
