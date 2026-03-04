@@ -1,0 +1,21 @@
+node_modules/
+.npm/
+package-lock.json
+
+# Build outputs
+build/
+dist/
+cordova/platforms/
+cordova/plugins/
+cordova/www/
+cordova/node_modules/
+
+# Ignore generated icon resources but keep the source images
+cordova/resources/android/
+cordova/resources/ios/
+cordova/res/
+
+# User-specific
+.vscode/
+.DS_Store
+*.log

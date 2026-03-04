@@ -1,311 +1,1275 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Local vendor fonts - works offline */
+@import url('../vendor/google-fonts.css');
+@import url('../vendor/bootstrap-icons.css');
 
+/*
+ * OOZNEST MACHINE CONTROL THEME v9.0
+ * This file is now the SOLE authority for all component styling.
+ * @layer components removed from index.html — Tailwind CDN provides utilities only.
+ * No !important wars. Clean cascade.
+ *
+ * Card design: oz-showcase-sidebar from OOZNEST-CSS/ooznest-ui.css
+ *   - Full colored background per section
+ *   - Single large corner (96px) alternating per card
+ *   - CSS callout pointer arrows (right + bottom)
+ */
+
+/* ================================================================
+   BRAND TOKENS — 1:1 with OOZNEST-CSS/ooznest-ui.css
+   ================================================================ */
 :root {
-    /* Ooznest Teal */
-    --color-primary-light: #529A9F;
-    --color-primary: #30797F;
-    --color-primary-dark: #245d61;
+    /* Primary orange */
+    --oz-primary: #FF6600;
+    --oz-primary-light: #FF8533;
+    --oz-primary-dark: #D55700;
 
-    /* Ooznest Orange */
-    --color-secondary-light: #FB903A;
-    --color-secondary: #F76406;
-    --color-secondary-dark: #e67618;
+    /* Teal */
+    --oz-teal-brand: #004C5B;
+    --oz-teal-mid: #449D9F;
+    --oz-teal-light: #B0CACF;
+    --oz-teal-xlight: #EBEFEF;
 
-    /* Sleek Grays matching their UI */
-    --color-grey-light: #e2e8f0;
-    --color-grey: #64748b;
-    --color-grey-dark: #1e293b;
+    /* Neutrals */
+    --oz-black: #0D1F22;
+    --oz-grey-dark: #2F373C;
+    --oz-grey-mid: #909090;
+    --oz-grey-light: #EBEFEF;
+    --oz-white: #FFFFFF;
+    --oz-bg-panel: #F7F9F9;
 
-    --color-bg: #f3f5f6;
-    /* Very subtle greyish teal background */
-    --color-surface: #ffffff;
+    /* Gradients */
+    --oz-grad-teal: radial-gradient(78.83% 124.97% at 96% 82.92%, #004C5B 0%, #449D9F 100%);
+    --oz-grad-orange: radial-gradient(78.83% 124.97% at 96% 82.92%, #FFB482 0%, #FF6600 100%);
 
-    --color-axis-x: #ef4444;
-    --color-axis-y: #25D466;
-    /* Ooznest Green */
-    --color-axis-z: #3b82f6;
-    --color-axis-a: #F76406;
-    /* Ooznest Orange */
+    /* Shadows */
+    --oz-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --oz-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --oz-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
 
-    --ooz-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    /* Radius — from ooznest-ui.css but scaled down for the app */
+    --oz-r-xl: 30px;
+    --oz-r-md: 16px;
+    --oz-r-sm: 10px;
+    --oz-r-xs: 6px;
+
+    /* Status */
+    --oz-success: #027A48;
+    --oz-error: #B41B13;
+    --oz-warning: #FFB300;
+
+    /* Axis colours */
+    --axis-x: #e11d48;
+    --axis-y: #16a34a;
+    --axis-z: #2563eb;
+    --axis-a: #ea580c;
+
+    /* ── Tailwind token aliases so bg-primary etc still resolve ── */
+    --color-primary: var(--oz-teal-mid);
+    --color-primary-light: #6DBCBE;
+    --color-primary-dark: var(--oz-teal-brand);
+    --color-secondary: var(--oz-primary);
+    --color-secondary-light: var(--oz-primary-light);
+    --color-secondary-dark: var(--oz-primary-dark);
+    --color-grey-dark: var(--oz-grey-dark);
+    --color-grey: var(--oz-grey-mid);
+    --color-grey-light: var(--oz-teal-xlight);
+    --color-bg: var(--oz-bg-panel);
+    --color-surface: var(--oz-white);
+    --color-axis-x: var(--axis-x);
+    --color-axis-y: var(--axis-y);
+    --color-axis-z: var(--axis-z);
+    --color-axis-a: var(--axis-a);
+}
+
+/* ================================================================
+   GLOBAL RESET & BASE
+   ================================================================ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'Inter', system-ui, sans-serif !important;
+    font-family: 'Roboto', sans-serif;
+    color: var(--oz-grey-dark);
+    background: var(--oz-bg-panel);
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
 }
 
-/* ---------------- Viewport & Canvas ---------------- */
-.app-container {
-    background: var(--color-bg) !important;
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
 }
 
-main {
-    background: transparent !important;
-}
-
-/* ---------------- Sidebar ---------------- */
-.machine-sidebar {
-    background: transparent !important;
-    border: none !important;
-    width: 380px !important;
-    padding: 0 0 0 0 !important;
-    /* Spacing from screen edge */
-}
-
-/* The actual scrollable sidebar panel */
-.machine-sidebar>div:not(.md\:hidden) {
-    background: var(--color-surface) !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    box-shadow: var(--ooz-shadow) !important;
-    margin: 0 !important;
-    padding: 4px !important;
-    gap: 12px !important;
-    overflow-y: auto !important;
-}
-
-/* Sidebar Custom Scrollbar */
-.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar {
-    width: 6px;
-}
-
-.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+::-webkit-scrollbar-thumb {
+    background: var(--oz-teal-light);
     border-radius: 10px;
 }
 
-.machine-sidebar>div:not(.md\:hidden)::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+::-webkit-scrollbar-thumb:hover {
+    background: var(--oz-teal-mid);
 }
 
-/* Soften internal sidebar containers */
-.machine-sidebar .bg-secondary-dark,
-.machine-sidebar .dro-panel,
-.machine-sidebar>div:not(.md\:hidden)>div {
-    background: transparent !important;
-    border-radius: 8px !important;
-    border: 1px solid var(--color-grey-light) !important;
-    box-shadow: none !important;
-    margin-bottom: 0 !important;
+/* ================================================================
+   APP SHELL
+   ================================================================ */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background: var(--oz-bg-panel);
+    color: var(--oz-grey-dark);
+    font-family: 'Roboto', sans-serif;
+    position: relative;
 }
 
-/* ---------------- Header ---------------- */
-.app-container>main>div:first-child {
-    background: var(--color-surface) !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    box-shadow: var(--ooz-shadow) !important;
-    margin: 16px 16px 16px 16px !important;
-    height: 64px !important;
-    padding: 0 16px !important;
+@media (min-width: 768px) {
+    .app-container {
+        flex-direction: row;
+    }
 }
 
-.app-container>main>div:first-child button {
-    border-color: transparent !important;
-    background: transparent !important;
-    color: var(--color-grey-dark) !important;
+/* Sidebar overlay (mobile) */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 40;
+    backdrop-filter: blur(4px);
 }
 
-/* Ooznest Header Branding */
-.app-container>main>div:first-child h1,
-.app-container>main>div:first-child img,
-.app-container>main>div:first-child span {
-    color: var(--color-grey-dark) !important;
-    /* Keep it dark grey, not orange */
+@media (max-width: 767px) {
+    .sidebar-overlay {
+        display: block;
+    }
 }
 
-.app-container>main>div:first-child select {
-    background: var(--color-surface) !important;
-    color: var(--color-primary) !important;
-    border: 1px solid var(--color-grey-light) !important;
-    font-weight: bold;
-    border-radius: 6px !important;
-    padding: 4px 8px !important;
+/* ================================================================
+   ELECTRON TITLE BAR
+   ================================================================ */
+#electron-title-bar {
+    background: var(--oz-teal-brand);
+    border-bottom: 1px solid rgba(68, 157, 159, 0.3);
+    z-index: 10000;
 }
 
+#electron-title-bar span {
+    color: var(--oz-teal-mid);
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: 2px;
+    font-size: 9px;
+}
 
-/* ---------------- Tabs ---------------- */
+/* ================================================================
+   NAV / TAB BAR — White header like oz-header
+   ================================================================ */
+/* The very first div inside main is the nav bar */
+.app-container>main>div:first-child,
+.app-container>div:not(.machine-sidebar)>div:first-child {
+    background: var(--oz-white);
+    border-bottom: 2px solid var(--oz-teal-xlight);
+    box-shadow: 0 2px 12px rgba(0, 76, 91, 0.07);
+    display: flex;
+    align-items: center;
+    height: 52px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+#app-logo {
+    filter: none;
+    opacity: 1;
+}
+
+/* Hamburger button */
+#sidebar-toggle {
+    color: var(--oz-teal-brand);
+    background: transparent;
+    border: none;
+    border-radius: var(--oz-r-xs);
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+#sidebar-toggle:hover {
+    color: var(--oz-primary);
+    background: var(--oz-teal-xlight);
+}
+
+/* Scroll arrows on tab bar */
 #tabs-scroll-container {
-    background: transparent !important;
-    gap: 6px !important;
-    padding: 0 10px !important;
-    align-items: center !important;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    background: transparent;
+    overflow-x: auto;
+    flex: 1;
+    scrollbar-width: none;
 }
 
+#tabs-scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* ================================================================
+   TABS
+   ================================================================ */
 .tab-btn {
-    background: transparent !important;
-    border-radius: 8px !important;
-    color: var(--color-grey) !important;
-    box-shadow: none !important;
-    padding: 8px 16px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    border: none !important;
-    transition: all 0.2s !important;
-    height: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: var(--oz-r-xs);
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--oz-grey-mid);
+    font-family: 'Nunito', 'Roboto', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
 }
 
 .tab-btn:hover {
-    color: var(--color-primary) !important;
-    background: rgba(48, 121, 127, 0.05) !important;
-    transform: none !important;
+    color: var(--oz-teal-brand);
+    background: var(--oz-teal-xlight);
+    border-color: var(--oz-teal-xlight);
 }
 
 .tab-btn.active {
-    background: var(--color-primary) !important;
-    color: white !important;
-    box-shadow: 0 4px 12px rgba(48, 121, 127, 0.2) !important;
+    background: var(--oz-primary);
+    color: white;
+    border-color: var(--oz-primary);
+    font-weight: 800;
+    box-shadow: 0 3px 10px rgba(255, 102, 0, 0.28);
 }
 
 .tab-badge {
-    background: var(--color-secondary) !important;
-    color: white !important;
-}
-
-
-/* ---------------- Main Content Workspace ---------------- */
-.app-container>main>.flex-1.relative.overflow-hidden {
-    padding: 0 0 0 0 !important;
-    overflow: visible !important;
-}
-
-.tab-pane {
-    background: var(--color-surface) !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    box-shadow: var(--ooz-shadow) !important;
-    height: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    overflow-y: auto !important;
-}
-
-.tab-pane::-webkit-scrollbar {
-    width: 6px;
-}
-
-.tab-pane::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.tab-pane::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--oz-primary);
+    color: white;
     border-radius: 10px;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
 }
 
-.tab-pane::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+/* ================================================================
+   MACHINE SIDEBAR
+   ================================================================ */
+.machine-sidebar {
+    width: 100%;
+    flex-shrink: 0;
+    background: var(--oz-bg-panel);
+    border-right: 1px solid var(--oz-teal-xlight);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset-block: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 300ms ease-in-out;
+    box-shadow: 4px 0 20px rgba(0, 76, 91, 0.08);
 }
 
-#viewer-view {
-    /* Gradient Background for Viewport per reference */
-    background: linear-gradient(180deg, #ffffff, #f3f5f6) !important;
+.machine-sidebar.open {
+    transform: translateX(0);
 }
 
-
-/* ---------------- Buttons & Details ---------------- */
-button.btn-primary {
-    background: var(--color-primary) !important;
-    color: white !important;
-    border-radius: 6px !important;
-    border: none !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(48, 121, 127, 0.2) !important;
+@media (min-width: 768px) {
+    .machine-sidebar {
+        position: relative;
+        transform: translateX(0);
+        width: 320px;
+    }
 }
 
-button.btn-primary:active,
-button.btn-primary:hover {
-    background: var(--color-primary-dark) !important;
+@media (min-width: 1024px) {
+    .machine-sidebar {
+        width: 370px;
+    }
 }
 
-/* Reset button stylings (outline style) */
+/* Mobile header strip */
+@media (max-width: 767px) {
+    .machine-sidebar>div.md\:hidden {
+        background: var(--oz-teal-brand);
+        color: white;
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+}
+
+@media (min-width: 768px) {
+    .machine-sidebar>div.md\:hidden {
+        display: none !important;
+    }
+}
+
+/* Scrollable section */
+.machine-sidebar>div.flex-1 {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--oz-teal-light) transparent;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SIDEBAR CARD 1 — CONNECTION
+   oz-showcase-sidebar--teal style
+   Full #449D9F background, 96px top-left corner, right callout arrow
+   ──────────────────────────────────────────────────────────────── */
+#sidebar-connect {
+    border-radius: var(--oz-r-xl) 0 0 0;
+    background: var(--oz-teal-xlight);
+    border: none;
+    padding: 12px;
+    box-shadow: var(--oz-shadow-md);
+    position: relative;
+    overflow: visible;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Right-pointing callout arrow */
+#sidebar-connect::after {
+    content: '';
+    position: absolute;
+    right: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+    border-left: 24px solid var(--oz-teal-xlight);
+    z-index: 10;
+}
+
+/* Connect button: white on teal, orange on hover (oz-btn--white) */
+#btn-connect {
+    flex: 1;
+    height: 36px;
+    background: var(--oz-primary);
+    color: white;
+    border: none;
+    border-radius: var(--oz-r-xs);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s;
+}
+
+#btn-connect:hover {
+    background: var(--oz-primary-light);
+    transform: translateY(-1px);
+}
+
+/* Reset button: transparent on teal -> Updated to Solid White for Contrast */
 #btn-reset {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-secondary) !important;
-    color: var(--color-secondary) !important;
-    font-weight: 700 !important;
-    opacity: 1 !important;
+    flex: 1;
+    height: 36px;
+    background: white;
+    color: var(--oz-teal-brand);
+    border: 1px solid var(--oz-teal-xlight);
+    border-radius: var(--oz-r-xs);
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 #btn-reset:hover {
-    background: var(--color-secondary) !important;
-    color: white !important;
+    background: var(--oz-teal-xlight);
+    transform: translateY(-1px);
 }
 
-/* DRO Panel details */
+#btn-reset:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    box-shadow: none;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SIDEBAR CARD 2 — DRO PANEL
+   Orange card, 96px top-left, right callout arrow
+   ──────────────────────────────────────────────────────────────── */
+.dro-panel {
+    background: var(--oz-teal-mid);
+    border-radius: var(--oz-r-xl) 0 0 0;
+    border: none;
+    box-shadow: var(--oz-shadow-md);
+    padding: 10px;
+    position: relative;
+    overflow: visible;
+    margin-bottom: 0;
+}
+
+/* Right-pointing callout arrow */
+.dro-panel::after {
+    content: '';
+    position: absolute;
+    right: -22px;
+    top: 22px;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-left: 22px solid var(--oz-teal-mid);
+    z-index: 10;
+}
+
+/* Units & WCS row (Inside Orange) */
+.dro-panel .cursor-pointer,
+.dro-panel select.text-xs {
+    background: white !important;
+    border: none !important;
+    border-radius: 4px;
+    color: var(--oz-teal-brand) !important;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dro-panel .text-grey,
+.dro-panel .text-xs {
+    color: white !important;
+    opacity: 1;
+}
+
+.dro-panel option {
+    background: white;
+    color: var(--oz-teal-brand);
+}
+
+/* Axis card row */
 .dro-card {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-grey-light) !important;
-    border-radius: 6px !important;
-    border-left: 4px solid !important;
+    display: flex;
+    align-items: stretch;
+    background: transparent !important;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+    margin-bottom: 6px;
+    height: 42px;
 }
 
 .dro-card.border-l-axis-x {
-    border-left-color: var(--color-axis-x) !important;
+    border-left: none;
 }
 
 .dro-card.border-l-axis-y {
-    border-left-color: var(--color-axis-y) !important;
+    border-left: none;
 }
 
 .dro-card.border-l-axis-z {
-    border-left-color: var(--color-axis-z) !important;
+    border-left: none;
 }
 
 .dro-card.border-l-axis-a {
-    border-left-color: var(--color-axis-a) !important;
+    border-left: none;
 }
 
-/* Prevent weird text bleeding on probe blocks by enforcing white text where it should be */
-.tab-pane .bg-primary {
-    background-color: var(--color-primary) !important;
+/* Axis letter box */
+.dro-label-box {
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 8px;
+    gap: 4px;
+    background: transparent !important;
+    border-right: none !important;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
     color: white !important;
 }
 
-.tab-pane .text-primary {
-    color: var(--color-primary) !important;
+/* Number area */
+.dro-readout {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 8px;
+    background: transparent !important;
+    overflow: hidden;
 }
 
-/* Fix text readability for buttons forced to primary color with dark text initially designed for the yellow theme */
-button.\!bg-primary.\!text-secondary-dark,
-button.\!bg-primary.\!text-black {
-    color: #ffffff !important;
+/* Work coordinate (large) */
+.dro-val-lg {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-size: 24px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: white !important;
+    line-height: 1;
+    text-align: right;
+    flex: 1;
+    align-self: center;
 }
 
-button.\!bg-primary.\!text-secondary-dark i,
-button.\!bg-primary.\!text-black i {
-    color: #ffffff !important;
+/* Machine coordinate (small) */
+.dro-val-sm {
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.7) !important;
+    line-height: 1;
+    text-align: right;
+    width: 64px;
+    flex-shrink: 0;
+    align-self: center;
 }
 
-/* Same for secondary (Orange) backgrounds - prevent text from being black/dark on it */
-button.\!bg-secondary.\!text-secondary-dark,
-label.\!bg-secondary.\!text-secondary-dark,
-button.\!bg-secondary.\!text-black,
-label.\!bg-secondary.\!text-black,
-button.\!bg-secondary.\!text-white,
-label.\!bg-secondary.\!text-white {
-    color: #ffffff !important;
+/* Zero button */
+.dro-zero-btn {
+    width: auto;
+    padding: 0 12px;
+    margin: 6px 0;
+    border: none !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--oz-r-xs);
+    transition: all 0.15s;
 }
 
-button.\!bg-secondary.\!text-secondary-dark i,
-label.\!bg-secondary.\!text-secondary-dark i,
-button.\!bg-secondary.\!text-black i,
-label.\!bg-secondary.\!text-black i,
-button.\!bg-secondary.\!text-white i,
-label.\!bg-secondary.\!text-white i {
-    color: #ffffff !important;
+.dro-zero-btn:hover {
+    background: white !important;
+    color: var(--oz-primary) !important;
 }
 
-label.\!bg-primary.\!text-secondary-dark,
-label.\!bg-primary.\!text-black {
-    color: #ffffff !important;
+/* Machine status pill */
+.machine-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: var(--oz-teal-xlight);
+    color: var(--oz-teal-brand);
+    border: 1px solid var(--oz-teal-light);
+    border-radius: 20px;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
-label.\!bg-primary.\!text-secondary-dark i,
-label.\!bg-primary.\!text-black i {
-    color: #ffffff !important;
+/* Sub-controls: IDLE, HOME, SET ZERO, GO XY0 */
+.dro-sub-btn {
+    flex: 1;
+    background: white !important;
+    border: none !important;
+    border-radius: 4px;
+    color: var(--oz-primary) !important;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.2;
+    user-select: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dro-sub-btn:hover {
+    background: #fff8f3 !important;
+    transform: translateY(-1px);
+}
+
+.dro-sub-btn:active {
+    transform: scale(0.96);
+}
+
+/* HOME button override → solid white on matching bg */
+.dro-sub-btn.\!bg-primary,
+.dro-panel .bg-primary {
+    background: white !important;
+    color: var(--oz-teal-brand) !important;
+    border-color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dro-sub-btn.\!bg-primary:hover,
+.dro-panel .bg-primary:hover {
+    background: #FFF7F0 !important;
+    transform: translateY(-1px);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SIDEBAR CARD 3 — JOG PANEL
+   Light teal card, 96px top-left, right callout arrow
+   ──────────────────────────────────────────────────────────────── */
+#jog-panel {
+    background: var(--oz-primary-light);
+    border-radius: 0;
+    border: none;
+    box-shadow: var(--oz-shadow-md);
+    padding: 12px;
+    position: relative;
+    overflow: visible;
+}
+
+/* Right-pointing callout arrow */
+#jog-panel::after {
+    content: '';
+    position: absolute;
+    right: -22px;
+    top: 22px;
+    border-top: 12px solid transparent;
+    border-bottom: 12px solid transparent;
+    border-left: 22px solid var(--oz-primary-light);
+    z-index: 10;
+}
+
+/* Jog wrapper & grid */
+.jog-wrapper {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.jog-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.jog-extra-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* XY direction buttons */
+.jog-btn {
+    width: 48px;
+    height: 48px;
+    background: white;
+    border: none;
+    border-radius: 4px;
+    color: var(--oz-grey-dark);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Outer corner buttons — big organic radius on the outermost corner */
+.jog-btn.rounded-tl-xl {
+    border-radius: 20px 6px 6px 6px;
+}
+
+.jog-btn.rounded-tr-xl {
+    border-radius: 6px 20px 6px 6px;
+}
+
+.jog-btn.rounded-bl-xl {
+    border-radius: 6px 6px 6px 20px;
+}
+
+.jog-btn.rounded-br-xl {
+    border-radius: 6px 6px 20px 6px;
+}
+
+/* Axis-coloured hover states (Full Color Backgrounds without borders) */
+.jog-btn.\!text-axis-y {
+    color: var(--axis-y);
+}
+
+.jog-btn.\!text-axis-x {
+    color: var(--axis-x);
+}
+
+.jog-btn[data-jog="Y+"]:hover,
+.jog-btn[data-jog="Y-"]:hover {
+    background: var(--axis-y);
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    transform: translateY(-1px);
+}
+
+.jog-btn[data-jog="Y+"]:hover>i,
+.jog-btn[data-jog="Y-"]:hover>i {
+    color: white !important;
+}
+
+.jog-btn[data-jog="X+"]:hover,
+.jog-btn[data-jog="X-"]:hover {
+    background: var(--axis-x);
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
+}
+
+.jog-btn[data-jog="X+"]:hover>i,
+.jog-btn[data-jog="X-"]:hover>i {
+    color: white !important;
+}
+
+.jog-btn[data-jog*="X"][data-jog*="Y"]:hover {
+    background: var(--oz-teal-mid);
+    color: white;
+    box-shadow: 0 4px 12px rgba(68, 157, 159, 0.3);
+    transform: translateY(-1px);
+}
+
+.jog-btn:active {
+    transform: scale(0.91);
+    box-shadow: none;
+}
+
+/* Center D-pad button */
+.jog-pad>div {
+    background: var(--oz-teal-xlight);
+    border-radius: 50%;
+    border: 2px solid var(--oz-teal-light);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jog-pad>div i {
+    color: var(--oz-teal-mid);
+    font-size: 18px;
+}
+
+/* Z / A extra buttons */
+.jog-btn-extra {
+    width: 48px;
+    height: 44px;
+    background: white;
+    border: none;
+    border-radius: 4px;
+    color: var(--oz-grey-dark);
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    user-select: none;
+}
+
+.jog-btn-extra.\!text-axis-z {
+    color: var(--axis-z);
+}
+
+.jog-btn-extra.\!text-axis-a {
+    color: var(--axis-a);
+}
+
+.jog-btn-extra.\!text-axis-z:hover {
+    background: var(--axis-z);
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.jog-btn-extra.\!text-axis-z:hover>i {
+    color: white !important;
+}
+
+.jog-btn-extra.\!text-axis-a:hover {
+    background: var(--axis-a);
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    transform: translateY(-1px);
+}
+
+.jog-btn-extra.\!text-axis-a:hover>i {
+    color: white !important;
+}
+
+.jog-btn-extra:active {
+    transform: scale(0.91);
+}
+
+/* Unlock button */
+.btn-secondary {
+    background: var(--oz-teal-mid);
+    color: white;
+    border: 2px solid var(--oz-teal-mid);
+    border-radius: var(--oz-r-xs);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(68, 157, 159, 0.25);
+}
+
+.btn-secondary:hover {
+    background: var(--oz-primary);
+    border-color: var(--oz-primary);
+    box-shadow: 0 3px 10px rgba(255, 102, 0, 0.3);
+}
+
+/* Feed/Distance inputs */
+.input-field,
+#jog-panel input,
+#jog-panel select {
+    background: var(--oz-bg-panel);
+    border: 1.5px solid var(--oz-teal-xlight);
+    border-radius: var(--oz-r-xs);
+    color: var(--oz-grey-dark);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 8px;
+    transition: border-color 0.15s;
+    width: 100%;
+}
+
+.input-field:focus,
+#jog-panel input:focus,
+#jog-panel select:focus {
+    border-color: var(--oz-teal-mid);
+    box-shadow: 0 0 0 3px rgba(68, 157, 159, 0.12);
+    background: white;
+    outline: none;
+}
+
+/* ================================================================
+   TOGGLES (Segmented Pills a.k.a Ooznest Style)
+   ================================================================ */
+.oz-segmented-toggle {
+    position: relative;
+    display: inline-flex;
+    cursor: pointer;
+    user-select: none;
+}
+
+.oz-segmented-toggle input:focus+.oz-segmented-bg {
+    box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.3);
+}
+
+.oz-segmented-bg {
+    background: var(--oz-teal-xlight);
+    border-radius: 20px;
+    padding: 3px;
+    display: flex;
+    position: relative;
+    width: 96px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.oz-segmented-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--oz-shadow-sm);
+    transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.oz-segmented-toggle input:checked+.oz-segmented-bg .oz-segmented-slider {
+    transform: translateX(100%);
+}
+
+.oz-segmented-option {
+    flex: 1;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 800;
+    z-index: 1;
+    padding: 3px 0;
+    color: var(--oz-teal-brand);
+    transition: color 0.2s;
+}
+
+.oz-segmented-toggle input:not(:checked)+.oz-segmented-bg .left-opt {
+    color: var(--oz-primary);
+}
+
+.oz-segmented-toggle input:checked+.oz-segmented-bg .right-opt {
+    color: var(--oz-primary);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SIDEBAR SMALL CARDS — Overrides & Signals
+   ──────────────────────────────────────────────────────────────── */
+
+
+/* Override +/- buttons */
+.btn-ovr {
+    width: 100%;
+    height: 28px;
+    background: var(--oz-bg-panel);
+    border: 1px solid var(--oz-teal-xlight);
+    border-radius: 4px;
+    color: var(--oz-grey-dark);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    text-align: center;
+    user-select: none;
+}
+
+.btn-ovr:hover {
+    background: var(--oz-primary);
+    color: white;
+    border-color: var(--oz-primary);
+}
+
+/* Pin indicator badges */
+[id^="pin-indicator-"] {
+    border-radius: 4px;
+    font-weight: 800;
+    border: 1px solid var(--oz-teal-xlight);
+    color: var(--oz-grey-mid);
+    background: var(--oz-bg-panel);
+    transition: all 0.15s;
+    text-align: center;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   CONSOLE WRAPPER — Always dark, xterm5 critical
+   ──────────────────────────────────────────────────────────────── */
+.console-wrapper {
+    background: var(--oz-teal-light) !important;
+    border-radius: 0 0 0 var(--oz-r-xl);
+    border: none;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05), var(--oz-shadow-md);
+    padding: 12px;
+    position: relative;
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+/* Remove arrow for console */
+.console-wrapper::after {
+    display: none;
+}
+
+#terminal-container {
+    flex: 1;
+    min-height: 0;
+    border-radius: var(--oz-r-xs);
+    overflow: hidden;
+}
+
+/* CRITICAL: All xterm ancestor elements must explicitly match the light theme bg
+   otherwise xterm5 contrast engine shifts colors unexpectedly. */
+#terminal-container,
+#terminal-container .xterm,
+#terminal-container .xterm-viewport,
+#terminal-container .xterm-screen {
+    background-color: var(--oz-teal-light) !important;
+}
+
+/* Console input row */
+#console-input-area {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+#console-input-area input {
+    flex: 1;
+    background: white;
+    border: 1.5px solid var(--oz-teal-light);
+    border-radius: 4px;
+    color: var(--oz-grey-dark);
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+    height: 32px;
+    transition: all 0.2s;
+}
+
+#console-input-area input::placeholder {
+    color: var(--oz-grey-mid);
+}
+
+#console-input-area input:focus {
+    border-color: var(--oz-teal-mid);
+    background: white;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(68, 157, 159, 0.15);
+}
+
+#btnSend {
+    background: var(--oz-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(255, 102, 0, 0.2);
+    padding: 0;
+}
+
+#btnSend:hover {
+    background: var(--oz-primary-light);
+    transform: translateY(-1px);
+}
+
+/* ================================================================
+   BUTTONS — Global
+   ================================================================ */
+.btn {
+    padding: 8px 16px;
+    border-radius: var(--oz-r-xs);
+    font-family: 'Nunito', 'Roboto', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--oz-primary);
+    color: white;
+    box-shadow: 0 3px 10px rgba(255, 102, 0, 0.2);
+}
+
+.btn-primary:hover {
+    background: var(--oz-primary-light);
+    box-shadow: 0 5px 14px rgba(255, 102, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--oz-grey-mid);
+    border-radius: var(--oz-r-xs);
+    padding: 4px;
+}
+
+.btn-ghost:hover {
+    color: var(--oz-primary);
+    background: var(--oz-bg-panel);
+}
+
+.btn-icon {
+    padding: 8px;
+    border-radius: var(--oz-r-xs);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-icon:hover {
+    background: var(--oz-bg-panel);
+}
+
+/* ================================================================
+   VIEWER OVERLAY
+   ================================================================ */
+.viewer-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+}
+
+.viewer-controls-left {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+}
+
+.overlay-btn {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--oz-shadow-md);
+    padding: 8px 14px;
+    border-radius: var(--oz-r-sm);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--oz-grey-dark);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.overlay-btn:hover {
+    color: var(--oz-primary);
+    background: white;
+}
+
+/* ================================================================
+   MAIN CONTENT AREA
+   ================================================================ */
+.tab-pane {
+    background: var(--oz-white);
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#viewer-view {
+    background: linear-gradient(150deg, #F7F9F9 0%, #E4EEEE 100%);
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ================================================================
+   FORMS (content pane)
+   ================================================================ */
+.tab-pane input[type="text"],
+.tab-pane input[type="number"],
+.tab-pane input[type="search"],
+.tab-pane select,
+.tab-pane textarea:not(.xterm-helper-textarea) {
+    border-radius: var(--oz-r-xs);
+    border: 1.5px solid var(--oz-teal-xlight);
+    color: var(--oz-grey-dark);
+    background: var(--oz-bg-panel);
+    font-family: 'Roboto', sans-serif;
+    padding: 6px 10px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tab-pane input:focus,
+.tab-pane select:focus,
+.tab-pane textarea:focus {
+    border-color: var(--oz-teal-mid);
+    box-shadow: 0 0 0 3px rgba(68, 157, 159, 0.12);
+    background: white;
+    outline: none;
+}
+
+/* Progress bar */
+#job-progress-bar {
+    background: var(--oz-primary);
+}
+
+/* xterm accessibility textarea — must stay hidden */
+textarea.xterm-helper-textarea {
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

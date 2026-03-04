@@ -1,0 +1,146 @@
+name: Cross-Platform Builds
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Install Cordova & dependencies
+        run: |
+          npm install -g cordova
+          npm install
+          
+      - name: Build Android
+        run: |
+          npm run cordova-sync
+          cd cordova
+          cordova platform add android
+          cordova build android
+          
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-Android-APK
+          path: cordova/platforms/android/app/build/outputs/apk/debug/*.apk
+
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Cordova & dependencies
+        run: |
+          npm install -g cordova
+          npm install
+          
+      - name: Build iOS Payload
+        run: |
+          npm run cordova-sync
+          cd cordova
+          cordova platform add ios
+          # Build for device target (without signing will produce a .app)
+          cordova build ios --device --buildFlag="-UseModernBuildSystem=0" || true
+          
+          # Package .app into .ipa for sideloading
+          mkdir -p Payload
+          cp -r platforms/ios/build/device/*.app Payload/ 2>/dev/null || cp -r platforms/ios/build/Debug-iphoneos/*.app Payload/
+          zip -r Ooznest-iOS.ipa Payload/
+          
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-iOS-IPA
+          path: cordova/Ooznest-iOS.ipa
+
+  build-windows:
+    name: Build Windows App
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Build Windows Executable
+        run: npm run build-windows
+        
+      - name: Upload Windows Exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-Windows-App
+          path: dist/*.exe
+
+  build-macos:
+    name: Build macOS App
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Build macOS Application
+        run: npm run build-macos
+        
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-macOS-App
+          path: dist/*.dmg
+
+  build-linux:
+    name: Build Linux App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Build Linux AppImage
+        run: npm run build-linux
+        
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-Linux-App
+          path: dist/*.AppImage

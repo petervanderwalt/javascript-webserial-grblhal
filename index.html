@@ -4,23 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSerial CNC Control</title>
-    <!-- Prevent favicon 404 error -->
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-
-    <!-- Fonts: Nunito & Roboto -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500;800&display=swap"
-        rel="stylesheet">
-
-    <!-- Icons & Xterm -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
-
-    <!-- Theme Engine -->
-    <link id="theme-stylesheet" rel="stylesheet" href="themes/solar-yellow.css">
+    <title>Ooznest | Machine Control</title>
+    <!-- Themes -->
+    <link id="theme-stylesheet" rel="stylesheet" href="themes/ooznest.css">
+    <!-- xterm CSS (local vendor copy) -->
+    <link rel="stylesheet" href="vendor/xterm.css">
     <script>
         // Synchronously apply saved theme to prevent FOUC (Flash of Unstyled Content)
         try {
@@ -34,46 +22,46 @@
         } catch (e) { console.error("Theme Init:", e); }
     </script>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (local vendor copy for offline use) -->
+    <script src="vendor/tailwind.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         primary: {
-                            DEFAULT: 'var(--color-primary, #FFD949)',
-                            dark: 'var(--color-primary-dark, #D7B232)',
-                            light: 'var(--color-primary-light, #FFF2AE)'
+                            DEFAULT: 'var(--color-primary, #449D9F)',
+                            dark: 'var(--color-primary-dark, #004C5B)',
+                            light: 'var(--color-primary-light, #6DBCBE)'
                         },
                         secondary: {
-                            DEFAULT: 'var(--color-secondary, #6A6B6A)',
-                            dark: 'var(--color-secondary-dark, #383838)',
-                            light: 'var(--color-secondary-light, #B0B0AF)'
+                            DEFAULT: 'var(--color-secondary, #FF6600)',
+                            dark: 'var(--color-secondary-dark, #E05500)',
+                            light: 'var(--color-secondary-light, #FF8533)'
                         },
                         grey: {
                             dark: 'var(--color-grey-dark, #2F373C)',
-                            DEFAULT: 'var(--color-grey, #6B6B6B)',
-                            light: 'var(--color-grey-light, #CBD5E1)',
-                            bg: 'var(--color-bg, #EDF2F7)'
+                            DEFAULT: 'var(--color-grey, #909090)',
+                            light: 'var(--color-grey-light, #EBEFEF)',
+                            bg: 'var(--color-bg, #F0F4F4)'
                         },
                         surface: 'var(--color-surface, #FFFFFF)',
                         // CNC Standard Axis Colors
                         axis: {
-                            x: 'var(--color-axis-x, #EF4444)',
-                            y: 'var(--color-axis-y, #22C55E)',
-                            z: 'var(--color-axis-z, #3B82F6)',
-                            a: 'var(--color-axis-a, #F59E0B)'
+                            x: 'var(--color-axis-x, #e11d48)',
+                            y: 'var(--color-axis-y, #16a34a)',
+                            z: 'var(--color-axis-z, #2563eb)',
+                            a: 'var(--color-axis-a, #ea580c)'
                         }
                     },
                     fontFamily: {
-                        heading: ['Nunito', 'sans-serif'],
-                        body: ['Roboto', 'sans-serif'],
+                        heading: ['Roboto', 'Inter', 'sans-serif'],
+                        body: ['Roboto', 'Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace']
                     },
                     boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.1)',
-                        'card': '0 2px 4px rgba(0,0,0,0.05)'
+                        'soft': '0 4px 20px rgba(0, 76, 91, 0.08)',
+                        'card': '0 2px 12px rgba(0, 76, 91, 0.06)'
                     }
                 }
             }
@@ -81,103 +69,86 @@
     </script>
 
     <style type="text/tailwindcss">
-        @layer components {
-            /* Layout - Mobile Responsive */
-            .app-container { @apply flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-grey-bg text-grey-dark font-body relative; }
-
-            /* Unified Machine Sidebar (Left) */
-            .machine-sidebar {
-                @apply w-full md:w-80 lg:w-96 flex-shrink-0 bg-white border-r border-grey-light flex flex-col shadow-soft;
-                @apply fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out;
-                @apply -translate-x-full md:translate-x-0;
-            }
-            .machine-sidebar.open { @apply translate-x-0; }
-
-            /* Sidebar Overlay */
-            .sidebar-overlay {
-                @apply md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm transition-opacity duration-300;
-            }
-
-            /* Buttons */
-            .btn { @apply px-4 py-2 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed select-none; }
-            .btn-primary { @apply bg-primary text-black hover:bg-primary-dark shadow-sm; }
-            .btn-secondary { @apply bg-white border-2 border-grey-light text-grey-dark hover:border-secondary hover:text-secondary; }
-            .btn-danger { @apply bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white; }
-            .btn-ghost { @apply text-grey hover:text-primary hover:bg-grey-bg rounded p-1; }
-            .btn-icon { @apply p-2 rounded-md hover:bg-grey-bg transition-colors; }
-
-            /* Overrides Button */
-            .btn-ovr { @apply h-9 md:h-7 w-full bg-grey-light hover:bg-secondary hover:text-white rounded text-[12px] font-bold text-grey-dark transition-colors border border-grey-light touch-manipulation; }
-
-            /* Inputs */
-            .input-field { @apply w-full rounded-md border-2 border-grey-light bg-grey-bg px-3 py-2 text-sm font-bold text-grey-dark focus:border-secondary focus:bg-white outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
-
-            /* New DRO Cards (Compacted) - Mobile Responsive */
-            .dro-panel { @apply bg-grey-bg rounded-xl p-1.5 md:p-2 shadow-inner mb-2 border border-grey-light; }
-
-            /* The Axis Card Container */
-            .dro-card { @apply flex items-stretch bg-white rounded-md shadow-sm border border-grey-light mb-1 overflow-hidden transition-colors h-9 md:h-8; }
-
-            /* The Axis Letter Box - Compacted */
-            .dro-label-box { @apply w-12 md:w-12 flex items-center justify-start gap-1 pl-2 font-heading font-black text-lg md:text-lg text-black; }
-
-            /* The Number Area - Compacted */
-            .dro-readout { @apply flex-1 flex items-baseline justify-between gap-1 md:gap-2 px-1 md:px-2 py-1 bg-white overflow-hidden; }
-
-            /* Work Position (Big) */
-            .dro-val-lg { @apply font-mono text-[20px] md:text-[24px] font-black tracking-tight text-grey-dark leading-none text-right flex-1 tabular-nums mb-0 self-center; }
-
-            /* Machine Position (Small) */
-            .dro-val-sm { @apply font-mono text-[11px] md:text-[16px] font-bold text-grey opacity-80 tracking-wider leading-none text-right w-16 md:w-28 flex-shrink-0 tabular-nums self-center; }
-
-            /* The Zero Button inside the card */
-            .dro-zero-btn { @apply w-10 md:w-10 border-l border-grey-light bg-grey-bg hover:bg-primary hover:text-black hover:border-primary text-[9px] md:text-[9px] font-bold text-grey uppercase transition-colors flex items-center justify-center active:bg-primary; }
-
-            /* Sub-Controls (G28/G30) */
-            .dro-sub-btn {
-                @apply flex-1 bg-white border border-grey-light hover:border-secondary rounded text-xs font-bold text-grey-dark py-2 md:py-1 shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1 touch-manipulation;
-            }
-            /* Jog Styles - Touch Friendly */
-            .jog-wrapper { @apply flex gap-3 justify-center; }
-            .jog-pad { @apply grid grid-cols-3 gap-1.5; }
-            .jog-btn { @apply w-12 h-12 md:w-12 md:h-12 bg-white border-2 border-grey-light rounded-xl text-xl text-grey-dark hover:border-primary hover:text-primary hover:bg-primary-light active:bg-primary active:text-black transition-all shadow-sm flex items-center justify-center touch-manipulation; }
-            .jog-extra-col { @apply flex flex-col gap-1.5; }
-            .jog-btn-extra { @apply w-12 md:w-12 h-[44px] md:h-[42px] bg-white border-2 border-grey-light rounded-xl text-sm font-bold text-grey-dark hover:border-secondary hover:text-secondary hover:bg-secondary-light active:bg-secondary active:text-white transition-all shadow-sm flex items-center justify-center touch-manipulation; }
-
-            /* Console */
-            .console-wrapper { @apply bg-white rounded-lg overflow-hidden p-1 md:p-2 shadow-inner border border-grey-light relative h-32 md:h-40; }
-
-            /* Tabs */
-            .tab-btn { @apply py-3 md:py-3 px-3 md:px-4 text-xs md:text-sm font-bold text-grey-light transition-all flex items-center hover:text-white whitespace-nowrap min-w-fit touch-manipulation; }
-            .tab-btn.active { @apply bg-grey-bg text-secondary-dark; }
-
-            /* Viewer Overlay */
-            .viewer-controls { @apply absolute top-2 md:top-4 right-2 md:right-4 flex flex-col gap-2 z-20; }
-            .viewer-controls-left { @apply absolute top-2 md:top-4 left-2 md:left-4 flex flex-col gap-2 z-20; }
-            .overlay-btn { @apply bg-white/90 backdrop-blur shadow-md px-3 py-2 rounded-lg text-xs font-bold text-grey-dark hover:text-primary hover:bg-white transition-all flex items-center gap-2 touch-manipulation; }
-
-            /* Hide Scrollbar */
+        /* Tailwind utility layer only — component styling is in themes/ooznest.css */
+        @layer utilities {
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         }
 
         .xterm-viewport { overflow-y: auto !important; }
         
+        /* Hide xterm internal accessibility textarea - Tailwind preflight was making it visible */
+        textarea.xterm-helper-textarea {
+            opacity: 0 !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            position: absolute !important;
+            padding: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            top: 0 !important;
+            left: -9999px !important;
+            z-index: -1 !important;
+            pointer-events: none !important;
+        }
+
+
+
         /* Improve xterm selection visibility */
         .xterm .xterm-selection div {
             background-color: rgba(255, 255, 0, 0.5) !important; /* Bright yellow highlight */
         }
+
+        /* Custom OS Window Drag Area and Controls */
+        .window-drag-region {
+            -webkit-app-region: drag !important;
+            user-select: none !important;
+        }
+        .window-no-drag {
+            -webkit-app-region: no-drag !important;
+        }
+        
+        #electron-title-bar {
+            z-index: 10000;
+        }
+
+        /* Ensure smooth rendering for the viewer */
+        #viewer-view canvas {
+            outline: none;
+        }
     </style>
 
 
+    <!-- Three.js importmap - local vendor copies for offline use -->
     <script type="importmap">
-        { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/" } }
+        { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/jsm/" } }
     </script>
 </head>
 
-<body>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-white">
+    <!-- Custom Electron Title Bar -->
+    <div id="electron-title-bar"
+        class="hidden h-10 bg-[#1e293b] text-white flex items-center justify-between px-4 border-b border-white/5 window-drag-region shrink-0">
+        <div class="flex items-center gap-3">
+            <img src="themes/ooznest-logo.png" class="h-5 opacity-90" alt="Ooznest">
+            <div class="h-4 w-px bg-white/20 mx-1"></div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-[#529A9F]">Machine Control</span>
+        </div>
+        <div class="flex items-center window-no-drag">
+            <button class="w-11 h-10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                title="Minimize" onclick="window.electron.minimize()"><i class="bi bi-dash-lg"></i></button>
+            <button class="w-11 h-10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                title="Maximize/Restore" onclick="window.electron.maximize()"><i class="bi bi-app"></i></button>
+            <button
+                class="w-11 h-10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                title="Close" onclick="window.electron.close()"><i class="bi bi-x-lg"></i></button>
+        </div>
+    </div>
 
-    <div class="app-container">
+    <!-- Main App Container -->
+    <div class="app-container flex-1">
 
         <!-- Machine Sidebar (Unified) -->
         <aside class="machine-sidebar" id="machine-sidebar">
@@ -189,17 +160,14 @@
             </div>
 
             <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+            <div class="flex-1 overflow-y-auto p-1.5 flex flex-col gap-1.5 sidebar-inner-scroll">
 
                 <!-- Handshake & Connection -->
-                <div class="bg-secondary-dark p-2 rounded-xl border border-grey-dark shadow-md flex gap-2">
-                    <button id="btn-reset"
-                        class="btn flex-1 h-9 text-xs shadow-none border border-white/10 opacity-50 pointer-events-none transition-opacity px-2 py-0 bg-white/10 text-white hover:bg-white/20"
-                        onclick="sendRealtime('\x18')" title="Soft Reset"><i
-                            class="bi bi-exclamation-octagon-fill"></i>Reset
+                <div id="sidebar-connect">
+                    <button id="btn-reset" class="btn" onclick="sendRealtime('\x18')" title="Soft Reset" disabled>
+                        <i class="bi bi-exclamation-octagon-fill"></i>Reset
                     </button>
-                    <button id="btn-connect"
-                        class="btn btn-primary flex-1 h-9 text-xs shadow-none border border-white/10 px-2 py-0">Connect</button>
+                    <button id="btn-connect" class="btn btn-primary">Connect</button>
                 </div>
 
                 <!-- DRO Panel -->
@@ -207,23 +175,21 @@
                     <!-- Header: WCS & Units -->
                     <div class="flex justify-between items-center mb-1.5 px-1">
 
-                        <!-- Units Toggle -->
-                        <label
-                            class="inline-flex items-center cursor-pointer bg-white border border-grey-light rounded px-2 py-1 shadow-sm gap-2">
-                            <!-- UPDATED: text-[10px] -> text-xs -->
-                            <span class="text-xs font-black text-grey uppercase" id="unitLabel">MM</span>
-                            <input type="checkbox" id="unitToggle" class="sr-only peer" checked
-                                onchange="window.dro.toggleUnits()">
-                            <div
-                                class="relative w-6 h-3 bg-grey-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-grey-light after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-secondary">
+                        <!-- Units Toggle (Segmented) -->
+                        <div class="oz-segmented-toggle" onclick="document.getElementById('unitToggle').click()">
+                            <input type="checkbox" id="unitToggle" class="sr-only" checked
+                                onchange="window.dro.toggleUnits(); setTimeout(() => { document.querySelector('.oz-segmented-toggle .left-opt').innerText = window.dro.getUnits(); }, 50);">
+                            <div class="oz-segmented-bg">
+                                <div class="oz-segmented-slider"></div>
+                                <span class="oz-segmented-option left-opt">MM</span>
+                                <span class="oz-segmented-option right-opt">IN</span>
                             </div>
-                        </label>
+                        </div>
 
-                        <!-- WCS Select -->
+                        <!-- WCS Select (Now uses transparent backgrounds on Orange) -->
                         <div
-                            class="flex items-center gap-2 bg-white border border-grey-light rounded px-2 py-1 shadow-sm">
-                            <!-- UPDATED: text-[10px] -> text-xs -->
-                            <span class="text-xs font-black text-grey uppercase">WCS</span>
+                            class="flex items-center gap-2 bg-white/10 border border-white/20 rounded px-2 py-1 shadow-sm">
+                            <span class="text-xs font-black text-white/90 uppercase">WCS</span>
                             <select
                                 class="text-xs font-bold text-secondary-dark bg-transparent outline-none cursor-pointer py-0.5"
                                 onchange="window.dro.setWCS(this.value)" aria-label="Work Coordinate System">
@@ -318,15 +284,14 @@
                     <!-- Footer Actions -->
                     <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-grey-light">
                         <div class="col-span-1 flex flex-col gap-1 items-center justify-center">
-                            <span id="machine-state"
-                                class="machine-status-pill w-full text-center text-xs font-bold bg-grey-light rounded py-1">Unknown</span>
+                            <span id="machine-state" class="machine-status-pill w-full text-center">Unknown</span>
                             <!-- Icons Moved Here -->
                             <div class="flex justify-center gap-3">
-                                <i id="acc-spindle" class="bi bi-fan text-grey-light text-xs transition-colors"
+                                <i id="acc-spindle" class="bi bi-fan text-[#B0CACF] text-xs transition-colors"
                                     title="Spindle"></i>
-                                <i id="acc-flood" class="bi bi-droplet-fill text-grey-light text-xs transition-colors"
+                                <i id="acc-flood" class="bi bi-droplet-fill text-[#B0CACF] text-xs transition-colors"
                                     title="Flood Coolant"></i>
-                                <i id="acc-mist" class="bi bi-cloud-haze-fill text-grey-light text-xs transition-colors"
+                                <i id="acc-mist" class="bi bi-cloud-haze-fill text-[#B0CACF] text-xs transition-colors"
                                     title="Mist Coolant"></i>
                             </div>
                         </div>
@@ -342,7 +307,7 @@
                 </div>
 
                 <!-- Jog Controls (Compact) -->
-                <div class="bg-white p-3 rounded-xl border border-grey-light shadow-card">
+                <div id="jog-panel">
 
                     <div class="jog-wrapper">
                         <!-- XY Pad -->
@@ -351,36 +316,32 @@
                             <button class="jog-btn rounded-tl-xl" data-jog="X-Y+" aria-label="Jog X minus Y plus"><i
                                     class="bi bi-arrow-up-left"></i></button>
 
-                            <!-- Y+ (Green, Top Border) -->
-                            <button class="jog-btn !text-axis-y border-t-4 !border-t-axis-y hover:bg-green-50"
-                                data-jog="Y+" aria-label="Jog Y plus"><i
+                            <!-- Y+ -->
+                            <button class="jog-btn" data-jog="Y+" aria-label="Jog Y plus"><i
                                     class="bi bi-caret-up-fill text-2xl"></i></button>
 
                             <button class="jog-btn rounded-tr-xl" data-jog="X+Y+" aria-label="Jog X plus Y plus"><i
                                     class="bi bi-arrow-up-right"></i></button>
 
                             <!-- Row 2 -->
-                            <!-- X- (Red, Left Border) -->
-                            <button class="jog-btn !text-axis-x border-l-4 !border-l-axis-x hover:bg-red-50"
-                                data-jog="X-" aria-label="Jog X minus"><i
+                            <!-- X- -->
+                            <button class="jog-btn" data-jog="X-" aria-label="Jog X minus"><i
                                     class="bi bi-caret-left-fill text-2xl"></i></button>
 
                             <div class="w-12 h-12 flex items-center justify-center">
-                                <i class="bi bi-dpad-fill text-2xl text-grey-light"></i>
+                                <i class="bi bi-dpad-fill text-2xl text-white opacity-80"></i>
                             </div>
 
-                            <!-- X+ (Red, Right Border) -->
-                            <button class="jog-btn !text-axis-x border-r-4 !border-r-axis-x hover:bg-red-50"
-                                data-jog="X+" aria-label="Jog X plus"><i
+                            <!-- X+ -->
+                            <button class="jog-btn" data-jog="X+" aria-label="Jog X plus"><i
                                     class="bi bi-caret-right-fill text-2xl"></i></button>
 
                             <!-- Row 3 -->
                             <button class="jog-btn rounded-bl-xl" data-jog="X-Y-" aria-label="Jog X minus Y minus"><i
                                     class="bi bi-arrow-down-left"></i></button>
 
-                            <!-- Y- (Green, Bottom Border) -->
-                            <button class="jog-btn !text-axis-y border-b-4 !border-b-axis-y hover:bg-green-50"
-                                data-jog="Y-" aria-label="Jog Y minus"><i
+                            <!-- Y- -->
+                            <button class="jog-btn" data-jog="Y-" aria-label="Jog Y minus"><i
                                     class="bi bi-caret-down-fill text-2xl"></i></button>
 
                             <button class="jog-btn rounded-br-xl" data-jog="X+Y-" aria-label="Jog X plus Y minus"><i
@@ -398,33 +359,30 @@
                             <div class="flex gap-1.5 justify-center">
                                 <!-- Z Pad (Blue) -->
                                 <div class="jog-extra-col">
-                                    <button
-                                        class="jog-btn-extra rounded-t-xl !text-axis-z border-t-4 !border-t-axis-z hover:bg-blue-50"
-                                        data-jog="Z+" aria-label="Jog Z plus">Z+</button>
-                                    <button
-                                        class="jog-btn-extra rounded-b-xl !text-axis-z border-b-4 !border-b-axis-z hover:bg-blue-50"
-                                        data-jog="Z-" aria-label="Jog Z minus">Z-</button>
+                                    <button class="jog-btn-extra rounded-t-xl" data-jog="Z+"
+                                        aria-label="Jog Z plus">Z+</button>
+                                    <button class="jog-btn-extra rounded-b-xl" data-jog="Z-"
+                                        aria-label="Jog Z minus">Z-</button>
                                 </div>
                                 <!-- A Pad (Orange) -->
                                 <div class="jog-extra-col">
-                                    <button
-                                        class="jog-btn-extra rounded-t-xl !text-axis-a border-t-4 !border-t-axis-a hover:bg-orange-50"
-                                        data-jog="A+" aria-label="Jog A plus">A+</button>
-                                    <button
-                                        class="jog-btn-extra rounded-b-xl !text-axis-a border-b-4 !border-b-axis-a hover:bg-orange-50"
-                                        data-jog="A-" aria-label="Jog A minus">A-</button>
+                                    <button class="jog-btn-extra rounded-t-xl" data-jog="A+"
+                                        aria-label="Jog A plus">A+</button>
+                                    <button class="jog-btn-extra rounded-b-xl" data-jog="A-"
+                                        aria-label="Jog A minus">A-</button>
                                 </div>
                             </div>
 
-                            <!-- Continuous Toggle -->
-                            <label class="inline-flex justify-center cursor-pointer gap-2 mt-1 items-center">
-                                <span class="text-[12px] font-bold text-grey uppercase">Incr</span>
-                                <input type="checkbox" id="jogContinuous" class="sr-only peer">
-                                <div
-                                    class="relative w-8 h-4 bg-grey-light border border-grey-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:start-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-secondary">
+                            <!-- Continuous Toggle (Segmented) -->
+                            <div class="oz-segmented-toggle mt-1"
+                                onclick="document.getElementById('jogContinuous').click()">
+                                <input type="checkbox" id="jogContinuous" class="sr-only">
+                                <div class="oz-segmented-bg">
+                                    <div class="oz-segmented-slider"></div>
+                                    <span class="oz-segmented-option left-opt">INCR</span>
+                                    <span class="oz-segmented-option right-opt">CONT</span>
                                 </div>
-                                <span class="text-[12px] font-bold text-grey uppercase">Cont</span>
-                            </label>
+                            </div>
                         </div>
                     </div>
 
@@ -446,7 +404,9 @@
                 <!-- Overrides & Signals (Merged from Left) -->
                 <div class="grid grid-cols-2 gap-2">
                     <!-- Overrides -->
-                    <div class="flex flex-col gap-1.5 bg-white p-2 rounded-xl border border-grey-light shadow-card">
+                    <!-- Overrides -->
+                    <div class="flex flex-col gap-1.5 bg-white p-2 border border-grey-light shadow-card"
+                        style="border-radius: 0;">
                         <div class="flex items-center justify-between">
                             <span class="text-[9px] font-bold text-grey uppercase">Overrides</span>
                         </div>
@@ -497,7 +457,7 @@
                     </div>
 
                     <!-- Signals -->
-                    <div class="bg-white p-2 rounded-xl border border-grey-light shadow-card">
+                    <div class="bg-white p-2 border border-grey-light shadow-card" style="border-radius: 0;">
                         <span class="text-[9px] font-bold text-grey uppercase block mb-1">Input Signals</span>
                         <div class="grid grid-cols-5 gap-0.5 max-h-24 overflow-y-auto">
                             <!-- Limit Switches -->
@@ -576,17 +536,15 @@
             </div> <!-- End Machine Controls (id="machine-controls") -->
 
             <!-- Console (Light Mode) -->
-            <div class="flex flex-col mb-10 md:mb-0">
+            <div class="flex flex-col mb-10 md:mb-0 px-3 pb-3">
                 <div class="console-wrapper">
-                    <div id="terminal-container" class="w-full h-full"></div>
-                </div>
-                <!-- Console Input -->
-                <div id="console-input-area"
-                    class="flex gap-1 mt-1 opacity-50 pointer-events-none transition-opacity duration-200">
-                    <input type="text" id="cmdInput" class="input-field font-mono h-8 text-xs flex-1"
-                        placeholder="G-Code...">
-                    <button id="btnSend" class="btn btn-secondary px-2 h-8"><i
-                            class="bi bi-send-fill text-[10px]"></i></button>
+                    <div id="terminal-container" class="w-full flex-1"></div>
+                    <!-- Console Input -->
+                    <div id="console-input-area"
+                        class="flex gap-2 mt-2 opacity-50 pointer-events-none transition-opacity duration-200">
+                        <input type="text" id="cmdInput" class="font-mono flex-1 text-xs" placeholder="G-Code...">
+                        <button id="btnSend"><i class="bi bi-send-fill text-[12px]"></i></button>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -604,7 +562,7 @@
                 <div class="flex items-center h-full overflow-hidden shrink-0">
                     <!-- Unified Machine Sidebar Toggle -->
                     <button
-                        class="h-full px-4 text-primary hover:text-white border-r border-grey-dark flex items-center justify-center transition-colors bg-secondary-dark"
+                        class="h-full px-4 text-primary hover:text-secondary border-r border-grey-light flex items-center justify-center transition-colors bg-white"
                         onclick="toggleMachineSidebar()" aria-label="Toggle machine controls">
                         <i class="bi bi-list text-xl"></i>
                     </button>
@@ -651,15 +609,6 @@
                     <i class="bi bi-chevron-right text-xs"></i>
                 </button>
 
-                <!-- Theme Selector -->
-                <div class="h-full flex items-center px-4 bg-transparent shrink-0">
-                    <select id="theme-selector"
-                        class="bg-secondary text-white text-xs px-2 py-1 rounded border border-white/10 outline-none cursor-pointer"
-                        onchange="window.changeTheme(this.value)">
-                        <option value="solar-yellow">Solar Yellow</option>
-                        <option value="ooznest">Ooznest</option>
-                    </select>
-                </div>
             </div>
 
             <!-- Content -->
@@ -677,7 +626,7 @@
                         <div class="bg-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
                             <div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin">
                             </div>
-                            <span class="font-bold text-grey-dark">Parsing G-Code...</span>
+                            <p id="loading-status-text" class="font-bold text-grey-dark">Parsing G-Code...</p>
                         </div>
                     </div>
 
@@ -700,10 +649,9 @@
                         </div>
                     </div>
 
-                    <!-- Top-Left Controls: Open File -->
                     <div class="viewer-controls-left">
                         <label
-                            class="overlay-btn cursor-pointer !bg-primary !text-secondary-dark hover:!bg-primary-dark shadow-lg">
+                            class="overlay-btn cursor-pointer !bg-primary !text-white hover:!bg-primary-dark shadow-lg">
                             <i class="bi bi-folder2-open text-lg"></i> Open File
                             <input type="file" id="gcode-file-input" hidden accept=".gcode,.nc,.gc,.ngc">
                         </label>
@@ -713,7 +661,7 @@
                     <div class="viewer-controls">
                         <!-- Run Job (Disabled when offline) -->
                         <button id="run-job-btn"
-                            class="overlay-btn !bg-primary !text-secondary-dark hover:!bg-primary-dark shadow-lg opacity-50 pointer-events-none transition-opacity duration-200"
+                            class="overlay-btn !bg-primary !text-white hover:!bg-primary-dark shadow-lg opacity-50 pointer-events-none transition-opacity duration-200"
                             onclick="runCurrentJob()">
                             <i class="bi bi-play-fill text-lg"></i> Run Job
                         </button>
@@ -1650,6 +1598,102 @@
         </main>
     </div>
 
+    <!-- Connection Modal -->
+    <div id="connection-modal"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-grey-light">
+            <div class="bg-secondary-dark p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg"><i class="bi bi-plug-fill text-primary mr-2"></i>Connect to Machine</h3>
+                <button onclick="toggleConnectionModal()" class="text-white hover:text-primary transition-colors"><i
+                        class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-4">
+                <!-- Connection Type Tabs -->
+                <div class="flex bg-grey-bg p-1 rounded-xl gap-1">
+                    <button onclick="setConnectionType('webserial')" id="tab-webserial"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white shadow-sm text-secondary-dark">Web
+                        Serial</button>
+                    <button onclick="setConnectionType('usb')" id="tab-usb"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-grey hover:text-secondary-dark">Native
+                        USB</button>
+                    <button onclick="setConnectionType('telnet')" id="tab-telnet"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-grey hover:text-secondary-dark">Telnet</button>
+                    <button onclick="setConnectionType('websocket')" id="tab-websocket"
+                        class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-grey hover:text-secondary-dark">WebSock</button>
+                </div>
+
+                <!-- WebSerial Config -->
+                <div id="config-webserial" class="flex flex-col gap-3">
+                    <p class="text-xs text-grey">Browser-native direct serial connection (Recommended for web use).</p>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">Baud</span>
+                        <select id="baud-webserial" class="input-field pl-16 h-10 py-0">
+                            <option value="115200" selected>115200</option>
+                            <option value="250000">250000</option>
+                            <option value="500000">500000</option>
+                            <option value="230400">230400</option>
+                            <option value="57600">57600</option>
+                            <option value="19200">19200</option>
+                            <option value="9600">9600</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- USB (Node / Cordova) Config -->
+                <div id="config-usb" class="hidden flex flex-col gap-3">
+                    <p class="text-xs text-grey">Connect via Native USB OTG (Mobile) or Node.js Backend (Desktop).</p>
+                    <div id="usb-port-container" class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">Port</span>
+                        <div class="flex gap-2">
+                            <select id="port-node" class="input-field pl-12 h-10 py-0 flex-1"></select>
+                            <button onclick="refreshNodePorts()" class="btn btn-secondary h-10 w-10"><i
+                                    class="bi bi-arrow-clockwise"></i></button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">Baud</span>
+                        <select id="baud-node" class="input-field pl-16 h-10 py-0">
+                            <option value="115200" selected>115200</option>
+                            <option value="250000">250000</option>
+                            <option value="500000">500000</option>
+                            <option value="230400">230400</option>
+                            <option value="57600">57600</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Telnet Config -->
+                <div id="config-telnet" class="hidden flex flex-col gap-3">
+                    <p class="text-xs text-grey">Connect to grblHAL over Ethernet or WiFi (Electron only).</p>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">IP</span>
+                        <input type="text" id="ip-telnet" class="input-field pl-8 h-10" placeholder="192.168.1.10">
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">Port</span>
+                        <input type="number" id="port-telnet" class="input-field pl-12 h-10" value="23">
+                    </div>
+                </div>
+
+                <!-- WebSocket Config -->
+                <div id="config-websocket" class="hidden flex flex-col gap-3">
+                    <p class="text-xs text-grey">Connect to grblHAL WebSocket (Plugin_networking).</p>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2 text-[10px] font-bold text-grey uppercase">URL</span>
+                        <input type="text" id="url-websocket" class="input-field pl-10 h-10"
+                            placeholder="ws://192.168.1.10:81/ws">
+                    </div>
+                </div>
+
+                <div class="mt-4 flex gap-2">
+                    <button id="btn-modal-connect" class="btn btn-primary flex-1 h-12 font-bold text-base"
+                        onclick="handleConnectClick()">Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Macro Modal -->
     <div id="macro-modal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -1770,9 +1814,9 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <!-- xterm.js - local vendor copy for offline use -->
+    <script src="vendor/xterm.js"></script>
+    <script src="vendor/xterm-addon-fit.js"></script>
 
     <script>
         function switchTab(targetId, btn) {
@@ -1864,13 +1908,15 @@
         import './ui.js';
         import './job-control.js';
         import './jogging.js';
-        import './console.js';
+        import './console.js?v=2';
         import './editor-integration.js';
         import './camera-controls.js';
         import './line-processor.js';
+        import { ConnectionManager } from './connection-manager.js';
 
         // Globals
-        const ws = new WebSerial();
+        const webSerial = new WebSerial();
+        const ws = new ConnectionManager(webSerial);
         const store = new AppStore();
         window.ws = ws;
         window.store = store;
@@ -1917,8 +1963,6 @@
             const savedTheme = window.store ? window.store.get('uiTheme') : null;
             if (savedTheme) {
                 window.changeTheme(savedTheme);
-                const themeSelector = document.getElementById('theme-selector');
-                if (themeSelector) themeSelector.value = savedTheme;
             }
 
             // Sync Grid Toggle Button Text on Init
@@ -1943,6 +1987,34 @@
             window.grblSettings = grblSettings;
             grblSettings.init('grbl-settings-container');
 
+            // Store and handle G-Code content
+            window.loadGCode = function (content, filename, remoteSync = false) {
+                if (!content) {
+                    reporter.showAlert('Empty File', 'The selected file is empty.');
+                    return;
+                }
+                window.currentGCodeContent = content;
+                window.currentSDFile = null; // Clear SD context
+                window.uiManager.updateRunButtonsState();
+                viewer.processGCodeString(content);
+                if (editor) {
+                    editor.setValue(content);
+                    const lineCount = editor.getValue().split('\n').length;
+                    document.getElementById('editor-line-count').innerText = lineCount;
+                    document.getElementById('editor-file-name').innerText = filename || "unnamed.gcode";
+                }
+
+                // Notify backend if loaded locally (not from sync)
+                if (!remoteSync && ws.backendWs) {
+                    ws.backendWs.send(JSON.stringify({
+                        type: 'loadGCode',
+                        content: content,
+                        filename: filename || 'unnamed.gcode'
+                    }));
+                }
+
+                switchTab('viewer-view');
+            }
             const sdHandler = new SDCardHandler(ws, window.term, viewer, {
                 onDownloadComplete: (content, filename, fullPath) => {
                     window.currentGCodeContent = content;
@@ -2011,27 +2083,20 @@
             }
         });
 
-        ws.on('connect', () => window.uiManager.updateConnectionState(true, ws, window.sdHandler));
-        ws.on('disconnect', () => window.uiManager.updateConnectionState(false, ws, window.sdHandler));
-        ws.on('line', (line) => {
+        window.ws.on('connect', () => window.uiManager.updateConnectionState(true, window.ws, window.sdHandler));
+        window.ws.on('disconnect', () => window.uiManager.updateConnectionState(false, window.ws, window.sdHandler));
+        window.ws.on('line', (line) => {
             window.lineProcessor.processLine(line);
-            window.toolsHandler.handleLine(line);
+            if (window.toolsHandler) window.toolsHandler.handleLine(line);
         });
-        ws.on('sent', (line) => {
+        window.ws.on('sent', (line) => {
             if (window.sdHandler?.isDownloading) return;
             if (window.jobController.gcodeStreamer.active) return;
             if (line === '?' || line === '$G') return;
             window.term.writeln(`\x1b[2m> ${line}\x1b[0m`);
         });
 
-        const connectBtn = document.getElementById('btn-connect');
-        connectBtn.addEventListener('click', () => {
-            if (ws.isConnected) {
-                ws.disconnect();
-            } else {
-                ws.connect(115200).catch(e => { });
-            }
-        });
+        // connectBtn listener is now handled in ConnectionManager constructor
 
         // Note: btnSend click and cmdInput keydown are registered in console.js via setupInputListeners()
         // Note: gcode-file-input and sd-upload-input are registered in editor-integration.js via setupFileInputListeners()
@@ -2246,6 +2311,20 @@
             window.reporter.showToast(`Set Work Zero (G${53 + activeP}) to X${mX} Y${mY}`);
         };
 
+    </script>
+
+    <!--
+        cordova.js is auto-generated by the Cordova build into platforms/android/.../www/
+        It does NOT exist in the plain browser version, so we load it dynamically
+        and silently ignore the 404. Without this, window.cordova is always undefined.
+    -->
+    <script>
+        (function () {
+            var s = document.createElement('script');
+            s.src = 'cordova.js';
+            s.onerror = function () { /* not running in Cordova - silent fail */ };
+            document.body.appendChild(s);
+        })();
     </script>
 </body>
 

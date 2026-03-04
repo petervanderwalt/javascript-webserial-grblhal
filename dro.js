@@ -140,8 +140,8 @@ export class DROHandler {
 
         this.spindleSpeed = 0;
         this.feedRate = 0;
-        // this.accessoryState = ""; // PERSIST STATE (Change-based reporting)
-        // this.inputPins = "";      // PERSIST STATE
+        // this.accessoryState = ""; // Persist last known state to prevent flickering
+        // this.inputPins = "";      // Same for pins
 
         let rawWPos = null;
         let rawMPos = null;
@@ -337,14 +337,14 @@ export class DROHandler {
         const sEl = document.getElementById('acc-spindle');
         if (sEl) {
             if (this.accessoryState.includes('S')) {
-                sEl.classList.add('text-green-500', 'animate-spin-slow'); // CW
-                sEl.classList.remove('text-grey-light');
+                sEl.classList.add('text-secondary', 'animate-spin-slow'); // CW Orange
+                sEl.classList.remove('text-[#B0CACF]');
             } else if (this.accessoryState.includes('C')) {
-                sEl.classList.add('text-yellow-500', 'animate-spin-reverse'); // CCW
-                sEl.classList.remove('text-grey-light');
+                sEl.classList.add('text-secondary', 'animate-spin-reverse'); // CCW Orange
+                sEl.classList.remove('text-[#B0CACF]');
             } else {
-                sEl.classList.remove('text-green-500', 'text-yellow-500', 'animate-spin-slow', 'animate-spin-reverse');
-                sEl.classList.add('text-grey-light');
+                sEl.classList.remove('text-secondary', 'animate-spin-slow', 'animate-spin-reverse');
+                sEl.classList.add('text-[#B0CACF]');
             }
         }
 
@@ -353,11 +353,11 @@ export class DROHandler {
             const el = document.getElementById(id);
             if (el) {
                 if (this.accessoryState.includes(char)) {
-                    el.classList.add('text-blue-500');
-                    el.classList.remove('text-grey-light');
+                    el.classList.add('text-secondary'); // Active Orange
+                    el.classList.remove('text-[#B0CACF]');
                 } else {
-                    el.classList.remove('text-blue-500');
-                    el.classList.add('text-grey-light');
+                    el.classList.remove('text-secondary');
+                    el.classList.add('text-[#B0CACF]');
                 }
             }
         });

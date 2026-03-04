@@ -45,10 +45,17 @@ class JoggingController {
                 if (dir.includes('Y')) move += `Y${dir.includes('Y-') ? '-' : ''}${dist} `;
                 if (dir.includes('Z')) move += `Z${dir.includes('Z-') ? '-' : ''}${dist} `;
                 if (dir.includes('A')) move += `A${dir.includes('A-') ? '-' : ''}${dist} `;
+
+                // Visual feedback
+                btn.classList.add('bg-black/20', 'shadow-inner');
+
                 window.ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
             };
 
             const stopJog = (e) => {
+                // Clear visual feedback unconditionally
+                btn.classList.remove('bg-black/20', 'shadow-inner');
+
                 if (!toggle.checked) return;
                 window.ws.sendRealtime('\x85');
             };
@@ -64,14 +71,25 @@ class JoggingController {
                 if (dir.includes('Y')) move += `Y${dir.includes('Y-') ? '-' : ''}${s} `;
                 if (dir.includes('Z')) move += `Z${dir.includes('Z-') ? '-' : ''}${s} `;
                 if (dir.includes('A')) move += `A${dir.includes('A-') ? '-' : ''}${s} `;
+
+                // Brief visual flash for click
+                btn.classList.add('bg-black/20', 'shadow-inner');
+                setTimeout(() => btn.classList.remove('bg-black/20', 'shadow-inner'), 150);
+
                 window.ws.sendCommand(`$J=G91 ${unit} ${move}F${f}`);
             };
 
             btn.addEventListener('mousedown', startJog);
             btn.addEventListener('mouseup', stopJog);
             btn.addEventListener('mouseleave', stopJog);
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); startJog(e); }, { passive: false });
-            btn.addEventListener('touchend', (e) => { e.preventDefault(); stopJog(e); });
+            btn.addEventListener('touchstart', (e) => {
+                if (toggle.checked) e.preventDefault();
+                startJog(e);
+            }, { passive: false });
+            btn.addEventListener('touchend', (e) => {
+                if (toggle.checked) e.preventDefault();
+                stopJog(e);
+            });
             btn.addEventListener('click', clickJog);
         });
 

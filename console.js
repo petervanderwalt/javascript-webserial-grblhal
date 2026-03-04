@@ -18,12 +18,28 @@ class ConsoleManager {
             fontSize: 11,
             fontFamily: '"JetBrains Mono", monospace',
             rightClickSelectsWord: true,
+            minimumContrastRatio: 1,   /* Disable auto-contrast: xterm 5.x reads DOM bg color which may be white from sidebar CSS, then shifts all text towards white making it invisible */
             theme: {
-                background: '#FFFFFF',
-                foreground: '#333333',
-                cursor: '#333333',
-                selectionBackground: '#D6EAF8',
-                selectionInactiveBackground: '#F2F4F8'
+                background: '#B0CACF', // oz-teal-light
+                foreground: '#0D1F22', // oz-black
+                cursor: '#449D9F',
+                selectionBackground: 'rgba(68, 157, 159, 0.4)',
+                black: '#0D1F22',
+                red: '#dc2626',
+                green: '#16a34a',
+                yellow: '#d97706',
+                blue: '#2563eb',
+                magenta: '#9333ea',
+                cyan: '#0891b2',
+                white: '#475569',
+                brightBlack: '#334155',
+                brightRed: '#ef4444',
+                brightGreen: '#22c55e',
+                brightYellow: '#f59e0b',
+                brightBlue: '#3b82f6',
+                brightMagenta: '#a855f7',
+                brightCyan: '#06b6d4',
+                brightWhite: '#94a3b8'
             }
         });
 

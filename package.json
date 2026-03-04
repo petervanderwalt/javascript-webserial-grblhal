@@ -1,0 +1,47 @@
+{
+  "name": "javascript-webserial-grblhal",
+  "version": "1.0.0",
+  "description": "grblHAL Web interface with WebSerial and Electron support",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build-windows": "electron-builder --win",
+    "build-linux": "electron-builder --linux",
+    "build-macos": "electron-builder --mac",
+    "cordova-sync": "node sync.js",
+    "build-android": "node build-android.js",
+    "run-android": "node run-android.js",
+    "build-ios": "npm run cordova-sync && cd cordova && npx cordova build ios"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "serialport": "^12.0.0",
+    "sharp": "^0.34.5",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "cordova-res": "^0.15.4",
+    "electron": "^25.3.0",
+    "electron-builder": "^24.4.0",
+    "mkdirp": "^3.0.1",
+    "ncp": "^2.0.0"
+  },
+  "build": {
+    "appId": "com.pvd.grblhal",
+    "files": [
+      "**/*",
+      "!node_modules/*",
+      "!cordova/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

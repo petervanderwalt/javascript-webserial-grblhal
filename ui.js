@@ -23,7 +23,10 @@ class UIManager {
                 const el = document.getElementById(id);
                 if (el) el.classList.remove('opacity-50', 'pointer-events-none');
             });
-            if (resetBtn) resetBtn.classList.remove('opacity-50', 'pointer-events-none');
+            if (resetBtn) {
+                resetBtn.classList.remove('opacity-50', 'pointer-events-none');
+                resetBtn.disabled = false;
+            }
 
             // Update Connect Button to Disconnect
             btn.innerHTML = '<i class="bi bi-usb-plug-fill"></i> Disconnect';
@@ -37,8 +40,8 @@ class UIManager {
             this.updateRunButtonsState();
 
 
-            // Start status polling immediately (realtime character, safe from the start)
-            this.statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
+            // Start status polling (4Hz is safe for Android's synchronous Java serial bridge)
+            this.statusInterval = setInterval(() => ws.sendRealtime('?'), 250);
 
             // Initialization Sequence - $E* commands first, status request LAST
             // (Sending \x87 early causes a large 155-char response that collides with $EE)
@@ -63,7 +66,10 @@ class UIManager {
             document.getElementById('connection-dot').classList.replace('bg-green-500', 'bg-red-500');
             document.getElementById('connection-text').textContent = 'Offline';
 
-            if (resetBtn) resetBtn.classList.add('opacity-50', 'pointer-events-none');
+            if (resetBtn) {
+                resetBtn.classList.add('opacity-50', 'pointer-events-none');
+                resetBtn.disabled = true;
+            }
 
             document.getElementById('dro-alarm-btn')?.classList.add('hidden');
 

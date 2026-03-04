@@ -840,10 +840,21 @@ export class GCodeViewer {
     sendToWorker(data) {
         const worker = new Worker('gcview.worker.js', { type: 'module' });
         worker.onmessage = (msg) => {
-            const payload = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
-            if (payload.linePoints) {
+            const payload = msg.data;
+            if (payload.progress !== undefined) {
+                if (this.loadingOverlay) {
+                    const text = this.loadingOverlay.querySelector('p');
+                    if (text) text.innerText = `Parsing G-code: ${payload.progress}%`;
+                }
+                return;
+            }
+            if (payload.feedGeo || payload.rapidGeo) {
+                if (this.loadingOverlay) {
+                    const text = this.loadingOverlay.querySelector('p');
+                    if (text) text.innerText = `Preparing geometry...`;
+                }
                 this.nativeUnits = payload.inch ? 'inch' : 'mm';
-                this.renderLines(payload.linePoints);
+                this.renderLines(payload);
                 this.renderCoolGrid();
                 if (this.loadingOverlay) this.loadingOverlay.classList.add('hidden');
                 worker.terminate();
@@ -852,60 +863,41 @@ export class GCodeViewer {
         worker.postMessage({ data: data });
     }
 
-    renderLines(points) {
+    renderLines(payload) {
         this.gcodeGroup.clear();
-        this.lineMap = []; // Reset mapping
+        this.lineMap = payload.lineMap || [];
         this.lastRenderedLine = 0;
         this.feedMesh = null;
 
-        const rapidGeo = [];
-        const feedGeo = [];
-        const feedColors = []; // Store colors for feed lines
-        for (let i = 1; i < points.length; i++) {
-            const p1 = points[i - 1];
-            const p2 = points[i];
-            if (p2.g === 0) {
-                rapidGeo.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-            } else {
-                feedGeo.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+        const feedGeo = payload.feedGeo;
+        const rapidGeo = payload.rapidGeo;
 
-                // Track mapping
-                const lineNum = p2.line;
-                if (lineNum !== undefined) {
-                    // We just added 2 vertices (6 floats).
-                    // vertex index = current length / 3. 
-                    // feedGeo length is already updated? No, push adds to it.
-                    // So start index of this segment is (feedGeo.length - 6) / 3
-                    const startVert = (feedGeo.length - 6) / 3;
-                    if (!this.lineMap[lineNum]) {
-                        this.lineMap[lineNum] = { start: startVert, count: 0 };
-                    }
-                    this.lineMap[lineNum].count += 2;
-                }
-
-                // Default Color
-                const c = new THREE.Color(COLORS.feed);
-                feedColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
-            }
-        }
-        if (feedGeo.length) {
+        if (feedGeo && feedGeo.length > 0) {
             const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(feedGeo, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(feedColors, 3));
-            // Ensure dynamic updates allowed
-            // geo.attributes.color.setUsage(THREE.DynamicDrawUsage); // Might not be needed in newer Three.js, but good practice
+            geo.setAttribute('position', new THREE.BufferAttribute(feedGeo, 3));
+
+            // Generate initial colors on GPU-side (BufferAttribute)
+            const colorBuffer = new Float32Array(feedGeo.length);
+            const c = new THREE.Color(COLORS.feed);
+            for (let i = 0; i < colorBuffer.length; i += 3) {
+                colorBuffer[i] = c.r;
+                colorBuffer[i + 1] = c.g;
+                colorBuffer[i + 2] = c.b;
+            }
+            geo.setAttribute('color', new THREE.BufferAttribute(colorBuffer, 3));
 
             const mat = new THREE.LineBasicMaterial({
-                vertexColors: true, // Enable vertex colors
+                vertexColors: true,
                 linewidth: 2,
                 depthTest: false
             });
             this.feedMesh = new THREE.LineSegments(geo, mat);
             this.gcodeGroup.add(this.feedMesh);
         }
-        if (rapidGeo.length) {
+
+        if (rapidGeo && rapidGeo.length > 0) {
             const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(rapidGeo, 3));
+            geo.setAttribute('position', new THREE.BufferAttribute(rapidGeo, 3));
             this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
                 color: COLORS.rapid,
                 linewidth: 1,
@@ -941,19 +933,17 @@ export class GCodeViewer {
 
         const colorAttr = this.feedMesh.geometry.attributes.color;
 
-        // Update range from lastRenderedLine+1 to currentLine
-        // Clamp currentLine to max map size
-        const maxLine = this.lineMap.length - 1;
+        // LineMap is Uint32Array: [start, count, start, count, ...]
+        const maxLine = (this.lineMap.length / 2) - 1;
         const targetLine = Math.min(currentLine, maxLine);
 
         if (targetLine > this.lastRenderedLine) {
             for (let l = this.lastRenderedLine + 1; l <= targetLine; l++) {
-                const map = this.lineMap[l];
-                if (map) {
-                    // Set color to "completed" (e.g. Dark Grey or maybe 'burnt' color for laser?)
-                    // For now: Dark Grey 0x444444
-                    for (let k = 0; k < map.count; k++) {
-                        colorAttr.setXYZ(map.start + k, 0.2, 0.2, 0.2);
+                const start = this.lineMap[l * 2];
+                const count = this.lineMap[l * 2 + 1];
+                if (count > 0) {
+                    for (let k = 0; k < count; k++) {
+                        colorAttr.setXYZ(start + k, 0.2, 0.2, 0.2);
                     }
                 }
             }

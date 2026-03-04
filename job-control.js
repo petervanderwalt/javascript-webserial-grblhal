@@ -70,6 +70,17 @@ class JobController {
             this.jobStartTime = Date.now();
 
             window.term.writeln("\x1b[35m[Job Stream] Starting...\x1b[0m");
+
+            if (window.ws.backendWs) {
+                window.ws.backendWs.send(JSON.stringify({
+                    type: 'updateJob',
+                    active: true,
+                    currentLine: 0,
+                    totalLines: this.gcodeStreamer.lines.length,
+                    pct: 0
+                }));
+            }
+
             this.advanceGCodeStream();
         });
     }
@@ -123,17 +134,18 @@ class JobController {
         window.ws.sendCommand(line);
         this.gcodeStreamer.index++;
 
-        // Update job progress
-        const pct = Math.round((this.gcodeStreamer.index / this.gcodeStreamer.lines.length) * 100);
-        document.getElementById('job-progress-bar').style.width = `${pct}%`;
-        document.getElementById('job-progress-pct').textContent = `${pct}%`;
-        document.getElementById('job-progress-line').textContent = `Line ${this.gcodeStreamer.index} of ${this.gcodeStreamer.lines.length}`;
+        this.updateJobProgressUI(pct, filename ? `File: ${filename}` : 'Standard Job');
 
-        // Update elapsed time
-        const elapsed = Math.floor((Date.now() - this.jobStartTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        document.getElementById('job-progress-time').textContent = `Elapsed: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        // Sync with backend if connected
+        if (window.ws.backendWs) {
+            window.ws.backendWs.send(JSON.stringify({
+                type: 'updateJob',
+                active: true,
+                currentLine: this.gcodeStreamer.index,
+                totalLines: this.gcodeStreamer.lines.length,
+                pct: pct
+            }));
+        }
     }
 
     /**
@@ -143,6 +155,10 @@ class JobController {
         this.gcodeStreamer.active = false;
         window.term.writeln("\x1b[32m[Job Stream] Complete.\x1b[0m");
         this.resetJobUI();
+
+        if (window.ws.backendWs) {
+            window.ws.backendWs.send(JSON.stringify({ type: 'updateJob', active: false }));
+        }
     }
 
     /**
@@ -152,6 +168,10 @@ class JobController {
         this.gcodeStreamer.active = false;
         window.term.writeln(`\x1b[31m[Job Stream] Aborted: ${error}\x1b[0m`);
         this.resetJobUI();
+
+        if (window.ws.backendWs) {
+            window.ws.backendWs.send(JSON.stringify({ type: 'updateJob', active: false }));
+        }
     }
 
     /**

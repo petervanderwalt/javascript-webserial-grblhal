@@ -138,32 +138,52 @@ export class SDCardHandler {
     }
 
     delete(fileName) {
-        if (confirm(`Delete ${fileName}?`)) {
-            const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
+
+        const processDelete = () => {
             this.ws.sendCommand(`$FD=${fullPath}`);
             setTimeout(() => this.refresh(), 1000);
+        };
+
+        if (reporter) {
+            reporter.showConfirm('Delete File', `Are you sure you want to delete ${fileName} from the SD card?`, processDelete);
+        } else if (confirm(`Delete ${fileName}?`)) {
+            processDelete();
         }
     }
 
     async preview(fileName, skipConfirm = false) {
         if (this.isDownloading) return;
-        if (!skipConfirm && !confirm(`Download ${fileName}?`)) return;
 
-        this.isDownloading = true;
-        this.downloadingFile = fileName;
-        this.downloadingFullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
-        this.downloadTotal = this.files[fileName] || 0; // Get size from cache
-        console.log(`Starting download for ${fileName}. Expected size: ${this.downloadTotal} bytes`);
+        const processPreview = () => {
+            this.isDownloading = true;
+            this.downloadingFile = fileName;
+            this.downloadingFullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
+            this.downloadTotal = this.files[fileName] || 0; // Get size from cache
+            console.log(`Starting download for ${fileName}. Expected size: ${this.downloadTotal} bytes`);
 
-        this.downloadBuffer = "";
-        this.downloadLineCount = 0;
+            this.downloadBuffer = "";
+            this.downloadLineCount = 0;
 
-        // Show Progress Bar in UI
-        this._toggleProgressUI(fileName, true);
+            // Show Progress Bar in UI
+            this._toggleProgressUI(fileName, true);
 
-        const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
-        this.term.writeln(`\x1b[33mDownloading ${fullPath}...\x1b[0m`);
-        await this.ws.sendCommand(`$F<=${fullPath}`);
+            const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
+            this.term.writeln(`\x1b[33mDownloading ${fullPath}...\x1b[0m`);
+            this.ws.sendCommand(`$F<=${fullPath}`);
+        };
+
+        if (skipConfirm) {
+            processPreview();
+        } else {
+            const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+            if (reporter) {
+                reporter.showConfirm('Download File', `Load ${fileName} for preview and simulation?`, processPreview);
+            } else if (confirm(`Download ${fileName}?`)) {
+                processPreview();
+            }
+        }
     }
 
     runFile(fileName) {
@@ -195,22 +215,39 @@ export class SDCardHandler {
             );
         } else {
             // Fallback
-            if (confirm(`Load ${fileName} to 3D Viewer?`)) {
+            const processDirectRun = () => {
+                this.ws.sendCommand(`$F=${fullPath}`);
+            };
+
+            const processLoadAndView = () => {
                 this.pendingRunFile = fileName;
                 this.preview(fileName, true);
-                return;
-            }
-            if (confirm(`Run ${fileName} directly from SD?`)) {
-                this.ws.sendCommand(`$F=${fullPath}`);
+            };
+
+            if (reporter) {
+                reporter.showConfirm('Load & View', `Load ${fileName} to 3D Viewer?`, processLoadAndView, () => {
+                    reporter.showConfirm('Run Directly', `Run ${fileName} directly from SD?`, processDirectRun);
+                });
+            } else if (confirm(`Load ${fileName} to 3D Viewer?`)) {
+                processLoadAndView();
+            } else if (confirm(`Run ${fileName} directly from SD?`)) {
+                processDirectRun();
             }
         }
     }
 
     runMacro(pNum) {
-        if (!confirm(`Execute Macro P${pNum}?`)) return;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
+        const processMacro = () => {
+            this.ws.sendCommand(`G65 P${pNum}`);
+            this.term.writeln(`\x1b[36m> Executing Macro: P${pNum}\x1b[0m`);
+        };
 
-        this.ws.sendCommand(`G65 P${pNum}`);
-        this.term.writeln(`\x1b[36m> Executing Macro: P${pNum}\x1b[0m`);
+        if (reporter) {
+            reporter.showConfirm('Run Macro', `Execute Macro P${pNum}?`, processMacro);
+        } else if (confirm(`Execute Macro P${pNum}?`)) {
+            processMacro();
+        }
     }
 
     // --- Internal Parsing ---
@@ -429,35 +466,45 @@ export class SDCardHandler {
     async startUpload(file, onComplete = null) {
         if (!file) return;
         const name = file.name.replace(/\s/g, '_');
-        if (!confirm(`Upload ${name} (${this._formatBytes(file.size)})?`)) return;
+        const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
 
-        const ab = await file.arrayBuffer();
-        const bytes = new Uint8Array(ab);
+        const processUpload = async () => {
+            const ab = await file.arrayBuffer();
+            const bytes = new Uint8Array(ab);
 
-        if (this.callbacks.pausePolling) this.callbacks.pausePolling();
-        this.ws.setRawHandler((data) => this._handleYmodemInput(data));
+            if (this.callbacks.pausePolling) this.callbacks.pausePolling();
+            this.ws.setRawHandler((data) => this._handleYmodemInput(data));
 
-        this.ymodem = {
-            active: true,
-            state: 1,
-            fileBytes: bytes,
-            fileName: name,
-            fileSize: bytes.length,
-            packetNum: 0,
-            offset: 0,
-            onComplete: onComplete // Store callback
+            this.ymodem = {
+                active: true,
+                state: 1,
+                fileBytes: bytes,
+                fileName: name,
+                fileSize: bytes.length,
+                packetNum: 0,
+                offset: 0,
+                onComplete: onComplete
+            };
+
+            document.getElementById('upload-progress-container').classList.remove('hidden');
+            document.getElementById('upload-progress-container').style.display = 'block';
+            document.getElementById('upload-progress-container').style.opacity = '1';
+            document.getElementById('upload-progress-bar').style.width = '0%';
+            document.getElementById('upload-pct').textContent = '0%';
+
+            this.term.writeln('\x1b[35m[YMODEM] Initializing Transfer...\x1b[0m');
+
+            const fp = this.path === '/' ? name : `${this.path}/${name}`;
+            // Use sendCommand for the initial setup to ensure flow control is respected
+            await this.ws.sendCommand(`$FY=${fp}`);
+            console.log("Sent $FY command, waiting for controller to signal start (C character)...");
         };
 
-        document.getElementById('upload-progress-container').classList.remove('hidden');
-        document.getElementById('upload-progress-container').style.display = 'block'; // Ensure block display
-        document.getElementById('upload-progress-container').style.opacity = '1';
-        document.getElementById('upload-progress-bar').style.width = '0%';
-        document.getElementById('upload-pct').textContent = '0%';
-
-        this.term.writeln('\x1b[35m[YMODEM] Start...\x1b[0m');
-
-        const fp = this.path === '/' ? name : `${this.path}/${name}`;
-        await this.ws.writeRaw(new TextEncoder().encode(`$FY=${fp}\n`));
+        if (reporter) {
+            reporter.showConfirm('SD Upload', `Upload ${name} (${this._formatBytes(file.size)}) to SD card?`, processUpload);
+        } else if (confirm(`Upload ${name} (${this._formatBytes(file.size)})?`)) {
+            processUpload();
+        }
     }
 
     _handleYmodemInput(data) {
@@ -469,18 +516,26 @@ export class SDCardHandler {
     async _processYmodemByte(b) {
         const y = this.ymodem;
         if (y.state === 1) {
+            console.log(`[YMODEM] State 1: Waiting for C_CHAR. Received byte: ${b}`);
             if (b === C_CHAR) {
+                console.log("[YMODEM] Received C_CHAR, sending packet 0");
                 await this._sendPacket0();
                 y.state = 2;
+                console.log("[YMODEM] State transition: 1 -> 2");
             }
         } else if (y.state === 2) {
+            console.log(`[YMODEM] State 2: Waiting for second C_CHAR. Received byte: ${b}`);
             if (b === C_CHAR) {
+                console.log("[YMODEM] Received second C_CHAR, sending first data packet");
                 y.packetNum = 1;
                 await this._sendNextDataPacket();
                 y.state = 3;
+                console.log("[YMODEM] State transition: 2 -> 3");
             }
         } else if (y.state === 3) {
+            console.log(`[YMODEM] State 3: Data transfer. Received byte: ${b}`);
             if (b === ACK) {
+                console.log(`[YMODEM] Received ACK for packet ${y.packetNum}. Offset: ${y.offset}`);
                 y.offset += 1024;
                 const pct = Math.min(100, Math.round((y.offset / y.fileSize) * 100));
                 document.getElementById('upload-progress-bar').style.width = `${pct}%`;
