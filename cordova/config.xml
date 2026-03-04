@@ -11,6 +11,10 @@
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
     <platform name="android">
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="resources/splash.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" />
+        <preference name="SplashScreenDelay" value="1000" />
+        <preference name="FadeSplashScreenDuration" value="500" />
         <resource-file src="res/xml/device_filter.xml" target="app/src/main/res/xml/device_filter.xml" />
         <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest">
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
