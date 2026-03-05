@@ -12,7 +12,8 @@
     "cordova-sync": "node sync.js",
     "build-android": "node build-android.js",
     "run-android": "node run-android.js",
-    "build-ios": "npm run cordova-sync && cd cordova && npx cordova build ios"
+    "build-ios": "npm run cordova-sync && cd cordova && npx cordova build ios",
+    "build-sd": "node build-sd.js"
   },
   "dependencies": {
     "express": "^4.18.2",

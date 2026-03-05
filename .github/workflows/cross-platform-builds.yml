@@ -153,3 +153,26 @@ jobs:
         with:
           name: Ooznest-Linux-App
           path: dist/*.AppImage
+
+  build-sd:
+    name: Build SD Card Payload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install Dependencies
+        run: npm install
+        
+      - name: Build SD Card Payload
+        run: npm run build-sd
+        
+      - name: Upload SD Card Payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ooznest-SD-WebUI
+          path: dist/index.html.gz
