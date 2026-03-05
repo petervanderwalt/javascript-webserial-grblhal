@@ -175,4 +175,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Ooznest-SD-WebUI
-          path: dist/index.html.gz
+          path: |
+            dist/index.html.gz
+            dist/*.stl
