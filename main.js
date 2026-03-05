@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const express = require('express');
 const http = require('http');
@@ -30,8 +30,7 @@ ipcMain.on('window-maximize', (event) => {
 });
 
 ipcMain.on('window-close', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    win.close();
+    app.quit();
 });
 
 let activePort = null;
@@ -270,6 +269,22 @@ function createWindow() {
         autoHideMenuBar: true,
         title: "grblHAL Web (Electron)",
         icon: path.join(__dirname, 'cordova', 'resources', 'icon.png')
+    });
+
+    // Handle beforeunload properly in Electron
+    mainWindow.webContents.on('will-prevent-unload', (event) => {
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+            type: 'question',
+            buttons: ['Disconnect and Close', 'Cancel'],
+            title: 'Active Connection',
+            message: 'You are currently connected to the CNC machine. Are you sure you want to disconnect and close the application?',
+            defaultId: 1,
+            cancelId: 1
+        });
+
+        if (choice === 0) {
+            event.preventDefault(); // Allows the unload to proceed
+        }
     });
 
     mainWindow.loadURL(`http://127.0.0.1:${port}`);
