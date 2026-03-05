@@ -32,6 +32,7 @@ jobs:
         run: |
           npm run cordova-sync
           cd cordova
+          npx cordova-res android --skip-config --copy
           cordova platform add android
           cordova build android
           
@@ -61,9 +62,10 @@ jobs:
         run: |
           npm run cordova-sync
           cd cordova
+          npx cordova-res ios --skip-config --copy
           cordova platform add ios
           # Build for device target (without signing will produce a .app)
-          cordova build ios --device --buildFlag="-UseModernBuildSystem=0" || true
+          cordova build ios --device --buildFlag="-UseModernBuildSystem=0" --buildFlag="CODE_SIGNING_ALLOWED=NO" --buildFlag="CODE_SIGNING_REQUIRED=NO" --buildFlag="CODE_SIGN_IDENTITY=" || true
           
           # Package .app into .ipa for sideloading
           mkdir -p Payload
@@ -91,6 +93,8 @@ jobs:
         run: npm install
         
       - name: Build Windows Executable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build-windows
         
       - name: Upload Windows Exe
@@ -114,6 +118,8 @@ jobs:
         run: npm install
         
       - name: Build macOS Application
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build-macos
         
       - name: Upload macOS DMG
@@ -137,6 +143,8 @@ jobs:
         run: npm install
         
       - name: Build Linux AppImage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build-linux
         
       - name: Upload Linux AppImage
