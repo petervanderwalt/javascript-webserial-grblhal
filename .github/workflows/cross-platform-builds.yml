@@ -62,14 +62,15 @@ jobs:
         run: |
           npm run cordova-sync
           cd cordova
-          npx cordova-res ios --skip-config
+          npx cordova-res ios --skip-config || true
           cordova platform add ios
-          # Build for device target (without signing will produce a .app)
-          cordova build ios --device --buildFlag="-UseModernBuildSystem=0" --buildFlag="CODE_SIGNING_ALLOWED=NO" --buildFlag="CODE_SIGNING_REQUIRED=NO" --buildFlag="CODE_SIGN_IDENTITY=" || true
+          cd platforms/ios
+          xcodebuild build -workspace App.xcworkspace -scheme App -configuration Debug -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          cd ../..
           
           # Package .app into .ipa for sideloading
           mkdir -p Payload
-          cp -r platforms/ios/build/device/*.app Payload/ 2>/dev/null || cp -r platforms/ios/build/Debug-iphoneos/*.app Payload/
+          cp -r platforms/ios/build/Build/Products/Debug-iphoneos/*.app Payload/
           zip -r Ooznest-iOS.ipa Payload/
           
       - name: Upload iOS App
