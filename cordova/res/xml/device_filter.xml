@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 0x0483 / 0x5740: STMicroelectronics CDC (grblHAL STM32/Nucleo) -->
+    <usb-device vendor-id="1155" product-id="22336" />
+
+    <!-- 0x0403 / 0x60xx: FTDI -->
+    <usb-device vendor-id="1027" product-id="24577" />
+    <usb-device vendor-id="1027" product-id="24592" />
+    <usb-device vendor-id="1027" product-id="24597" />
+
+    <!-- 0x10C4 / 0xEAxx: Silabs CP210x -->
+    <usb-device vendor-id="4292" product-id="60000" />
+    <usb-device vendor-id="4292" product-id="60016" />
+
+    <!-- 0x067B: Prolific PL2303x -->
+    <usb-device vendor-id="1659" product-id="8963" />
+
+    <!-- 0x1A86: Qinheng CH34x -->
+    <usb-device vendor-id="6790" product-id="29987" />
+    <usb-device vendor-id="6790" product-id="21795" />
+
+    <!-- 0x2341: Arduino CDC -->
+    <usb-device vendor-id="9025" />
+
+    <!-- 0x0d28 / 0x0204: ARM mbed -->
+    <usb-device vendor-id="3368" product-id="516" />
+</resources>

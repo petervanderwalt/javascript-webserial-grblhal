@@ -13,7 +13,6 @@ cordova/node_modules/
 # Ignore generated icon resources but keep the source images
 cordova/resources/android/
 cordova/resources/ios/
-cordova/res/
 
 # User-specific
 .vscode/
