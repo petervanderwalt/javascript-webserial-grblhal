@@ -14,13 +14,24 @@ async function build() {
 
     console.log('Building SD Card WebUI package...');
 
-    // Create dist folder
     if (!fs.existsSync(distDir)) {
         fs.mkdirSync(distDir);
     }
 
     try {
-        console.log('1. Bundling ES6 Modules...');
+        console.log('1. Bundling ES6 Modules & Assets...');
+
+        // Convert large binary assets to Data URIs to ensure "Single File" behavior
+        const stlFiles = ['endmill.stl', 'collet-nut.stl', 'collet-shaft.stl'];
+        const stlData = {};
+        for (const file of stlFiles) {
+            const filePath = path.join(rootDir, file);
+            if (fs.existsSync(filePath)) {
+                console.log(`   - Internalizing ${file}...`);
+                const buffer = fs.readFileSync(filePath);
+                stlData[`./${file}`] = `data:application/sla;base64,${buffer.toString('base64')}`;
+            }
+        }
 
         let htmlContent = fs.readFileSync(inputPath, 'utf8');
 
@@ -29,7 +40,7 @@ async function build() {
         const match = htmlContent.match(moduleRegex);
 
         if (!match) {
-            throw new Error('Could not find <script type="module"> block in index.html');
+            throw new Error('Could not find <script type="module"> block');
         }
 
         const moduleCode = match[1];
@@ -38,7 +49,7 @@ async function build() {
 
         fs.writeFileSync(tmpEntryPath, moduleCode);
 
-        // Bundle with esbuild, mirroring the importmap from index.html
+        // Bundle JS
         await esbuild.build({
             entryPoints: [tmpEntryPath],
             bundle: true,
@@ -53,29 +64,55 @@ async function build() {
             loader: { '.js': 'js' }
         });
 
-        console.log('2. Preparing HTML for Inlining...');
+        // Replace STL URLs in the bundle with our Data URIs
+        let bundleJs = fs.readFileSync(tmpBundlePath, 'utf8');
+        for (const [url, data] of Object.entries(stlData)) {
+            const escapedUrl = url.replace(/\./g, '\\.');
+            bundleJs = bundleJs.replace(new RegExp(escapedUrl, 'g'), data);
+        }
+        fs.writeFileSync(tmpBundlePath, bundleJs);
 
-        // Remove the importmap specifically for SD build as it's no longer needed
-        const importMapRegex = /<script type="importmap">[\s\S]*?<\/script>/;
-        let processedHtml = htmlContent.replace(importMapRegex, '');
+        console.log('2. Structural HTML preparation...');
 
-        // Replace the module script block with a pointer to our bundle
-        processedHtml = processedHtml.replace(moduleRegex, '<script inline src="_tmp_bundle.js"></script>');
+        // Targeted removal of specific blocks
+        const importMapRegex = /<script type="importmap">[\s\S]*?<\/script>/g;
 
-        // Add "inline" attribute to other resources
-        processedHtml = processedHtml.replace(/<link rel="stylesheet"/g, '<link inline rel="stylesheet"');
-        processedHtml = processedHtml.replace(/<script src=/g, '<script inline src=');
+        // Match the specific cordova.js injector code specifically to avoid over-matching
+        const cordovaScriptRegex = /<script>\s*\(function\s*\(\)\s*\{\s*var\s*s\s*=\s*document\.createElement\('script'\);\s*s\.src\s*=\s*'cordova\.js'[\s\S]*?<\/script>/g;
+
+        let processedHtml = htmlContent
+            .replace(importMapRegex, '')
+            .replace(cordovaScriptRegex, '<!-- cordova.js removed for SD -->')
+            .replace(moduleRegex, '<script inline src="_tmp_bundle.js"></script>');
+
+        // Robust link/script/img inlining (adds 'inline' attribute to any relative source)
+        processedHtml = processedHtml.replace(/<(link|script|img)\s+([^>]+)>/g, (match, tag, attrs) => {
+            if (attrs.includes('inline')) return match;
+            if (attrs.includes('http') || attrs.includes('//')) return match; // Skip remote
+
+            if (tag === 'link' && attrs.includes('rel="stylesheet"')) {
+                return `<link inline ${attrs}>`;
+            }
+            if (tag === 'script' && attrs.includes('src=')) {
+                return `<script inline ${attrs}></script>`;
+            }
+            if (tag === 'img' && attrs.includes('src=')) {
+                return `<img inline ${attrs}>`;
+            }
+            return match;
+        });
 
         const tempHtmlPath = path.join(rootDir, '_temp_index.html');
         fs.writeFileSync(tempHtmlPath, processedHtml);
 
-        console.log('3. Inlining all assets...');
+        console.log('3. Inlining assets (Images, CSS, JS)...');
         let inlinedHtml = await inlineSource(tempHtmlPath, {
             compress: true,
-            rootpath: rootDir
+            rootpath: rootDir,
+            attribute: 'inline'
         });
 
-        // Cleanup intermediate files
+        // Cleanup
         try { fs.unlinkSync(tmpEntryPath); } catch (e) { }
         try { fs.unlinkSync(tmpBundlePath); } catch (e) { }
         try { fs.unlinkSync(tempHtmlPath); } catch (e) { }
@@ -87,8 +124,6 @@ async function build() {
             minifyJS: true,
             minifyCSS: true,
             removeAttributeQuotes: true,
-            processConditionalComments: true,
-            removeEmptyAttributes: true,
             removeRedundantAttributes: true,
             removeScriptTypeAttributes: true,
             removeStyleLinkTypeAttributes: true,
@@ -96,15 +131,14 @@ async function build() {
         });
 
         fs.writeFileSync(outputHtmlPath, minifiedHtml);
-        console.log(`Saved minified HTML: ${outputHtmlPath} (${(Buffer.byteLength(minifiedHtml, 'utf8') / 1024).toFixed(2)} kb)`);
 
-        console.log('5. Compressing with GZIP for SD Card...');
+        console.log('5. Final GZIP compression...');
         const gzip = zlib.gzipSync(Buffer.from(minifiedHtml, 'utf-8'), { level: 9 });
-
         fs.writeFileSync(outputGzPath, gzip);
-        console.log(`Saved gzip package: ${outputGzPath} (${(gzip.length / 1024).toFixed(2)} kb)`);
 
-        console.log('\nSuccess! Deploy `index.html.gz` to your grblHAL SD Card.');
+        console.log(`\nDONE!`);
+        console.log(`Final Package Size: ${(gzip.length / 1024 / 1024).toFixed(2)} MB (Gzipped)`);
+        console.log(`Deployment: Copy dist/index.html.gz to SD Card.`);
     } catch (err) {
         console.error('Build Error:', err);
         process.exit(1);
