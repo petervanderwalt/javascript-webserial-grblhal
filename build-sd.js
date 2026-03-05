@@ -19,9 +19,9 @@ async function build() {
     }
 
     try {
-        console.log('1. Bundling ES6 Modules & Assets...');
+        console.log('1. Bundling ES6 Modules & 3D Assets...');
 
-        // Convert large binary assets to Data URIs to ensure "Single File" behavior
+        // Internalize STLs
         const stlFiles = ['endmill.stl', 'collet-nut.stl', 'collet-shaft.stl'];
         const stlData = {};
         for (const file of stlFiles) {
@@ -35,21 +35,16 @@ async function build() {
 
         let htmlContent = fs.readFileSync(inputPath, 'utf8');
 
-        // Extract the <script type="module"> content
         const moduleRegex = /<script type="module">([\s\S]*?)<\/script>/;
         const match = htmlContent.match(moduleRegex);
-
-        if (!match) {
-            throw new Error('Could not find <script type="module"> block');
-        }
+        if (!match) throw new Error('Could not find <script type="module"> block');
 
         const moduleCode = match[1];
         const tmpEntryPath = path.join(rootDir, '_tmp_entry.js');
         const tmpBundlePath = path.join(rootDir, '_tmp_bundle.js');
-
         fs.writeFileSync(tmpEntryPath, moduleCode);
 
-        // Bundle JS
+        // JS Bundle
         await esbuild.build({
             entryPoints: [tmpEntryPath],
             bundle: true,
@@ -64,20 +59,73 @@ async function build() {
             loader: { '.js': 'js' }
         });
 
-        // Replace STL URLs in the bundle with our Data URIs
         let bundleJs = fs.readFileSync(tmpBundlePath, 'utf8');
         for (const [url, data] of Object.entries(stlData)) {
-            const escapedUrl = url.replace(/\./g, '\\.');
-            bundleJs = bundleJs.replace(new RegExp(escapedUrl, 'g'), data);
+            bundleJs = bundleJs.split(url).join(data); // Faster than Regex for large blobs
         }
         fs.writeFileSync(tmpBundlePath, bundleJs);
 
-        console.log('2. Structural HTML preparation...');
+        console.log('2. Internalizing Fonts & CSS Dependencies...');
 
-        // Targeted removal of specific blocks
+        function inlineFontsInCss(cssFilePath, seen = new Set()) {
+            if (seen.has(cssFilePath)) return '';
+            seen.add(cssFilePath);
+            let css = fs.readFileSync(cssFilePath, 'utf8');
+            const cssDir = path.dirname(cssFilePath);
+
+            // 1. Resolve @import
+            css = css.replace(/@import\s+(?:url\(['"]?([^'"]+)['"]?\)|['"]?([^'"]+)['"]?);/g, (match, url1, url2) => {
+                const importPath = url1 || url2;
+                const absoluteImportPath = path.resolve(cssDir, importPath);
+                if (fs.existsSync(absoluteImportPath)) {
+                    console.log(`   - Resolving @import: ${importPath}`);
+                    return inlineFontsInCss(absoluteImportPath, seen);
+                }
+                return match;
+            });
+
+            // 2. Base64 url() - handles fonts with query params and varying extensions
+            css = css.replace(/url\(['"]?([^'")]+?)['"]?\)/g, (match, url) => {
+                if (url.startsWith('data:') || url.startsWith('http') || url.startsWith('//')) return match;
+
+                // Strip query string/hash
+                const cleanFontPath = url.split('?')[0].split('#')[0];
+                const absoluteFontPath = path.resolve(cssDir, cleanFontPath);
+
+                if (fs.existsSync(absoluteFontPath)) {
+                    const ext = path.extname(cleanFontPath).toLowerCase().replace('.', '');
+                    // Only process common font/asset formats
+                    const fontExts = ['ttf', 'woff', 'woff2', 'eot', 'svg', 'otf', 'png', 'jpg', 'jpeg', 'gif'];
+                    if (fontExts.includes(ext)) {
+                        console.log(`   - Internalizing: ${cleanFontPath}`);
+                        const buffer = fs.readFileSync(absoluteFontPath);
+                        let mime;
+                        switch (ext) {
+                            case 'ttf': mime = 'font/ttf'; break;
+                            case 'woff': mime = 'font/woff'; break;
+                            case 'woff2': mime = 'font/woff2'; break;
+                            case 'svg': mime = 'image/svg+xml'; break;
+                            case 'png': mime = 'image/png'; break;
+                            case 'jpg': case 'jpeg': mime = 'image/jpeg'; break;
+                            default: mime = 'application/octet-stream';
+                        }
+                        return `url("data:${mime};base64,${buffer.toString('base64')}")`;
+                    }
+                }
+                return match;
+            });
+
+            return css;
+        }
+
+        const mainCssPath = path.join(rootDir, 'themes', 'ooznest.css');
+        const internalizedCss = inlineFontsInCss(mainCssPath);
+        const tmpCssPath = path.join(rootDir, '_tmp_ooznest.css');
+        fs.writeFileSync(tmpCssPath, internalizedCss);
+
+        console.log('3. Structural HTML preparation...');
+
         const importMapRegex = /<script type="importmap">[\s\S]*?<\/script>/g;
-
-        // Match the specific cordova.js injector code specifically to avoid over-matching
         const cordovaScriptRegex = /<script>\s*\(function\s*\(\)\s*\{\s*var\s*s\s*=\s*document\.createElement\('script'\);\s*s\.src\s*=\s*'cordova\.js'[\s\S]*?<\/script>/g;
 
         let processedHtml = htmlContent
@@ -85,27 +133,23 @@ async function build() {
             .replace(cordovaScriptRegex, '<!-- cordova.js removed for SD -->')
             .replace(moduleRegex, '<script inline src="_tmp_bundle.js"></script>');
 
-        // Robust link/script/img inlining (adds 'inline' attribute to any relative source)
+        processedHtml = processedHtml.replace(/href="themes\/ooznest\.css"/, 'href="_tmp_ooznest.css"');
+
+        // Robust link/script/img inlining
         processedHtml = processedHtml.replace(/<(link|script|img)\s+([^>]+)>/g, (match, tag, attrs) => {
             if (attrs.includes('inline')) return match;
-            if (attrs.includes('http') || attrs.includes('//')) return match; // Skip remote
+            if (attrs.includes('http') || attrs.includes('//')) return match;
 
-            if (tag === 'link' && attrs.includes('rel="stylesheet"')) {
-                return `<link inline ${attrs}>`;
-            }
-            if (tag === 'script' && attrs.includes('src=')) {
-                return `<script inline ${attrs}></script>`;
-            }
-            if (tag === 'img' && attrs.includes('src=')) {
-                return `<img inline ${attrs}>`;
-            }
+            if (tag === 'link' && attrs.includes('rel="stylesheet"')) { return `<link inline ${attrs}>`; }
+            if (tag === 'script' && attrs.includes('src=')) { return `<script inline ${attrs}></script>`; }
+            if (tag === 'img' && attrs.includes('src=')) { return `<img inline ${attrs}>`; }
             return match;
         });
 
         const tempHtmlPath = path.join(rootDir, '_temp_index.html');
         fs.writeFileSync(tempHtmlPath, processedHtml);
 
-        console.log('3. Inlining assets (Images, CSS, JS)...');
+        console.log('4. Inlining assets (Images, CSS, JS)...');
         let inlinedHtml = await inlineSource(tempHtmlPath, {
             compress: true,
             rootpath: rootDir,
@@ -115,9 +159,10 @@ async function build() {
         // Cleanup
         try { fs.unlinkSync(tmpEntryPath); } catch (e) { }
         try { fs.unlinkSync(tmpBundlePath); } catch (e) { }
+        try { fs.unlinkSync(tmpCssPath); } catch (e) { }
         try { fs.unlinkSync(tempHtmlPath); } catch (e) { }
 
-        console.log('4. Aggressive Minification...');
+        console.log('5. Aggressive Minification...');
         const minifiedHtml = await minify(inlinedHtml, {
             collapseWhitespace: true,
             removeComments: true,
@@ -132,7 +177,7 @@ async function build() {
 
         fs.writeFileSync(outputHtmlPath, minifiedHtml);
 
-        console.log('5. Final GZIP compression...');
+        console.log('6. Final GZIP compression...');
         const gzip = zlib.gzipSync(Buffer.from(minifiedHtml, 'utf-8'), { level: 9 });
         fs.writeFileSync(outputGzPath, gzip);
 
