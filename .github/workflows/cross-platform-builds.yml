@@ -32,8 +32,8 @@ jobs:
         run: |
           npm run cordova-sync
           cd cordova
+          npx cordova-res android --skip-config
           cordova platform add android
-          npx cordova-res android --skip-config --copy
           cordova build android
           
       - name: Upload Android APK
@@ -62,8 +62,8 @@ jobs:
         run: |
           npm run cordova-sync
           cd cordova
+          npx cordova-res ios --skip-config
           cordova platform add ios
-          npx cordova-res ios --skip-config --copy
           # Build for device target (without signing will produce a .app)
           cordova build ios --device --buildFlag="-UseModernBuildSystem=0" --buildFlag="CODE_SIGNING_ALLOWED=NO" --buildFlag="CODE_SIGNING_REQUIRED=NO" --buildFlag="CODE_SIGN_IDENTITY=" || true
           
