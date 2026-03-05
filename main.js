@@ -268,7 +268,8 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         autoHideMenuBar: true,
-        title: "grblHAL Web (Electron)"
+        title: "grblHAL Web (Electron)",
+        icon: path.join(__dirname, 'cordova', 'resources', 'icon.png')
     });
 
     mainWindow.loadURL(`http://127.0.0.1:${port}`);

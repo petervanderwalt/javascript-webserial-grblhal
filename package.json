@@ -32,16 +32,20 @@
     "files": [
       "**/*",
       "!node_modules/*",
-      "!cordova/*"
+      "!cordova/*",
+      "cordova/resources/icon.png"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "cordova/resources/icon.png"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "cordova/resources/icon.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "cordova/resources/icon.png"
     }
   }
 }
