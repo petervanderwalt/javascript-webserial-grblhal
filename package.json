@@ -25,6 +25,7 @@
     "cordova-res": "^0.15.4",
     "electron": "^25.3.0",
     "electron-builder": "^24.4.0",
+    "esbuild": "^0.27.3",
     "html-minifier-terser": "^7.2.0",
     "inline-source": "^8.0.3",
     "mkdirp": "^3.0.1",

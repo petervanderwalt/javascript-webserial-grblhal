@@ -40,8 +40,9 @@ class UIManager {
             this.updateRunButtonsState();
 
 
-            // Start status polling (4Hz is safe for Android's synchronous Java serial bridge)
-            this.statusInterval = setInterval(() => ws.sendRealtime('?'), 250);
+            // Start status polling (Lighter polling for WebSocket/SD to prevent bridge overload)
+            const pollingRate = ws.type === 'websocket' ? 500 : 250;
+            this.statusInterval = setInterval(() => ws.sendRealtime('?'), pollingRate);
 
             // Initialization Sequence - $E* commands first, status request LAST
             // (Sending \x87 early causes a large 155-char response that collides with $EE)

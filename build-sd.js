@@ -3,6 +3,7 @@ const path = require('path');
 const zlib = require('zlib');
 const inlineSource = require('inline-source').inlineSource;
 const { minify } = require('html-minifier-terser');
+const esbuild = require('esbuild');
 
 async function build() {
     const rootDir = __dirname;
@@ -19,52 +20,94 @@ async function build() {
     }
 
     try {
-        console.log('1. Inlining CSS and JS constraints...');
-
-        // inlineSource requires <script inline src="..."> or <link inline rel="...">
-        // Since we cannot modify the original safely without risking standard devs,
-        // we'll explicitly pass the right options. (Or we can dynamically add 'inline' attributes).
+        console.log('1. Bundling ES6 Modules...');
 
         let htmlContent = fs.readFileSync(inputPath, 'utf8');
 
-        // Add "inline" attribute to standard css and scripts so inline-source processes them
-        htmlContent = htmlContent.replace(/<link rel="stylesheet"/g, '<link inline rel="stylesheet"');
-        htmlContent = htmlContent.replace(/<script src=/g, '<script inline src=');
-        htmlContent = htmlContent.replace(/<script type="module" src=/g, '<script inline type="module" src=');
+        // Extract the <script type="module"> content
+        const moduleRegex = /<script type="module">([\s\S]*?)<\/script>/;
+        const match = htmlContent.match(moduleRegex);
 
-        // Write a temp file for processing
-        const tempPath = path.join(rootDir, '_temp_index.html');
-        fs.writeFileSync(tempPath, htmlContent);
+        if (!match) {
+            throw new Error('Could not find <script type="module"> block in index.html');
+        }
 
-        let html = await inlineSource(tempPath, {
+        const moduleCode = match[1];
+        const tmpEntryPath = path.join(rootDir, '_tmp_entry.js');
+        const tmpBundlePath = path.join(rootDir, '_tmp_bundle.js');
+
+        fs.writeFileSync(tmpEntryPath, moduleCode);
+
+        // Bundle with esbuild, mirroring the importmap from index.html
+        await esbuild.build({
+            entryPoints: [tmpEntryPath],
+            bundle: true,
+            outfile: tmpBundlePath,
+            minify: true,
+            format: 'iife',
+            target: ['es2015'],
+            alias: {
+                'three': path.join(rootDir, 'vendor', 'three.module.js'),
+                'three/addons': path.join(rootDir, 'vendor', 'jsm')
+            },
+            loader: { '.js': 'js' }
+        });
+
+        console.log('2. Preparing HTML for Inlining...');
+
+        // Remove the importmap specifically for SD build as it's no longer needed
+        const importMapRegex = /<script type="importmap">[\s\S]*?<\/script>/;
+        let processedHtml = htmlContent.replace(importMapRegex, '');
+
+        // Replace the module script block with a pointer to our bundle
+        processedHtml = processedHtml.replace(moduleRegex, '<script inline src="_tmp_bundle.js"></script>');
+
+        // Add "inline" attribute to other resources
+        processedHtml = processedHtml.replace(/<link rel="stylesheet"/g, '<link inline rel="stylesheet"');
+        processedHtml = processedHtml.replace(/<script src=/g, '<script inline src=');
+
+        const tempHtmlPath = path.join(rootDir, '_temp_index.html');
+        fs.writeFileSync(tempHtmlPath, processedHtml);
+
+        console.log('3. Inlining all assets...');
+        let inlinedHtml = await inlineSource(tempHtmlPath, {
             compress: true,
             rootpath: rootDir
         });
 
-        // Cleanup temp
-        fs.unlinkSync(tempPath);
+        // Cleanup intermediate files
+        try { fs.unlinkSync(tmpEntryPath); } catch (e) { }
+        try { fs.unlinkSync(tmpBundlePath); } catch (e) { }
+        try { fs.unlinkSync(tempHtmlPath); } catch (e) { }
 
-        console.log('2. Minifying HTML structure...');
-        const minifiedHtml = await minify(html, {
+        console.log('4. Aggressive Minification...');
+        const minifiedHtml = await minify(inlinedHtml, {
             collapseWhitespace: true,
             removeComments: true,
             minifyJS: true,
             minifyCSS: true,
-            removeAttributeQuotes: true
+            removeAttributeQuotes: true,
+            processConditionalComments: true,
+            removeEmptyAttributes: true,
+            removeRedundantAttributes: true,
+            removeScriptTypeAttributes: true,
+            removeStyleLinkTypeAttributes: true,
+            useShortDoctype: true
         });
 
         fs.writeFileSync(outputHtmlPath, minifiedHtml);
         console.log(`Saved minified HTML: ${outputHtmlPath} (${(Buffer.byteLength(minifiedHtml, 'utf8') / 1024).toFixed(2)} kb)`);
 
-        console.log('3. Compressing with GZIP...');
-        const gzip = zlib.gzipSync(Buffer.from(minifiedHtml, 'utf-8'));
+        console.log('5. Compressing with GZIP for SD Card...');
+        const gzip = zlib.gzipSync(Buffer.from(minifiedHtml, 'utf-8'), { level: 9 });
 
         fs.writeFileSync(outputGzPath, gzip);
         console.log(`Saved gzip package: ${outputGzPath} (${(gzip.length / 1024).toFixed(2)} kb)`);
 
-        console.log('Done! Deploy `index.html.gz` to the root of your grblHAL SD Card.');
+        console.log('\nSuccess! Deploy `index.html.gz` to your grblHAL SD Card.');
     } catch (err) {
         console.error('Build Error:', err);
+        process.exit(1);
     }
 }
 

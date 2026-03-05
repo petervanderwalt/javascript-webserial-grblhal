@@ -2032,7 +2032,8 @@
                     if (window.uiManager.statusInterval) clearInterval(window.uiManager.statusInterval);
                 },
                 resumePolling: () => {
-                    window.uiManager.statusInterval = setInterval(() => ws.sendRealtime('?'), 50);
+                    const pollingRate = ws.type === 'websocket' ? 500 : 250;
+                    window.uiManager.statusInterval = setInterval(() => ws.sendRealtime('?'), pollingRate);
                 }
             });
             window.sdHandler = sdHandler;
