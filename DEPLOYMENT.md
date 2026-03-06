@@ -44,6 +44,14 @@ Compiles the exact same codebase into an `.apk` file that installs natively on A
 3. Run `npm run build-android` to generate the APK.
 4. **Direct Install:** Plug your phone in via USB and run `npm run run-android` to auto-deploy, or drag the generated `app-debug.apk` file onto your phone storage and tap to install.
 
+> [!TIP]
+> **Pro-Tip: Android Java Persistence**  
+> If you encounter `javac not found` or path errors on Windows, the build scripts are optimized for the following local paths:  
+> *   **JAVA_HOME:** `C:\Program Files\Android\Android Studio\jbr` (Matches Android Studio's bundled runtime)
+> *   **ANDROID_HOME:** `%USERPROFILE%\AppData\Local\Android\Sdk`  
+> These are automatically prioritized in `run-android.js` and `build-android.js`.  
+> *Note: Using the bundled `jbr` is more reliable than standard Oracle/OpenJDK installs for Cordova 14+ compatibility.*
+
 ### Connectivity
 *   **Native USB OTG:** When you connect an Android phone to the grblHAL controller using a USB-C OTG cable, the UI uses the `cordovarduino` native driver. When you tap **Connect -> Native USB**, a security prompt appears ("Allow app to access USB device?"). Once accepted, the app takes direct ownership of the STMicroelectronics CDC chip (VID: 0483, PID: 5740) bypassing the browser layer entirely.
 *   **WebSocket:** If your controller is on WiFi, the Android app can also connect over the network using the WebSocket tab.

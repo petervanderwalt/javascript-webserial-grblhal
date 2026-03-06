@@ -97,7 +97,7 @@ export class SDCardHandler {
 
     // --- Actions ---
 
-    refresh() {
+    async refresh() {
         // Clean Body
         document.querySelector('#sd-table tbody').innerHTML = '';
 
@@ -121,6 +121,39 @@ export class SDCardHandler {
         this.fileCount = 0;
         this.files = {}; // Clear cache
         document.getElementById('sd-badge').classList.add('hidden');
+
+        // Try HTTP first if available
+        if (this.ws.httpBaseUrl) {
+            try {
+                let p = this.path;
+                if (!p.startsWith('/')) p = '/' + p;
+                const url = `${this.ws.httpBaseUrl}/sdfiles?path=${encodeURIComponent(p)}&action=list`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'ok' && data.files) {
+                        // Sort: Directories first, then alphabetical
+                        data.files.sort((a, b) => {
+                            if (a.size === -1 && b.size !== -1) return -1;
+                            if (a.size !== -1 && b.size === -1) return 1;
+                            return a.name.localeCompare(b.name);
+                        });
+
+                        data.files.forEach(f => {
+                            if (f.size === -1) {
+                                this._addSdDir(`[DIR:${f.name}]`);
+                            } else {
+                                this._addSdFile(`[FILE:${f.name}|SIZE:${f.size}]`);
+                            }
+                        });
+                        return; // Successfully listed via HTTP
+                    }
+                }
+            } catch (e) {
+                console.warn("HTTP SD listing failed, falling back to serial:", e);
+            }
+        }
+
         this.ws.sendCommand('$F+');
     }
 
@@ -141,7 +174,21 @@ export class SDCardHandler {
         const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
         const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
 
-        const processDelete = () => {
+        const processDelete = async () => {
+            if (this.ws.httpBaseUrl) {
+                try {
+                    let p = this.path;
+                    if (!p.startsWith('/')) p = '/' + p;
+                    const url = `${this.ws.httpBaseUrl}/sdfiles?path=${encodeURIComponent(p)}&filename=${encodeURIComponent(fileName)}&action=delete`;
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        this.refresh();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("HTTP delete failed:", e);
+                }
+            }
             this.ws.sendCommand(`$FD=${fullPath}`);
             setTimeout(() => this.refresh(), 1000);
         };
@@ -156,11 +203,12 @@ export class SDCardHandler {
     async preview(fileName, skipConfirm = false) {
         if (this.isDownloading) return;
 
-        const processPreview = () => {
+        const processPreview = async () => {
             this.isDownloading = true;
             this.downloadingFile = fileName;
-            this.downloadingFullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
-            this.downloadTotal = this.files[fileName] || 0; // Get size from cache
+            const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
+            this.downloadingFullPath = fullPath;
+            this.downloadTotal = this.files[fileName] || 0;
             console.log(`Starting download for ${fileName}. Expected size: ${this.downloadTotal} bytes`);
 
             this.downloadBuffer = "";
@@ -168,9 +216,22 @@ export class SDCardHandler {
 
             // Show Progress Bar in UI
             this._toggleProgressUI(fileName, true);
-
-            const fullPath = this.path === '/' ? `/${fileName}` : `${this.path}/${fileName}`;
             this.term.writeln(`\x1b[33mDownloading ${fullPath}...\x1b[0m`);
+
+            if (this.ws.httpBaseUrl) {
+                try {
+                    const response = await fetch(`${this.ws.httpBaseUrl}/sd${fullPath}`);
+                    if (response.ok) {
+                        const content = await response.text();
+                        this.downloadBuffer = content;
+                        this._finishDownload();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("HTTP download failed, falling back to serial:", e);
+                }
+            }
+
             this.ws.sendCommand(`$F<=${fullPath}`);
         };
 
@@ -469,6 +530,46 @@ export class SDCardHandler {
         const reporter = window.reporter || (window.AlarmsAndErrors ? new window.AlarmsAndErrors(this.ws) : null);
 
         const processUpload = async () => {
+            const fp = this.path === '/' ? name : `${this.path}/${name}`;
+
+            if (this.ws.httpBaseUrl) {
+                const formData = new FormData();
+                formData.append('path', this.path);
+                formData.append('file', file, name);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${this.ws.httpBaseUrl}/upload`, true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        document.getElementById('upload-progress-bar').style.width = `${pct}%`;
+                        document.getElementById('upload-pct').textContent = `${pct}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200 || xhr.status === 204) {
+                        this.term.writeln(`\x1b[32m[HTTP] Upload of ${name} successful.\x1b[0m`);
+                        this._finishYmodem();
+                    } else {
+                        this._abortYmodem(`Upload failed: ${xhr.statusText} (${xhr.status})`);
+                    }
+                };
+
+                xhr.onerror = () => this._abortYmodem('Network error during HTTP upload');
+
+                document.getElementById('upload-progress-container').classList.remove('hidden');
+                document.getElementById('upload-progress-container').style.display = 'block';
+                document.getElementById('upload-progress-bar').style.width = '0%';
+                document.getElementById('upload-pct').textContent = '0%';
+
+                this.term.writeln(`\x1b[35m[HTTP] Starting upload: ${fp}...\x1b[0m`);
+                xhr.send(formData);
+                return;
+            }
+
+            // Fallback to YMODEM
             const ab = await file.arrayBuffer();
             const bytes = new Uint8Array(ab);
 
@@ -494,7 +595,6 @@ export class SDCardHandler {
 
             this.term.writeln('\x1b[35m[YMODEM] Initializing Transfer...\x1b[0m');
 
-            const fp = this.path === '/' ? name : `${this.path}/${name}`;
             // Use sendCommand for the initial setup to ensure flow control is respected
             await this.ws.sendCommand(`$FY=${fp}`);
             console.log("Sent $FY command, waiting for controller to signal start (C character)...");

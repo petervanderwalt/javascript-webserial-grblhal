@@ -134,7 +134,10 @@ class JobController {
         window.ws.sendCommand(line);
         this.gcodeStreamer.index++;
 
-        this.updateJobProgressUI(pct, filename ? `File: ${filename}` : 'Standard Job');
+        const pct = Math.round((this.gcodeStreamer.index / this.gcodeStreamer.lines.length) * 100);
+        const label = `Line ${this.gcodeStreamer.index} of ${this.gcodeStreamer.lines.length}`;
+
+        this.updateJobProgressUI(pct, label);
 
         // Sync with backend if connected
         if (window.ws.backendWs) {

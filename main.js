@@ -33,6 +33,20 @@ ipcMain.on('window-close', (event) => {
     app.quit();
 });
 
+ipcMain.handle('get-network-info', async () => {
+    const os = require('os');
+    const interfaces = os.networkInterfaces();
+    const results = [];
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                results.push(iface.address);
+            }
+        }
+    }
+    return results;
+});
+
 let activePort = null;
 let activeSocket = null;
 

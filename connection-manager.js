@@ -10,6 +10,8 @@ export class ConnectionManager {
         this.isElectron = window.electron !== undefined;
         // isCordova is checked dynamically since cordova.js loads async
         this.hasBackend = this.isElectron || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '8081');
+        this.httpBaseUrl = null;
+        this._scanning = false;
 
         this.listeners = {
             connect: [],
@@ -102,6 +104,7 @@ export class ConnectionManager {
                 if (wsUrlInput) {
                     wsUrlInput.value = `ws://${window.location.hostname}:81/ws`; // Assuming default networking plugin port
                 }
+                this.httpBaseUrl = window.location.origin;
             } else {
                 this.setConnectionType('webserial');
             }
@@ -403,6 +406,13 @@ export class ConnectionManager {
 
             this.directWs.onopen = () => {
                 console.log("Direct WebSocket Connected to grblHAL");
+                try {
+                    const wsUrl = new URL(url);
+                    this.httpBaseUrl = `http://${wsUrl.hostname}`;
+                    console.log("Derived HTTP Base URL:", this.httpBaseUrl);
+                } catch (e) {
+                    console.error("Failed to derive HTTP URL from WebSocket URL:", url);
+                }
                 this.flowControl.reset();
                 this.handleConnect();
             };
@@ -560,5 +570,120 @@ export class ConnectionManager {
 
     emit(event, data) {
         if (this.listeners[event]) this.listeners[event].forEach(cb => cb(data));
+    }
+
+    // --- Network Scanner ---
+    async scanNetwork() {
+        const resultsDiv = document.getElementById('scan-results');
+        const statusDiv = document.getElementById('scan-status');
+        const btn = document.getElementById('btn-scan-network');
+
+        if (this._scanning) return;
+        this._scanning = true;
+
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        resultsDiv.innerHTML = '';
+        resultsDiv.classList.remove('hidden');
+        statusDiv.classList.remove('hidden');
+
+        // Common subnets to try
+        let subnets = ['192.168.1', '192.168.0', '192.168.4', '10.0.0'];
+
+        // Try to detect local subnet if in Electron or non-localhost web
+        if (this.isElectron && window.electron.getNetworkInfo) {
+            try {
+                const ips = await window.electron.getNetworkInfo();
+                ips.forEach(ip => {
+                    const parts = ip.split('.');
+                    if (parts.length === 4) {
+                        parts.pop();
+                        const subnet = parts.join('.');
+                        if (!subnets.includes(subnet)) subnets.unshift(subnet);
+                    }
+                });
+            } catch (e) { console.error("Scanner subnet detection failed:", e); }
+        } else if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)) {
+            const parts = window.location.hostname.split('.');
+            parts.pop();
+            const subnet = parts.join('.');
+            if (!subnets.includes(subnet)) subnets.unshift(subnet);
+        }
+
+        const found = [];
+        const checkIP = async (ip) => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 800);
+                // We check for /sdfiles?action=list which is a core Plugin_WebUI endpoint
+                const resp = await fetch(`http://${ip}/sdfiles?action=list`, { signal: controller.signal }).catch(() => null);
+                clearTimeout(timeoutId);
+
+                if (resp && resp.ok) {
+                    try {
+                        const data = await resp.json();
+                        // grblHAL Plugin_WebUI returns specific JSON structure
+                        if (data && data.status === 'ok' && data.files !== undefined) {
+                            return { ip, name: 'grblHAL Controller' };
+                        }
+                    } catch (e) { }
+                }
+            } catch (e) { }
+            return null;
+        };
+
+        // Parallel scan with limited concurrency
+        const concurrency = 15;
+        for (const subnet of subnets) {
+            statusDiv.textContent = `Scanning ${subnet}.x...`;
+            const tasks = [];
+            for (let i = 1; i < 255; i++) {
+                const ip = `${subnet}.${i}`;
+                tasks.push((async () => {
+                    const res = await checkIP(ip);
+                    if (res) {
+                        found.push(res);
+                        this._addScanResult(res);
+                    }
+                })());
+
+                if (tasks.length >= concurrency) {
+                    await Promise.all(tasks);
+                    tasks.length = 0;
+                }
+            }
+            await Promise.all(tasks);
+        }
+
+        this._scanning = false;
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        statusDiv.classList.add('hidden');
+
+        if (found.length === 0) {
+            resultsDiv.innerHTML = '<div class="text-[10px] text-grey text-center py-2">No controllers found.</div>';
+        }
+    }
+
+    _addScanResult(res) {
+        const resultsDiv = document.getElementById('scan-results');
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-1.5 hover:bg-white rounded cursor-pointer transition-colors border-b border-grey-light last:border-b-0 group';
+        div.innerHTML = `
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-secondary-dark">${res.ip}</span>
+                <span class="text-[9px] text-grey uppercase font-bold text-primary">${res.name}</span>
+            </div>
+            <i class="bi bi-chevron-right text-grey group-hover:text-primary transition-colors"></i>
+        `;
+        div.onclick = () => {
+            const urlInput = document.getElementById('url-websocket');
+            if (urlInput) {
+                urlInput.value = `ws://${res.ip}:81/ws`;
+            }
+            // Auto-hide results
+            resultsDiv.classList.add('hidden');
+        };
+        resultsDiv.appendChild(div);
     }
 }

@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('electron', {
     minimize: () => ipcRenderer.send('window-minimize'),
     maximize: () => ipcRenderer.send('window-maximize'),
     close: () => ipcRenderer.send('window-close'),
+    getNetworkInfo: () => ipcRenderer.invoke('get-network-info'),
     isElectron: true
 });
