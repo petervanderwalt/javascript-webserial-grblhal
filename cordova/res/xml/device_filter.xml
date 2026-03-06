@@ -24,4 +24,7 @@
 
     <!-- 0x0d28 / 0x0204: ARM mbed -->
     <usb-device vendor-id="3368" product-id="516" />
+
+    <!-- 0x303A / 0x4001: ESP32-S3 (grblHAL) -->
+    <usb-device vendor-id="12346" product-id="16385" />
 </resources>

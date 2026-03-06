@@ -14,12 +14,12 @@ function copyRecursiveSync(src, dest, exclude) {
             copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName), exclude);
         });
     } else {
-        // Only copy if it's not excluded
+        if (src.endsWith('.gz')) return; // Never copy compressed assets to cordova
         fs.copyFileSync(src, dest);
     }
 }
 
-const excludes = ['node_modules', 'cordova', '.git', 'package.json', 'package-lock.json', 'sync.js', '.vscode', '.gemini'];
+const excludes = ['node_modules', 'cordova', '.git', 'package.json', 'package-lock.json', 'sync.js', '.vscode', '.gemini', 'dist', 'android-build.log', 'android-crash.log', 'android_build_verbose.log', 'run_android_last.log', 'run_android_final.log'];
 const srcPath = path.resolve(__dirname);
 const destPath = path.join(__dirname, 'cordova', 'www');
 

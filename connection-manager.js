@@ -360,28 +360,50 @@ export class ConnectionManager {
             const baud = parseInt(document.getElementById('baud-node').value);
 
             if (this.isCordova) {
-                // cordovarduino requires decimal integers, NOT hex strings
-                // VID 0x0483 = 1155, PID 0x5740 = 22336 (STMicroelectronics CDC)
-                serial.requestPermission(
-                    { vid: 1155, pid: 22336 },
-                    () => {
-                        serial.open(
-                            { baudRate: baud, sleepOnPause: false },
-                            () => {
-                                console.log("Cordova Serial Open Success");
-                                this.flowControl.reset();
-                                this.handleConnect();
-                            },
-                            (err) => {
-                                console.error("Cordova Serial Open Error:", err);
-                                this.emit('error', new Error("Can't open port: " + err));
-                            }
-                        );
-                    },
-                    (err) => {
-                        console.error("Cordova USB Permission Denied:", err);
-                        this.emit('error', new Error("Permission denied: " + err));
-                    });
+                // Supported devices: STM32 (1155:22336) and ESP32-S3 (12346:16385)
+                const supportedDevices = [
+                    { vid: 1155, pid: 22336, name: 'STM32' },
+                    { vid: 12346, pid: 16385, name: 'ESP32-S3' }
+                ];
+
+                const tryConnect = (index) => {
+                    if (index >= supportedDevices.length) {
+                        this.emit('error', new Error("No supported USB device found or permission denied."));
+                        return;
+                    }
+
+                    const device = supportedDevices[index];
+                    console.log(`Trying Cordova USB Permission for: ${device.name} (VID: ${device.vid}, PID: ${device.pid})`);
+
+                    serial.requestPermission(
+                        { vid: device.vid, pid: device.pid },
+                        () => {
+                            serial.open(
+                                { baudRate: baud, sleepOnPause: false },
+                                () => {
+                                    console.log(`Cordova Serial Open Success [${device.name}]`);
+                                    this.flowControl.reset();
+                                    this.handleConnect();
+                                },
+                                (err) => {
+                                    console.error(`Cordova Serial Open Error [${device.name}]:`, err);
+                                    // If "No device found", try the next one in the list
+                                    if (err.toString().toLowerCase().includes("no device") || err.toString().toLowerCase().includes("not found")) {
+                                        tryConnect(index + 1);
+                                    } else {
+                                        this.emit('error', new Error("Can't open port: " + err));
+                                    }
+                                }
+                            );
+                        },
+                        (err) => {
+                            console.warn(`Cordova USB Permission Denied/Next [${device.name}]:`, err);
+                            // Device might not be plugged in, or it might be the wrong one. Try next.
+                            tryConnect(index + 1);
+                        });
+                };
+
+                tryConnect(0);
             } else {
                 this.backendWs.send(JSON.stringify({
                     type: 'connect',
