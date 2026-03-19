@@ -129,11 +129,16 @@ export class AlarmsAndErrors {
         // Initialize the DOM elements for the modal
         this.initModal();
 
-        // Listen for active alarm events from status reports
+        // Listen for active alarm events from status reports (e.g. from initial connect)
         window.addEventListener('active-alarm', (e) => {
             if (e.detail && e.detail.code) {
-                this.currentAlarmCode = e.detail.code;
-                this.currentAlarm = this.alarms[e.detail.code] || 'Unknown Alarm';
+                const newCode = e.detail.code;
+                if (this.currentAlarmCode !== newCode) {
+                    this.currentAlarmCode = newCode;
+                    this.currentAlarm = this.alarms[newCode] || 'Unknown Alarm';
+                    // Automatically trigger the Unlock Modal on startup or async status change
+                    this.showModal('ALARM', newCode, this.currentAlarm);
+                }
             }
         });
     }
@@ -536,7 +541,10 @@ export class AlarmsAndErrors {
             const desc = this.errors[code] || "Unknown Error";
             const msg = desc;
 
-            this.showModal('ERROR', code, msg);
+            if (code !== '253') {
+                this.showModal('ERROR', code, msg);
+            }
+            
             return `\x1b[31mError ${code}: ${desc}\x1b[0m`;
         }
 

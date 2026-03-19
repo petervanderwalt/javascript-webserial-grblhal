@@ -50,6 +50,17 @@ export class ConnectionManager {
     }
 
     init() {
+        const saved = this.loadSettings();
+        if (saved) {
+            if (saved.webserialBaud && document.getElementById('baud-webserial')) document.getElementById('baud-webserial').value = saved.webserialBaud;
+            if (saved.usbBaud && document.getElementById('baud-node')) document.getElementById('baud-node').value = saved.usbBaud;
+            if (saved.telnetIp && document.getElementById('ip-telnet')) document.getElementById('ip-telnet').value = saved.telnetIp;
+            if (saved.telnetPort && document.getElementById('port-telnet')) document.getElementById('port-telnet').value = saved.telnetPort;
+            if (saved.websocketUrl && document.getElementById('url-websocket')) {
+                document.getElementById('url-websocket').value = saved.websocketUrl;
+            }
+        }
+
         // Intercept connect button click
         if (this.btnConnect) {
             this.btnConnect.onclick = () => {
@@ -76,18 +87,19 @@ export class ConnectionManager {
             this.hasBackend = true; // Cordova counts as a backend
             this.initCordova();
             // Re-run UI setup now that we know we're in Cordova
-            // Show the native USB tab and default to it
+            // Show the native USB tab
             const usbTab = document.getElementById('tab-usb');
             const telnetTab = document.getElementById('tab-telnet');
             if (usbTab) usbTab.classList.remove('hidden');
             if (telnetTab) telnetTab.classList.add('hidden'); // telnet still hidden on mobile
-            this.setConnectionType('usb');
+            this.setConnectionType('websocket');
         }, false);
 
         // UI initialization based on hosting environment
         if (this.isElectron) {
             const tb = document.getElementById('electron-title-bar');
             if (tb) tb.classList.remove('hidden');
+            this.setConnectionType('usb');
         }
 
         if (!this.hasBackend) {
@@ -109,6 +121,32 @@ export class ConnectionManager {
                 this.setConnectionType('webserial');
             }
         }
+    }
+
+    saveSettings() {
+        try {
+            const settings = {
+                webserialBaud: document.getElementById('baud-webserial')?.value,
+                usbPort: document.getElementById('port-node')?.value,
+                usbBaud: document.getElementById('baud-node')?.value,
+                telnetIp: document.getElementById('ip-telnet')?.value,
+                telnetPort: document.getElementById('port-telnet')?.value,
+                websocketUrl: document.getElementById('url-websocket')?.value
+            };
+            localStorage.setItem('cnc_connection_settings', JSON.stringify(settings));
+        } catch (e) {
+            console.error("Error saving connection settings:", e);
+        }
+    }
+
+    loadSettings() {
+        try {
+            const stored = localStorage.getItem('cnc_connection_settings');
+            if (stored) return JSON.parse(stored);
+        } catch (e) {
+            console.error("Error loading connection settings:", e);
+        }
+        return null;
     }
 
     toggleModal() {
@@ -164,8 +202,12 @@ export class ConnectionManager {
             }
         });
 
-        if (type === 'usb' && this.isElectron && !this.backendWs) {
-            this.connectToBackend();
+        if (type === 'usb' && this.isElectron) {
+            if (!this.backendWs) {
+                this.connectToBackend().then(() => this.refreshNodePorts()).catch(() => {});
+            } else {
+                this.refreshNodePorts();
+            }
         }
     }
 
@@ -251,6 +293,10 @@ export class ConnectionManager {
                 const select = document.getElementById('port-node');
                 if (select) {
                     select.innerHTML = msg.data.map(p => `<option value="${p.path}">${p.friendlyName || p.path}</option>`).join('');
+                    const saved = this.loadSettings();
+                    if (saved && saved.usbPort) {
+                        select.value = saved.usbPort;
+                    }
                 }
                 break;
             case 'connected':
@@ -351,6 +397,8 @@ export class ConnectionManager {
     }
 
     async connect() {
+        this.saveSettings();
+        
         if (this.type === 'webserial') {
             const baud = parseInt(document.getElementById('baud-webserial').value);
             await this.webSerial.connect(baud);

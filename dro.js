@@ -126,7 +126,8 @@ export class DROHandler {
         const feedInput = document.getElementById('feedRate');
         if (feedInput) {
             // Read from Store
-            feedInput.value = this.store.get('jog.feed');
+            const val = this.store.get('jog.speedMode');
+            feedInput.value = (val === 'fast' || val === 'med' || val === 'slow') ? val : 'slow';
         }
     }
 
@@ -393,6 +394,7 @@ export class DROHandler {
         // Check for Idle to reset SD UI (Only if NOT printing)
         if (s === 'idle' && !isSdPrinting) {
             window.dispatchEvent(new CustomEvent('sd-job-complete'));
+            window.dispatchEvent(new CustomEvent('machine-idle'));
         }
     }
 

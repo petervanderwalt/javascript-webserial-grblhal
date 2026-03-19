@@ -31,6 +31,17 @@ export class SDCardHandler {
             packetNum: 0,
             offset: 0
         };
+
+        this.refreshPending = false;
+        
+        // Listen for machine becoming idle so we can safely refresh if it was deferred (e.g., due to an Alarm on connect)
+        window.addEventListener('machine-idle', () => {
+            if (this.refreshPending) {
+                this.refreshPending = false;
+                console.log("SD Refresh: Machine is now Idle. Running deferred SD scan...");
+                this.refresh();
+            }
+        });
     }
 
     /**
@@ -98,6 +109,16 @@ export class SDCardHandler {
     // --- Actions ---
 
     async refresh() {
+        // Prevent SD refresh if machine is in an Alarm state (Error 79)
+        const stateEl = document.getElementById('machine-state');
+        if (stateEl && stateEl.textContent.toLowerCase().includes('alarm')) {
+            console.warn("Skipping SD card refresh: Machine is in an Alarm state. Will run when Idle.");
+            this.refreshPending = true;
+            return;
+        }
+
+        this.refreshPending = false;
+
         // Clean Body
         document.querySelector('#sd-table tbody').innerHTML = '';
 

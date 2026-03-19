@@ -203,8 +203,28 @@ async function handleMessage(data, ws) {
             if (data.connectionType === 'usb') {
                 activePort = new SerialPort({
                     path: data.port,
-                    baudRate: parseInt(data.baud)
+                    baudRate: parseInt(data.baud),
+                    autoOpen: false
                 });
+
+                activePort.on('error', (err) => {
+                    console.error("SerialPort Error:", err);
+                    ws.send(JSON.stringify({ type: 'error', message: `Port Error: ${err.message}` }));
+                    updateStatus('comms.connected', false);
+                    broadcast({ type: 'disconnected' });
+                    
+                    // Release the OS file handle so closing/reconnecting works natively
+                    if (activePort) {
+                        try {
+                            if (activePort.close && activePort.isOpen) activePort.close();
+                            if (activePort.destroy) activePort.destroy();
+                        } catch (e) {}
+                        activePort = null;
+                    }
+                });
+
+                activePort.open();
+
                 activePort.on('open', () => {
                     updateStatus('comms.connected', true);
                     updateStatus('comms.type', 'usb');
@@ -216,9 +236,26 @@ async function handleMessage(data, ws) {
                 activePort.on('close', () => {
                     updateStatus('comms.connected', false);
                     broadcast({ type: 'disconnected' });
+                    // Nullify so it doesn't get used again improperly
+                    if (activePort) activePort = null; 
                 });
             } else if (data.connectionType === 'telnet') {
                 activePort = net.connect(data.port || 23, data.ip);
+                
+                activePort.on('error', (err) => {
+                    console.error("Telnet Error:", err);
+                    ws.send(JSON.stringify({ type: 'error', message: `Telnet Error: ${err.message}` }));
+                    updateStatus('comms.connected', false);
+                    broadcast({ type: 'disconnected' });
+
+                    if (activePort) {
+                        try {
+                            if (activePort.destroy) activePort.destroy();
+                        } catch (e) {}
+                        activePort = null;
+                    }
+                });
+
                 activePort.on('connect', () => {
                     updateStatus('comms.connected', true);
                     updateStatus('comms.type', 'telnet');
@@ -230,6 +267,7 @@ async function handleMessage(data, ws) {
                 activePort.on('close', () => {
                     updateStatus('comms.connected', false);
                     broadcast({ type: 'disconnected' });
+                    if (activePort) activePort = null;
                 });
             }
             break;
