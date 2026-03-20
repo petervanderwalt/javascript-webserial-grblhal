@@ -148,7 +148,7 @@ export class AlarmsAndErrors {
 
         const overlay = document.createElement('div');
         overlay.id = 'cnc-modal-overlay';
-        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center';
+        overlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] hidden flex items-center justify-center';
 
         overlay.innerHTML = `
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 p-0 border border-grey-light">

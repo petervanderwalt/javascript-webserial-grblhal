@@ -47,7 +47,10 @@ class JoggingController {
             window.store.set('jog.step', parseFloat(e.target.value));
         });
 
-        document.getElementById('feedRate').addEventListener('change', (e) => {
+        const feedRateSelect = document.getElementById('feedRate');
+        feedRateSelect.value = window.store.get('jog.speedMode') || 'fast';
+
+        feedRateSelect.addEventListener('change', (e) => {
             window.store.set('jog.speedMode', e.target.value);
         });
 

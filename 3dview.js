@@ -989,36 +989,52 @@ export class GCodeViewer {
     }
 
     resetCamera() {
-        // 1. Try GCode Box (Job Focus) - using WORLD coordinates for Camera
         const box = new THREE.Box3().setFromObject(this.gcodeGroup);
+        let center = new THREE.Vector3(0, 0, 0);
+        let maxDim = 100;
+        let isSetup = false;
 
         if (!box.isEmpty()) {
-            const center = box.getCenter(new THREE.Vector3());
+            center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
-            const maxDim = Math.max(size.x, size.y);
-            this.controls.target.copy(center);
-            this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
-            this.controls.update();
+            maxDim = Math.max(size.x, size.y);
+            isSetup = true;
         } else {
-            // 2. Try Grid Box (Grid Focus) - using WORLD coordinates
             const gridBox = new THREE.Box3().setFromObject(this.gridGroup);
-
             if (!gridBox.isEmpty() && isFinite(gridBox.min.x)) {
-                const center = gridBox.getCenter(new THREE.Vector3());
+                center = gridBox.getCenter(new THREE.Vector3());
                 const size = gridBox.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z || 100);
-
-                this.controls.target.copy(center);
-                // Position camera to see the full grid
-                this.camera.position.set(center.x, center.y - maxDim * 1.5, center.z + maxDim);
-                this.controls.update();
-            } else {
-                // 3. Fallback (Default)
-                this.camera.position.set(0, -200, 200);
-                this.controls.target.set(0, 0, 0);
-                this.controls.update();
+                maxDim = Math.max(size.x, size.y, size.z || 100);
+                isSetup = true;
             }
         }
+
+        // Target View: Front-Facing, Tilted back
+        const targetPos = new THREE.Vector3(center.x, center.y - maxDim * 1.5, center.z + maxDim);
+        const startPos = this.camera.position.clone();
+        const startTarget = this.controls.target.clone();
+
+        const duration = 600;
+        const startTime = Date.now();
+
+        const anim = () => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease-out cubic
+            const ease = 1 - Math.pow(1 - progress, 3);
+
+            this.camera.position.lerpVectors(startPos, targetPos, ease);
+            this.controls.target.lerpVectors(startTarget, center, ease);
+            this.controls.update();
+
+            if (progress < 1) {
+                requestAnimationFrame(anim);
+            }
+        };
+
+        requestAnimationFrame(anim);
     }
 
     setCameraView(view) {

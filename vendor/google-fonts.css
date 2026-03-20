@@ -1,5 +1,23 @@
 /* Local font files - no internet required */
 
+/* ── JetBrains Mono (existing) ── */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxjPQ.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('./fonts/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKtjPQ.ttf') format('truetype');
+}
+
+/* ── Inter (existing, kept for fallback) ── */
 @font-face {
   font-family: 'Inter';
   font-style: normal;
@@ -40,18 +58,22 @@
   src: url('./fonts/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuDyYMZg.ttf') format('truetype');
 }
 
+/* ── Roboto — Brand body font (variable, Latin subset) ── */
 @font-face {
-  font-family: 'JetBrains Mono';
+  font-family: 'Roboto';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('./fonts/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxjPQ.ttf') format('truetype');
+  src: url('./fonts/Roboto.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* ── Nunito — Brand heading / button font (variable, Latin subset) ── */
 @font-face {
-  font-family: 'JetBrains Mono';
+  font-family: 'Nunito';
   font-style: normal;
-  font-weight: 800;
+  font-weight: 200 900;
   font-display: swap;
-  src: url('./fonts/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKtjPQ.ttf') format('truetype');
+  src: url('./fonts/Nunito.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

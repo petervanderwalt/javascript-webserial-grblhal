@@ -55,7 +55,7 @@
                         }
                     },
                     fontFamily: {
-                        heading: ['Roboto', 'Inter', 'sans-serif'],
+                        heading: ['Nunito', 'Inter', 'sans-serif'],
                         body: ['Roboto', 'Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace']
                     },
@@ -127,7 +127,7 @@
     </script>
 </head>
 
-<body class="h-screen w-screen flex flex-col overflow-hidden bg-white">
+<body class="h-screen w-screen flex flex-col overflow-hidden">
     <!-- Custom Electron Title Bar -->
     <div id="electron-title-bar"
         class="hidden h-10 bg-[#1e293b] text-white flex items-center justify-between px-4 border-b border-white/5 window-drag-region shrink-0">
@@ -160,7 +160,7 @@
             </div>
 
             <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-1.5 flex flex-col gap-1.5 sidebar-inner-scroll">
+            <div id="machine-controls" class="overflow-y-auto p-1.5 flex flex-col gap-1.5 sidebar-inner-scroll">
 
                 <!-- Handshake & Connection -->
                 <div id="sidebar-connect">
@@ -304,6 +304,37 @@
                             <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
                         </div>
                     </div>
+
+                    <!-- Overrides (merged into DRO card) -->
+                    <div class="mt-2 pt-2 border-t border-white/20 flex flex-col gap-1">
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-white/80 uppercase tracking-wide">Spindle</span>
+                            <div class="flex gap-1 items-center">
+                                <button onclick="sendRealtime('\x9B')" class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">-</button>
+                                <span id="spindle-ovr" class="min-w-[32px] text-center font-bold text-white">100%</span>
+                                <button onclick="sendRealtime('\x9A')" class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">+</button>
+                                <button onclick="sendRealtime('\x99')" class="px-1.5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold text-[8px]" title="Reset to 100%">RST</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-white/80 uppercase tracking-wide">Feed</span>
+                            <div class="flex gap-1 items-center">
+                                <button onclick="sendRealtime('\x92')" class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">-</button>
+                                <span id="feed-ovr" class="min-w-[32px] text-center font-bold text-white">100%</span>
+                                <button onclick="sendRealtime('\x91')" class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">+</button>
+                                <button onclick="sendRealtime('\x90')" class="px-1.5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold text-[8px]" title="Reset to 100%">RST</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px]">
+                            <span class="font-bold text-white/80 uppercase tracking-wide">Rapids</span>
+                            <div class="flex gap-1 items-center">
+                                <span id="rapid-ovr" class="min-w-[32px] text-center font-bold text-white">100%</span>
+                                <button onclick="sendRealtime('\x97')" class="px-1.5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold text-[8px]" title="Set to 25%">25</button>
+                                <button onclick="sendRealtime('\x96')" class="px-1.5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold text-[8px]" title="Set to 50%">50</button>
+                                <button onclick="sendRealtime('\x95')" class="px-1.5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold text-[8px]" title="Set to 100%">100</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Jog Controls (Compact) -->
@@ -397,146 +428,21 @@
                         </div>
                         <div class="relative">
                             <span class="absolute left-2 top-2 text-[11px] font-bold text-grey uppercase">Feed</span>
-                            <input type="number" id="feedRate" class="input-field pl-10 text-right h-8 py-0">
+                            <select id="feedRate" class="input-field pl-10 text-right h-8 py-0"
+                                aria-label="Jog feed rate mode">
+                                <option value="slow">Slow</option>
+                                <option value="med">Medium</option>
+                                <option value="fast" selected>Fast</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-                <!-- Overrides & Signals (Merged from Left) -->
-                <div class="grid grid-cols-2 gap-2">
-                    <!-- Overrides -->
-                    <!-- Overrides -->
-                    <div class="flex flex-col gap-1.5 bg-white p-2 border border-grey-light shadow-card"
-                        style="border-radius: 0;">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-grey uppercase">Overrides</span>
-                        </div>
-                        <!-- Spindle -->
-                        <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-grey-dark">Spindle</span>
-                            <div class="flex gap-1 items-center">
-                                <button onclick="sendRealtime('\x9B')"
-                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">-</button>
-                                <span id="spindle-ovr" class="min-w-[35px] text-center font-bold">100%</span>
-                                <button onclick="sendRealtime('\x9A')"
-                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
-                                <button onclick="sendRealtime('\x99')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary-light hover:bg-primary transition-colors font-bold text-[8px]"
-                                    title="Reset to 100%">RST</button>
-                            </div>
-                        </div>
-                        <!-- Feed -->
-                        <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-grey-dark">Feed</span>
-                            <div class="flex gap-1 items-center">
-                                <button onclick="sendRealtime('\x92')"
-                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">-</button>
-                                <span id="feed-ovr" class="min-w-[35px] text-center font-bold">100%</span>
-                                <button onclick="sendRealtime('\x91')"
-                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-grey-bg transition-colors font-bold">+</button>
-                                <button onclick="sendRealtime('\x90')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-primary-light hover:bg-primary transition-colors font-bold text-[8px]"
-                                    title="Reset to 100%">RST</button>
-                            </div>
-                        </div>
-                        <!-- Rapids -->
-                        <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-grey-dark">Rapids</span>
-                            <div class="flex gap-1 items-center">
-                                <span id="rapid-ovr" class="min-w-[35px] text-center font-bold">100%</span>
-                                <button onclick="sendRealtime('\x97')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
-                                    title="Set to 25%">25</button>
-                                <button onclick="sendRealtime('\x96')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
-                                    title="Set to 50%">50</button>
-                                <button onclick="sendRealtime('\x95')"
-                                    class="px-1.5 h-6 flex items-center justify-center rounded bg-grey-bg hover:bg-grey-light transition-colors font-bold text-[8px]"
-                                    title="Set to 100%">100</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Signals -->
-                    <div class="bg-white p-2 border border-grey-light shadow-card" style="border-radius: 0;">
-                        <span class="text-[9px] font-bold text-grey uppercase block mb-1">Input Signals</span>
-                        <div class="grid grid-cols-5 gap-0.5 max-h-24 overflow-y-auto">
-                            <!-- Limit Switches -->
-                            <div id="pin-indicator-X" title="X Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                X</div>
-                            <div id="pin-indicator-Y" title="Y Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                Y</div>
-                            <div id="pin-indicator-Z" title="Z Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                Z</div>
-                            <div id="pin-indicator-A" title="A Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                A</div>
-                            <div id="pin-indicator-B" title="B Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                B</div>
-                            <div id="pin-indicator-C" title="C Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                C</div>
-                            <div id="pin-indicator-U" title="U Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                U</div>
-                            <div id="pin-indicator-V" title="V Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                V</div>
-                            <div id="pin-indicator-W" title="W Limit"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                W</div>
-                            <!-- Probe -->
-                            <div id="pin-indicator-P" title="Probe Triggered"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                P</div>
-                            <div id="pin-indicator-O" title="Probe Disconnected"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                O</div>
-                            <!-- Control Switches -->
-                            <div id="pin-indicator-D" title="Door"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                D</div>
-                            <div id="pin-indicator-R" title="Reset"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                R</div>
-                            <div id="pin-indicator-H" title="Feed Hold"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                H</div>
-                            <div id="pin-indicator-S" title="Cycle Start"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                S</div>
-                            <div id="pin-indicator-E" title="E-Stop"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                E</div>
-                            <div id="pin-indicator-L" title="Block Delete"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                L</div>
-                            <div id="pin-indicator-T" title="Optional Stop"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                T</div>
-                            <div id="pin-indicator-Q" title="Single Step"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                Q</div>
-                            <!-- Motor Status -->
-                            <div id="pin-indicator-M" title="Motor Warning"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                M</div>
-                            <div id="pin-indicator-F" title="Motor Fault"
-                                class="text-[7px] font-bold text-center border border-grey-light rounded transition-colors py-0.5">
-                                F</div>
-                        </div>
-                    </div>
-                </div>
-
 
 
             </div> <!-- End Machine Controls (id="machine-controls") -->
 
             <!-- Console (Light Mode) -->
-            <div class="flex flex-col mb-10 md:mb-0 px-3 pb-3">
+            <div class="console-outer flex flex-col mb-10 md:mb-0">
                 <div class="console-wrapper">
                     <div id="terminal-container" class="w-full flex-1"></div>
                     <!-- Console Input -->
@@ -562,7 +468,7 @@
                 <div class="flex items-center h-full overflow-hidden shrink-0">
                     <!-- Unified Machine Sidebar Toggle -->
                     <button
-                        class="h-full px-4 text-primary hover:text-secondary border-r border-grey-light flex items-center justify-center transition-colors bg-white"
+                        class="md:hidden h-full px-4 text-primary hover:text-secondary border-r border-grey-light flex items-center justify-center transition-colors bg-white"
                         onclick="toggleMachineSidebar()" aria-label="Toggle machine controls">
                         <i class="bi bi-list text-xl"></i>
                     </button>
@@ -600,6 +506,7 @@
                             class="hidden ml-2 tab-badge text-[10px] font-bold px-1.5 py-0 rounded-full text-white">0</span>
                     </button>
                     <button class="tab-btn" onclick="switchTab('settings-view', this)">Settings</button>
+                    <button class="tab-btn" onclick="switchTab('troubleshooting-view', this)">Troubleshooting</button>
                 </div>
 
                 <!-- Right Scroll Arrow -->
@@ -1593,6 +1500,150 @@
                     </div>
                 </div>
 
+                <!-- TROUBLESHOOTING TAB PANE -->
+                <div id="troubleshooting-view" class="tab-pane hidden w-full h-full p-4 md:p-8 overflow-y-auto">
+                    <div class="max-w-4xl mx-auto pb-20">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+                            <div>
+                                <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
+                                    <i class="bi bi-tools"></i> Troubleshooting
+                                </h2>
+                                <p class="text-sm text-grey mt-1">Live input signal states from the controller. Signals update in real-time from status reports.</p>
+                            </div>
+                            <div class="flex gap-2 w-full md:w-auto">
+                                <button class="btn btn-secondary shadow-soft w-full md:w-auto" onclick="window.troubleshooting.refresh()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- LIMIT SWITCHES CARD -->
+                        <div class="bg-white rounded-xl shadow-soft border border-grey-light overflow-hidden flex flex-col">
+                            <div class="px-4 py-3 border-b border-grey-light bg-grey-bg flex items-center gap-2">
+                                <i class="bi bi-arrows-fullscreen text-primary text-xs"></i>
+                                <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Limit Switches</h3>
+                            </div>
+                            <div class="p-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">X</span>
+                                    <div id="pin-indicator-X" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Y</span>
+                                    <div id="pin-indicator-Y" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Z</span>
+                                    <div id="pin-indicator-Z" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">A</span>
+                                    <div id="pin-indicator-A" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">B</span>
+                                    <div id="pin-indicator-B" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">C</span>
+                                    <div id="pin-indicator-C" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">U</span>
+                                    <div id="pin-indicator-U" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">V</span>
+                                    <div id="pin-indicator-V" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">W</span>
+                                    <div id="pin-indicator-W" class="signal-badge signal-off">OFF</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CONTROL PINS CARD -->
+                        <div class="bg-white rounded-xl shadow-soft border border-grey-light overflow-hidden flex flex-col">
+                            <div class="px-4 py-3 border-b border-grey-light bg-grey-bg flex items-center gap-2">
+                                <i class="bi bi-toggle-on text-primary text-xs"></i>
+                                <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Control Pins</h3>
+                            </div>
+                            <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Door</span>
+                                    <div id="pin-indicator-D" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Reset</span>
+                                    <div id="pin-indicator-R" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Hold</span>
+                                    <div id="pin-indicator-H" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Start</span>
+                                    <div id="pin-indicator-S" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">E-Stop</span>
+                                    <div id="pin-indicator-E" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Blk Del</span>
+                                    <div id="pin-indicator-L" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Opt Stop</span>
+                                    <div id="pin-indicator-T" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey">Step</span>
+                                    <div id="pin-indicator-Q" class="signal-badge signal-off">OFF</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PROBE CARD -->
+                        <div class="bg-white rounded-xl shadow-soft border border-grey-light overflow-hidden flex flex-col">
+                            <div class="px-4 py-3 border-b border-grey-light bg-grey-bg flex items-center gap-2">
+                                <i class="bi bi-target text-primary text-xs"></i>
+                                <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Probe</h3>
+                            </div>
+                            <div class="p-4 flex gap-6 justify-around">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey uppercase">Triggered</span>
+                                    <div id="pin-indicator-P" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey uppercase">No Probe</span>
+                                    <div id="pin-indicator-O" class="signal-badge signal-off">OFF</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MOTOR STATUS CARD -->
+                        <div class="bg-white rounded-xl shadow-soft border border-grey-light overflow-hidden flex flex-col">
+                            <div class="px-4 py-3 border-b border-grey-light bg-grey-bg flex items-center gap-2">
+                                <i class="bi bi-exclamation-triangle-fill text-primary text-xs"></i>
+                                <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">Motor Status</h3>
+                            </div>
+                            <div class="p-4 flex gap-6 justify-around">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey uppercase tracking-tight">Warning</span>
+                                    <div id="pin-indicator-M" class="signal-badge signal-off">OFF</div>
+                                </div>
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-[10px] font-bold text-grey uppercase tracking-tight">Fault</span>
+                                    <div id="pin-indicator-F" class="signal-badge signal-off">OFF</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- END TROUBLESHOOTING TAB PANE -->
 
             </div>
         </main>
@@ -1914,6 +1965,7 @@
         import { SurfacingHandler } from './surfacing.js';
         import { MacroHandler } from './macros.js';
         import { ToolsHandler } from './tools.js';
+        import { TroubleshootingHandler } from './troubleshooting.js';
         import { GCodeEditor } from './editor.js';
         import { initializeApp } from './init.js';
 
@@ -2062,6 +2114,9 @@
 
             const toolsHandler = new ToolsHandler(ws, window.term, store);
             window.toolsHandler = toolsHandler;
+
+            const troubleshootingHandler = new TroubleshootingHandler(ws, store);
+            window.troubleshooting = troubleshootingHandler;
         });
 
         window.addEventListener('gcode-loaded', (e) => {
@@ -2079,6 +2134,7 @@
 
         window.addEventListener('tab-shown', (e) => {
             if (e.detail.id === 'tools-view') window.toolsHandler.refresh();
+            if (e.detail.id === 'troubleshooting-view') window.troubleshooting.refresh();
         });
 
         // Unit Syncing

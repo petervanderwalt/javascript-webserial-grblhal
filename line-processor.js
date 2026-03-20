@@ -61,8 +61,8 @@ class LineProcessor {
                         window.viewer.setHomingDirMask(parseInt(window.grblSettings.settings['23'].val));
                     }
 
-                    // Smoothly animate and frame the work area instead of snapping
-                    window.viewer.setCameraView('Iso');
+                    // Smoothly animate and frame the work area using Default Reset view instead of Iso
+                    window.viewer.resetCamera();
                 }, 500);
             }
             return; // We parsed it, skip further handlers
