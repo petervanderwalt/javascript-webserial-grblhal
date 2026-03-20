@@ -131,10 +131,8 @@
     <!-- Custom Electron Title Bar -->
     <div id="electron-title-bar"
         class="hidden h-10 bg-[#1e293b] text-white flex items-center justify-between px-4 border-b border-white/5 window-drag-region shrink-0">
-        <div class="flex items-center gap-3">
-            <img src="themes/ooznest-logo.png" class="h-5 opacity-90" alt="Ooznest">
-            <div class="h-4 w-px bg-white/20 mx-1"></div>
-            <span class="text-[10px] font-bold uppercase tracking-widest text-[#529A9F]">Machine Control</span>
+        <div class="flex items-center">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-[#529A9F]">Ooznest WorkBee Control</span>
         </div>
         <div class="flex items-center window-no-drag">
             <button class="w-11 h-10 flex items-center justify-center hover:bg-white/10 transition-colors"
@@ -152,28 +150,25 @@
 
         <!-- Machine Sidebar (Unified) -->
         <aside class="machine-sidebar" id="machine-sidebar">
-            <!-- Mobile Header -->
-            <div
-                class="md:hidden h-10 flex items-center px-2 bg-secondary-dark text-white justify-between shadow-md z-20 shrink-0">
-                <span class="font-bold">Machine Controls</span>
-                <button class="text-white" onclick="toggleMachineSidebar()"><i class="bi bi-x-lg"></i></button>
-            </div>
-
+            
             <!-- Scrollable Content -->
-            <div id="machine-controls" class="overflow-y-auto p-1.5 flex flex-col gap-1.5 sidebar-inner-scroll">
+            <div id="machine-controls" class="overflow-y-auto p-0 md:p-1.5 flex flex-col gap-0 md:gap-1.5 sidebar-inner-scroll">
 
                 <!-- Handshake & Connection -->
-                <div id="sidebar-connect">
-                    <button id="btn-reset" class="btn" onclick="sendRealtime('\x18')" title="Soft Reset" disabled>
+                <div id="sidebar-connect" class="flex gap-1 items-stretch">
+                    <button class="md:hidden btn bg-grey-light text-grey-dark" onclick="toggleMachineSidebar()" aria-label="Toggle machine sidebar">
+                        <i class="bi bi-list text-xl"></i>
+                    </button>
+                    <button id="btn-reset" class="btn flex-1" onclick="sendRealtime('\x18')" title="Soft Reset" disabled>
                         <i class="bi bi-exclamation-octagon-fill"></i>Reset
                     </button>
-                    <button id="btn-connect" class="btn btn-primary">Connect</button>
+                    <button id="btn-connect" class="btn btn-primary flex-1">Connect</button>
                 </div>
 
                 <!-- DRO Panel -->
                 <div class="dro-panel">
                     <!-- Header: WCS & Units -->
-                    <div class="flex justify-between items-center mb-1.5 px-1">
+                    <div class="flex justify-between items-center mb-1 md:mb-1.5 px-1">
 
                         <!-- Units Toggle (Segmented) -->
                         <div class="oz-segmented-toggle" onclick="document.getElementById('unitToggle').click()">
@@ -298,17 +293,26 @@
                         <div class="col-span-2 flex gap-1">
                             <button class="dro-sub-btn !bg-primary !text-black !border-primary hover:!bg-primary-dark"
                                 onclick="window.dro.home()">
-                                <i class="bi bi-house-door-fill"></i> HOME
+                                <i class="bi bi-house-door-fill"></i> <span class="hidden md:inline">HOME</span>
                             </button>
-                            <button class="dro-sub-btn" onclick="window.dro.setZero('XYZ')">SET ZERO ALL</button>
-                            <button class="dro-sub-btn" onclick="window.dro.goXY0()">GO XY 0</button>
+                            <button class="dro-sub-btn px-1" onclick="window.dro.setZero('XYZ')">
+                                <span class="md:hidden">ZERO ALL</span>
+                                <span class="hidden md:inline">SET ZERO ALL</span>
+                            </button>
+                            <button class="dro-sub-btn px-1" onclick="window.dro.goXY0()">
+                                <span class="md:hidden">GO 0</span>
+                                <span class="hidden md:inline">GO XY 0</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Overrides (merged into DRO card) -->
                     <div class="mt-2 pt-2 border-t border-white/20 flex flex-col gap-1">
                         <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-white/80 uppercase tracking-wide">Spindle</span>
+                            <div class="flex items-center gap-1.5 font-bold text-white/80 uppercase tracking-wide">
+                                <i class="bi bi-fan"></i>
+                                <span>Spindle</span>
+                            </div>
                             <div class="flex gap-1 items-center">
                                 <button onclick="sendRealtime('\x9B')"
                                     class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">-</button>
@@ -321,7 +325,10 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-white/80 uppercase tracking-wide">Feed</span>
+                            <div class="flex items-center gap-1.5 font-bold text-white/80 uppercase tracking-wide">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Feed</span>
+                            </div>
                             <div class="flex gap-1 items-center">
                                 <button onclick="sendRealtime('\x92')"
                                     class="w-5 h-5 flex items-center justify-center rounded bg-white/20 hover:bg-white/40 text-white transition-colors font-bold">-</button>
@@ -334,7 +341,10 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between text-[10px]">
-                            <span class="font-bold text-white/80 uppercase tracking-wide">Rapids</span>
+                            <div class="flex items-center gap-1.5 font-bold text-white/80 uppercase tracking-wide">
+                                <i class="bi bi-lightning-fill"></i>
+                                <span>Rapids</span>
+                            </div>
                             <div class="flex gap-1 items-center">
                                 <span id="rapid-ovr" class="min-w-[32px] text-center font-bold text-white">100%</span>
                                 <button onclick="sendRealtime('\x97')"
@@ -456,7 +466,7 @@
             </div> <!-- End Machine Controls (id="machine-controls") -->
 
             <!-- Console (Light Mode) -->
-            <div class="console-outer flex flex-col mb-10 md:mb-0">
+            <div class="console-outer flex flex-col mb-1 md:mb-0">
                 <div class="console-wrapper">
                     <div id="terminal-container" class="w-full flex-1"></div>
                     <!-- Console Input -->
@@ -487,8 +497,8 @@
                         <i class="bi bi-list text-xl"></i>
                     </button>
 
-                    <div class="flex items-center gap-2 pl-2 border-r border-white/10 h-full pr-2">
-                        <img src="themes/ooznest-logo.png" alt="Logo" id="app-logo" class="h-6 md:h-12">
+                    <div class="flex items-center gap-2 pl-1 md:pl-8 border-r border-white/10 h-full pr-1">
+                        <img src="themes/ooznest-logo.png" alt="Logo" id="app-logo" class="h-8 md:h-12">
                         <!-- Hidden elements kept for JS compatibility -->
                         <div id="connection-dot" class="hidden"></div>
                         <span id="connection-text" class="hidden"></span>
@@ -497,7 +507,7 @@
 
                 <!-- Left Scroll Arrow -->
                 <button
-                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors"
+                    class="h-full px-2 text-grey hover:text-grey-dark flex items-center justify-center transition-colors"
                     onclick="scrollTabs('left')" aria-label="Scroll tabs left">
                     <i class="bi bi-chevron-left text-xs"></i>
                 </button>
@@ -525,7 +535,7 @@
 
                 <!-- Right Scroll Arrow -->
                 <button
-                    class="h-full px-2 text-grey-light hover:text-white flex items-center justify-center transition-colors border-r border-grey-dark"
+                    class="h-full px-2 text-grey hover:text-grey-dark flex items-center justify-center transition-colors border-r border-grey-dark"
                     onclick="scrollTabs('right')" aria-label="Scroll tabs right">
                     <i class="bi bi-chevron-right text-xs"></i>
                 </button>
@@ -635,23 +645,26 @@
 
                     <!-- Toolbar -->
                     <div
-                        class="h-12 bg-white border-b border-grey-light flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-bold text-secondary-dark uppercase tracking-wider">
-                                <i class="bi bi-code-square"></i> G-Code Editor
+                        class="min-h-[3rem] h-auto bg-white border-b border-grey-light flex items-center justify-between px-4 py-2 shrink-0 shadow-sm z-10">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <h3 class="text-xs md:text-sm font-bold text-secondary-dark uppercase tracking-wider flex items-center gap-1 shrink-0">
+                                <i class="bi bi-code-square"></i> <span class="hidden sm:inline">G-Code Editor</span>
                             </h3>
-                            <span id="editor-file-name" class="text-xs text-grey italic ml-2">No file loaded</span>
+                            <span id="editor-file-name" class="text-[10px] md:text-xs text-grey italic truncate ml-1 md:ml-2">No file loaded</span>
                         </div>
 
-                        <div class="flex gap-2">
-                            <button class="btn btn-secondary text-xs h-8" onclick="applyEditorChanges()">
-                                <i class="bi bi-play-circle-fill text-primary-dark"></i> Update Preview
+                        <div class="flex gap-1.5 md:gap-2 shrink-0">
+                            <button class="btn btn-secondary text-xs h-8 px-2 md:px-3" onclick="applyEditorChanges()" title="Update Preview">
+                                <i class="bi bi-play-circle-fill text-primary-dark"></i>
+                                <span class="hidden md:inline">Update Preview</span>
                             </button>
-                            <button class="btn btn-secondary text-xs h-8" onclick="downloadFromEditor()">
-                                <i class="bi bi-download"></i> Save to PC
+                            <button class="btn btn-secondary text-xs h-8 px-2 md:px-3" onclick="downloadFromEditor()" title="Save to PC">
+                                <i class="bi bi-download"></i>
+                                <span class="hidden md:inline">Save to PC</span>
                             </button>
-                            <button class="btn btn-primary text-xs h-8" onclick="uploadEditorToSD()">
-                                <i class="bi bi-sd-card-fill"></i> Upload to SD
+                            <button class="btn btn-primary text-xs h-8 px-2 md:px-3" onclick="uploadEditorToSD()" title="Upload to SD">
+                                <i class="bi bi-sd-card-fill"></i>
+                                <span class="hidden md:inline">Upload to SD</span>
                             </button>
                         </div>
                     </div>
@@ -849,13 +862,13 @@
 
                         <!-- Breadcrumb (Disabled when offline) -->
                         <div id="sd-breadcrumb"
-                            class="bg-white border border-grey-light rounded-lg p-3 mb-4 flex items-center gap-3 shadow-card opacity-50 pointer-events-none transition-opacity duration-200">
-                            <button class="btn-icon text-grey-dark" onclick="window.sdHandler.upLevel()"
+                            class="bg-white border border-grey-light rounded-lg p-3 mb-4 flex items-center gap-3 shadow-card opacity-50 pointer-events-none transition-opacity duration-200 overflow-hidden">
+                            <button class="btn-icon text-grey-dark shrink-0" onclick="window.sdHandler.upLevel()"
                                 aria-label="Go up one directory level">
                                 <i class="bi bi-arrow-90deg-up"></i>
                             </button>
-                            <span class="text-grey-light">|</span>
-                            <span id="sd-current-path" class="font-mono font-bold text-grey-dark">/</span>
+                            <span class="text-grey-light shrink-0">|</span>
+                            <span id="sd-current-path" class="font-mono font-bold text-grey-dark truncate flex-1 min-w-0">/</span>
                         </div>
 
                         <!-- Upload Progress -->
@@ -872,8 +885,8 @@
                         </div>
 
                         <!-- File Table (Restored White) -->
-                        <div class="bg-white border border-grey-light rounded-xl shadow-soft overflow-x-auto">
-                            <table class="w-full text-left text-sm min-w-[500px]" id="sd-table">
+                        <div class="bg-white border border-grey-light rounded-xl shadow-soft overflow-hidden">
+                            <table class="w-full text-left text-sm" id="sd-table">
                                 <thead
                                     class="bg-grey-bg border-b border-grey-light text-grey uppercase text-[10px] tracking-wider">
                                     <tr>

@@ -282,7 +282,7 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
 .machine-sidebar {
     width: 100%;
     flex-shrink: 0;
-    background: var(--oz-bg-panel);
+    background: var(--oz-grey-light);
     border-right: 1px solid var(--oz-teal-xlight);
     display: flex;
     flex-direction: column;
@@ -293,7 +293,7 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     z-index: 50;
     transform: translateX(-100%);
     transition: transform 300ms ease-in-out;
-    box-shadow: 4px 0 20px rgba(0, 76, 91, 0.08);
+    box-shadow: 6px 0 20px rgba(0, 0, 0, 0.22);
 }
 
 .machine-sidebar.open {
@@ -357,16 +357,26 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
    Full #449D9F background, 96px top-left corner, right callout arrow
    ──────────────────────────────────────────────────────────────── */
 #sidebar-connect {
-    border-radius: var(--oz-r-xl) 0 0 0;
-    background: var(--oz-teal-xlight);
+    border-radius: 0;
+    background: transparent;
     border: none;
-    padding: 12px;
-    box-shadow: var(--oz-shadow-md);
+    padding: 2px 0;
+    box-shadow: none;
     position: relative;
     overflow: visible;
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+    #sidebar-connect {
+        border-radius: var(--oz-r-xl) 0 0 0;
+        background: var(--oz-teal-xlight);
+        padding: 12px;
+        gap: 8px;
+        box-shadow: var(--oz-shadow-md);
+    }
 }
 
 /* Right-pointing callout arrow */
@@ -380,6 +390,13 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     border-bottom: 14px solid transparent;
     border-left: 24px solid var(--oz-teal-xlight);
     z-index: 10;
+    display: none;
+}
+
+@media (min-width: 768px) {
+    #sidebar-connect::after {
+        display: block;
+    }
 }
 
 /* Connect button: white on teal, orange on hover (oz-btn--white) */
@@ -446,10 +463,16 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     border-radius: var(--oz-r-xl) 0 0 0;
     border: none;
     box-shadow: var(--oz-shadow-md);
-    padding: 10px;
+    padding: 8px;
     position: relative;
     overflow: visible;
     margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+    .dro-panel {
+        padding: 10px;
+    }
 }
 
 /* Right-pointing callout arrow */
@@ -462,6 +485,13 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     border-bottom: 12px solid transparent;
     border-left: 22px solid var(--oz-teal-mid);
     z-index: 10;
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .dro-panel::after {
+        display: block;
+    }
 }
 
 /* Units & WCS row (Inside Orange) */
@@ -496,8 +526,15 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     background: transparent !important;
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
-    margin-bottom: 6px;
-    height: 42px;
+    margin-bottom: 4px;
+    height: 38px;
+}
+
+@media (min-width: 768px) {
+    .dro-card {
+        height: 42px;
+        margin-bottom: 6px;
+    }
 }
 
 .dro-card.border-l-axis-x {
@@ -518,18 +555,27 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
 
 /* Axis letter box */
 .dro-label-box {
-    width: 44px;
+    width: 36px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding-left: 8px;
-    gap: 4px;
+    padding-left: 4px;
+    gap: 2px;
     background: transparent !important;
     border-right: none !important;
     font-family: 'Nunito', sans-serif;
     font-weight: 900;
-    font-size: 18px;
+    font-size: 16px;
     color: white !important;
+}
+
+@media (min-width: 768px) {
+    .dro-label-box {
+        width: 44px;
+        padding-left: 8px;
+        gap: 4px;
+        font-size: 18px;
+    }
 }
 
 /* Number area */
@@ -547,7 +593,7 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
 /* Work coordinate (large) */
 .dro-val-lg {
     font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
-    font-size: 21px;
+    font-size: 18px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: white !important;
@@ -555,6 +601,12 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     text-align: right;
     flex: 1;
     align-self: center;
+}
+
+@media (min-width: 768px) {
+    .dro-val-lg {
+        font-size: 21px;
+    }
 }
 
 /* Machine coordinate (small) */
@@ -566,9 +618,15 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     color: rgba(255, 255, 255, 0.7) !important;
     line-height: 1;
     text-align: right;
-    width: 64px;
+    width: 60px;
     flex-shrink: 0;
     align-self: center;
+}
+
+@media (min-width: 768px) {
+    .dro-val-sm {
+        width: 64px;
+    }
 }
 
 /* Zero button */
@@ -683,6 +741,13 @@ button, .btn, .tab-btn, .dro-zero-btn, .dro-sub-btn, .jog-btn, .jog-btn-extra, .
     border-bottom: 12px solid transparent;
     border-left: 22px solid var(--oz-primary-light);
     z-index: 10;
+    display: none;
+}
+
+@media (min-width: 768px) {
+    #jog-panel::after {
+        display: block;
+    }
 }
 
 /* Jog wrapper & grid */
@@ -1096,7 +1161,13 @@ table [id^="pin-indicator-"] {
     border-bottom: 12px solid transparent;
     border-left: 22px solid var(--oz-teal-light);
     z-index: 10;
-    display: block;
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .console-outer::after {
+        display: block;
+    }
 }
 
 /* Remove ::after from console-wrapper itself (overflow:hidden would clip it) */
@@ -1178,7 +1249,7 @@ table [id^="pin-indicator-"] {
    BUTTONS — Global
    ================================================================ */
 .btn {
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: var(--oz-r-xs);
     font-family: 'Nunito', 'Roboto', sans-serif;
     font-weight: 700;
@@ -1191,6 +1262,12 @@ table [id^="pin-indicator-"] {
     gap: 6px;
     transition: all 0.2s;
     user-select: none;
+}
+
+@media (min-width: 768px) {
+    .btn {
+        padding: 8px 16px;
+    }
 }
 
 .btn:active {
@@ -1301,7 +1378,7 @@ table [id^="pin-indicator-"] {
    MAIN CONTENT AREA
    ================================================================ */
 .tab-pane {
-    background: var(--oz-white);
+    background: var(--oz-grey-light);
     width: 100%;
     height: 100%;
     overflow-y: auto;
