@@ -232,15 +232,17 @@ jobs:
         run: npm install
         
       - name: Build SD Card Payload
-        run: npm run build-sd
+        run: |
+          npm run build-sd
+          VERSION=$(node -p "require('./package.json').version")
+          cd dist
+          zip -r ../javascript-webserial-grblhal-${VERSION}-SDCard.zip index.html.gz *.stl
         
       - name: Upload SD Card Payload
         uses: actions/upload-artifact@v4
         with:
           name: Ooznest-SD-WebUI
-          path: |
-            dist/index.html.gz
-            dist/*.stl
+          path: javascript-webserial-grblhal-*-SDCard.zip
 
   create-release:
     name: Create Release
@@ -263,5 +265,4 @@ jobs:
             output-artifacts/**/*.exe
             output-artifacts/**/*.dmg
             output-artifacts/**/*.AppImage
-            output-artifacts/**/*.gz
-            output-artifacts/**/*.stl
+            output-artifacts/**/*.zip
