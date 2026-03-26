@@ -50,9 +50,12 @@ jobs:
 
   build-android:
     name: Build Android APK
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,6 +80,8 @@ jobs:
           npx cordova-res android --skip-config
           cordova platform add android
           cordova build android
+          VERSION=$(node -p "require('./package.json').version")
+          mv cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk cordova/platforms/android/app/build/outputs/apk/debug/javascript-webserial-grblhal-${VERSION}-Android.apk || true
           
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -86,9 +91,12 @@ jobs:
 
   build-ios:
     name: Build iOS App
+    needs: bump-version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -113,19 +121,23 @@ jobs:
           # Package .app into .ipa for sideloading
           mkdir -p Payload
           cp -r platforms/ios/build/Build/Products/Debug-iphoneos/*.app Payload/
-          zip -r Ooznest-iOS.ipa Payload/
+          VERSION=$(node -p "require('../../package.json').version")
+          zip -r javascript-webserial-grblhal-${VERSION}-iOS.ipa Payload/
           
       - name: Upload iOS App
         uses: actions/upload-artifact@v4
         with:
           name: Ooznest-iOS-IPA
-          path: cordova/Ooznest-iOS.ipa
+          path: cordova/*.ipa
 
   build-windows:
     name: Build Windows App
+    needs: bump-version
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -148,9 +160,12 @@ jobs:
 
   build-macos:
     name: Build macOS App
+    needs: bump-version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -173,9 +188,12 @@ jobs:
 
   build-linux:
     name: Build Linux App
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -198,9 +216,12 @@ jobs:
 
   build-sd:
     name: Build SD Card Payload
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.new_version }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -223,6 +244,7 @@ jobs:
 
   create-release:
     name: Create Release
+    needs: bump-version
     needs: [bump-version, build-android, build-ios, build-windows, build-macos, build-linux, build-sd]
     runs-on: ubuntu-latest
     steps:
