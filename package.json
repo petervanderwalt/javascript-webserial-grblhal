@@ -1,6 +1,6 @@
 {
   "name": "javascript-webserial-grblhal",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "grblHAL Web interface with WebSerial and Electron support",
   "main": "main.js",
   "scripts": {
