@@ -360,47 +360,14 @@ export class DROHandler {
             stateEl.classList.add('bg-secondary');
         }
 
-        this._setAlarmLock(isAlarmed);
+        if (window.uiManager && window.uiManager.applyStateLock) {
+            window.uiManager.applyStateLock(s);
+        }
 
         // Check for Idle to reset SD UI (Only if NOT printing)
         if (s === 'idle' && !isSdPrinting) {
             window.dispatchEvent(new CustomEvent('sd-job-complete'));
             window.dispatchEvent(new CustomEvent('machine-idle'));
-        }
-    }
-
-    _setAlarmLock(isAlarmed) {
-        const thingsToLock = [
-            document.querySelector('.jog-pad'),
-            ...document.querySelectorAll('.jog-extra-col'),
-            ...document.querySelectorAll('.dro-zero-btn'),
-            document.getElementById('run-job-btn'),
-            document.getElementById('run-sd-btn')
-        ];
-
-        thingsToLock.forEach(el => {
-            if (!el) return;
-            if (isAlarmed) {
-                el.classList.add('opacity-50', 'pointer-events-none');
-            } else {
-                el.classList.remove('opacity-50', 'pointer-events-none');
-            }
-        });
-
-        // Ensure run buttons restore to correct standard mode state 
-        if (!isAlarmed && window.uiManager && window.uiManager.updateRunButtonsState) {
-            window.uiManager.updateRunButtonsState();
-        }
-
-        const unlockBtn = document.querySelector('button[title="Unlock ($X)"]');
-        if (unlockBtn) {
-            if (isAlarmed) {
-                unlockBtn.classList.remove('btn-secondary');
-                unlockBtn.classList.add('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
-            } else {
-                unlockBtn.classList.remove('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
-                unlockBtn.classList.add('btn-secondary');
-            }
         }
     }
 

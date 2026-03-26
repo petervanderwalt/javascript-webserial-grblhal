@@ -15,14 +15,8 @@ class UIManager {
     updateConnectionState(state, ws, sdHandler) {
         const btn = document.getElementById('btn-connect');
         const resetBtn = document.getElementById('btn-reset');
-        const disabledIds = ['machine-controls', 'console-input-area', 'run-job-btn', 'run-sd-btn', 'sd-tools', 'sd-breadcrumb', 'settings-toolbar', 'probe-panel-content'];
 
         if (state) {
-            // Remove disabling classes
-            disabledIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.remove('opacity-50', 'pointer-events-none');
-            });
             if (resetBtn) {
                 resetBtn.classList.remove('opacity-50', 'pointer-events-none');
                 resetBtn.disabled = false;
@@ -36,26 +30,19 @@ class UIManager {
             document.getElementById('connection-dot').classList.replace('bg-red-500', 'bg-green-500');
             document.getElementById('connection-text').textContent = 'Online';
 
-            // Update Run button states in case we just connected with file loaded
-            this.updateRunButtonsState();
-
-
-            // Start status polling (Lighter polling for WebSocket/SD to prevent bridge overload)
+            // Start status polling
             const pollingRate = ws.type === 'websocket' ? 500 : 250;
             this.statusInterval = setInterval(() => ws.sendRealtime('?'), pollingRate);
 
-            // Initialization Sequence - $E* commands first, status request LAST
-            // (Sending \x87 early causes a large 155-char response that collides with $EE)
-            setTimeout(() => ws.sendCommand('$EA'), 500);   // Alarm codes
-            setTimeout(() => ws.sendCommand('$EE'), 1000);  // Error codes
-            setTimeout(() => sdHandler.refresh(), 1500);    // SD card
-            setTimeout(() => ws.sendCommand('$EG'), 2000);  // Setting groups
-            setTimeout(() => ws.sendCommand('$ES'), 2500);  // Setting enumerations
-            setTimeout(() => ws.sendCommand('$$'), 3000);   // Settings
-            setTimeout(() => ws.sendCommand('$#'), 3500);   // Parameters
-            setTimeout(() => ws.sendCommand('$I+'), 4000);  // Build info
+            setTimeout(() => ws.sendCommand('$EA'), 500);
+            setTimeout(() => ws.sendCommand('$EE'), 1000);
+            setTimeout(() => sdHandler.refresh(), 1500);
+            setTimeout(() => ws.sendCommand('$EG'), 2000);
+            setTimeout(() => ws.sendCommand('$ES'), 2500);
+            setTimeout(() => ws.sendCommand('$$'), 3000);
+            setTimeout(() => ws.sendCommand('$#'), 3500);
+            setTimeout(() => ws.sendCommand('$I+'), 4000);
             setTimeout(() => {
-                // Extended status LAST - its large response no longer collides with init commands
                 window.userRequestedStatus = true;
                 ws.sendRealtime('\x87');
             }, 4500);
@@ -72,12 +59,108 @@ class UIManager {
                 resetBtn.disabled = true;
             }
 
-            document.getElementById('dro-alarm-btn')?.classList.add('hidden');
+            this.applyStateLock('offline');
+        }
+    }
 
-            disabledIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('opacity-50', 'pointer-events-none');
+    /**
+     * Apply button state locks based on Grbl machine state
+     * @param {string} state - Grbl state (Idle, Alarm, Run, Hold, etc) or 'offline'
+     */
+    applyStateLock(state) {
+        state = (state || 'offline').toLowerCase().split(':')[0];
+        
+        const setDisabled = (selector, isDisabled) => {
+            document.querySelectorAll(selector).forEach(el => {
+                if (!el) return;
+                el.disabled = isDisabled;
+                if (isDisabled) {
+                    el.classList.add('opacity-50', 'pointer-events-none');
+                } else {
+                    el.classList.remove('opacity-50', 'pointer-events-none');
+                }
             });
+        };
+
+        // UI Control Selectors
+        const jogControls = '.jog-btn, .jog-btn-extra, .dro-zero-btn, .dro-sub-btn, #stepSize, #jogContinuous';
+        const runControls = '#run-job-btn, #run-sd-btn';
+        const macroControls = '#macros-view button, #probe-panel-content button, #probe-panel-content input, #sd-tools button';
+        const txtConsole = '#console-input-area input, #console-input';
+        const unlockBtn = 'button[title="Unlock ($X)"]';
+
+        if (state === 'offline') {
+            setDisabled(jogControls, true);
+            setDisabled(runControls, true);
+            setDisabled(macroControls, true);
+            setDisabled(txtConsole, true);
+            setDisabled(unlockBtn, true);
+            
+            // Completely disable specific outer blocks remaining from previous UI styles
+            document.querySelectorAll('#machine-controls, #settings-toolbar, #sd-breadcrumb').forEach(el => {
+                el.classList.add('opacity-50', 'pointer-events-none');
+            });
+        } 
+        else if (state === 'alarm') {
+            setDisabled(jogControls, true);
+            setDisabled(runControls, true);
+            setDisabled(macroControls, true);
+            setDisabled(txtConsole, false); // Keep console alive to query settings out of alarm
+            
+            setDisabled(unlockBtn, false);
+            const btn = document.querySelector(unlockBtn);
+            if (btn) {
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+            }
+            
+            // Clean up general offline locks if they were present
+            document.querySelectorAll('#machine-controls, #settings-toolbar, #sd-breadcrumb').forEach(el => el.classList.remove('opacity-50', 'pointer-events-none'));
+        }
+        else if (state === 'run' || state === 'jog' || state === 'homing') {
+            setDisabled(jogControls, true);
+            setDisabled(runControls, true);
+            setDisabled(macroControls, true);
+            setDisabled(txtConsole, false); // Keep console to send realtime intercepts
+            
+            setDisabled(unlockBtn, true);
+            const btn = document.querySelector(unlockBtn);
+            if (btn) {
+                btn.classList.remove('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+                btn.classList.add('btn-secondary');
+            }
+            document.querySelectorAll('#machine-controls, #settings-toolbar, #sd-breadcrumb').forEach(el => el.classList.remove('opacity-50', 'pointer-events-none'));
+        }
+        else if (state === 'hold' || state === 'door' || state === 'sleep') {
+            setDisabled(jogControls, true);
+            setDisabled(runControls, true);
+            setDisabled(macroControls, true);
+            setDisabled(txtConsole, false);
+            
+            setDisabled(unlockBtn, true);
+            const btn = document.querySelector(unlockBtn);
+            if (btn) {
+                btn.classList.remove('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+                btn.classList.add('btn-secondary');
+            }
+            document.querySelectorAll('#machine-controls, #settings-toolbar, #sd-breadcrumb').forEach(el => el.classList.remove('opacity-50', 'pointer-events-none'));
+        }
+        else { 
+            // Idle Space
+            setDisabled(jogControls, false);
+            setDisabled(macroControls, false);
+            setDisabled(txtConsole, false);
+            
+            setDisabled(unlockBtn, false);
+            const btn = document.querySelector(unlockBtn);
+            if (btn) {
+                btn.classList.remove('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+                btn.classList.add('btn-secondary');
+            }
+            
+            document.querySelectorAll('#machine-controls, #settings-toolbar, #sd-breadcrumb').forEach(el => el.classList.remove('opacity-50', 'pointer-events-none'));
+
+            this.updateRunButtonsState();
         }
     }
 
@@ -89,25 +172,29 @@ class UIManager {
         const runSdBtn = document.getElementById('run-sd-btn');
 
         if (window.currentSDFile) {
-            // SD Context: Disable Streaming, Highlight SD Run
-            runJobBtn.classList.add('opacity-50', 'pointer-events-none');
-            runJobBtn.title = "Streaming disabled for SD files. Use 'Run from SD'";
-
-            // Highlight SD Button
-            runSdBtn.classList.remove('opacity-50', 'pointer-events-none');
-            runSdBtn.classList.replace('!bg-secondary', '!bg-primary');
-            runSdBtn.classList.replace('!text-white', '!text-secondary-dark');
-            runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
-
+            if (runJobBtn) {
+                runJobBtn.classList.add('opacity-50', 'pointer-events-none');
+                runJobBtn.disabled = true;
+                runJobBtn.title = "Streaming disabled for SD files. Use 'Run from SD'";
+            }
+            if (runSdBtn) {
+                runSdBtn.classList.remove('opacity-50', 'pointer-events-none');
+                runSdBtn.disabled = false;
+                runSdBtn.classList.replace('!bg-secondary', '!bg-primary');
+                runSdBtn.classList.replace('!text-white', '!text-secondary-dark');
+                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
+            }
         } else {
-            // Local Context: Enable Streaming, Reset SD Run
-            if (window.ws && window.ws.isConnected) runJobBtn.classList.remove('opacity-50', 'pointer-events-none');
-            runJobBtn.title = "Run Job (Stream)";
-
-            // Reset SD Button to default (Upload & Run)
-            runSdBtn.classList.replace('!bg-primary', '!bg-secondary');
-            runSdBtn.classList.replace('!text-secondary-dark', '!text-white');
-            runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
+            if (window.ws && window.ws.isConnected && runJobBtn) {
+                runJobBtn.classList.remove('opacity-50', 'pointer-events-none');
+                runJobBtn.disabled = false;
+                runJobBtn.title = "Run Job (Stream)";
+            }
+            if (runSdBtn) {
+                runSdBtn.classList.replace('!bg-primary', '!bg-secondary');
+                runSdBtn.classList.replace('!text-secondary-dark', '!text-white');
+                runSdBtn.innerHTML = `<i class="bi bi-sd-card-fill text-lg"></i> Run from SD`;
+            }
         }
     }
 }
