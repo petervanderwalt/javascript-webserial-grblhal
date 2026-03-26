@@ -119,7 +119,7 @@ export class GCodeViewer {
         this.displayUnits = 'mm';
 
         // Grid State - Load from Store
-        this.gridMode = this.store ? (this.store.get('viewer.gridMode') || 'job') : 'job';
+        this.gridMode = this.store ? (this.store.get('viewer.gridMode') || 'machine') : 'machine';
 
         // Groups
         // Root groups attached to Scene
@@ -457,6 +457,10 @@ export class GCodeViewer {
         if (this.store) this.store.set('viewer.gridMode', this.gridMode); // Save to Store
         this.updateGridBounds();
         this.renderCoolGrid();
+        
+        // Auto reset camera to see the new grid
+        if (typeof this.resetCamera === 'function') this.resetCamera();
+        
         return this.gridMode === 'machine' ? 'Grid: Machine' : 'Grid: Job';
     }
 

@@ -72,7 +72,7 @@ export class DROHandler {
 
     toggleUnits() {
         const toggle = document.getElementById('unitToggle');
-        this.isMm = toggle.checked;
+        this.isMm = !toggle.checked;
 
         // Save to Store
         this.store.set('general.units', this.isMm ? 'mm' : 'in');
@@ -90,7 +90,7 @@ export class DROHandler {
     updateUIUnits() {
         // Toggle Switch
         const toggle = document.getElementById('unitToggle');
-        if (toggle) toggle.checked = this.isMm;
+        if (toggle) toggle.checked = !this.isMm;
 
         // Label
         const label = document.getElementById('unitLabel');
@@ -382,12 +382,15 @@ export class DROHandler {
                 if (elM) elM.textContent = mVal.toFixed(decimals);
 
                 if (axis === 'a') {
+                    const jogAPad = document.getElementById('jog-a-pad');
                     if (this.wpos.length > 3) {
                         elW.closest('.dro-row').classList.remove('hidden');
                         elW.closest('.dro-row').classList.add('flex');
+                        if (jogAPad) jogAPad.style.display = '';
                     } else {
                         elW.closest('.dro-row').classList.add('hidden');
                         elW.closest('.dro-row').classList.remove('flex');
+                        if (jogAPad) jogAPad.style.display = 'none';
                     }
                 }
             }

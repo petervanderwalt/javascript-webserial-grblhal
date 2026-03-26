@@ -6,7 +6,7 @@ export class AppStore {
                 units: 'mm', // 'mm' or 'in'
             },
             viewer: {
-                gridMode: 'job' // 'job' or 'machine'
+                gridMode: 'machine' // 'job' or 'machine'
             },
             jog: {
                 continuous: false,
