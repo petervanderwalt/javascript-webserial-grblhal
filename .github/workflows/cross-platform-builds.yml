@@ -3,9 +3,48 @@ name: Cross-Platform Builds
 on:
   push:
     branches: [ "master", "main" ]
+    tags-ignore:
+      - '**'
   workflow_dispatch:
 
 jobs:
+  bump-version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.msg }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Bump Version
+        id: bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ $(git log -1 --pretty=%B) != *"Bump to "* ]]; then
+            npm version patch -m "Bump to %s [skip ci]"
+            git push origin HEAD --tags
+          fi
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+      - name: Changelog
+        id: changelog
+        run: |
+          MSG=$(git log -1 --pretty=format:'%s')
+          if [[ "$MSG" == *"Bump to "* ]]; then
+            MSG=$(git log -2 --pretty=format:'%s' | tail -n 1)
+          fi
+          echo "msg<<EOF" >> $GITHUB_OUTPUT
+          echo "$MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -178,3 +217,27 @@ jobs:
           path: |
             dist/index.html.gz
             dist/*.stl
+
+  create-release:
+    name: Create Release
+    needs: [bump-version, build-android, build-ios, build-windows, build-macos, build-linux, build-sd]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output-artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.bump-version.outputs.new_version }}
+          name: Release ${{ needs.bump-version.outputs.new_version }}
+          body: ${{ needs.bump-version.outputs.changelog }}
+          files: |
+            output-artifacts/**/*.apk
+            output-artifacts/**/*.ipa
+            output-artifacts/**/*.exe
+            output-artifacts/**/*.dmg
+            output-artifacts/**/*.AppImage
+            output-artifacts/**/*.gz
+            output-artifacts/**/*.stl
