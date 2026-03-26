@@ -80,8 +80,8 @@ jobs:
           npx cordova-res android --skip-config
           cordova platform add android
           cordova build android
-          VERSION=$(node -p "require('./package.json').version")
-          mv cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk cordova/platforms/android/app/build/outputs/apk/debug/javascript-webserial-grblhal-${VERSION}-Android.apk || true
+          VERSION=$(node -p "require('../package.json').version")
+          mv platforms/android/app/build/outputs/apk/debug/app-debug.apk platforms/android/app/build/outputs/apk/debug/javascript-webserial-grblhal-${VERSION}-Android.apk || true
           
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -121,7 +121,7 @@ jobs:
           # Package .app into .ipa for sideloading
           mkdir -p Payload
           cp -r platforms/ios/build/Build/Products/Debug-iphoneos/*.app Payload/
-          VERSION=$(node -p "require('../../package.json').version")
+          VERSION=$(node -p "require('../package.json').version")
           zip -r javascript-webserial-grblhal-${VERSION}-iOS.ipa Payload/
           
       - name: Upload iOS App
