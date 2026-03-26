@@ -348,7 +348,9 @@ export class DROHandler {
         stateEl.className = "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase text-white transition-all duration-300";
         const s = cleanState.toLowerCase();
 
-        if (s.startsWith('alarm')) {
+        const isAlarmed = s.startsWith('alarm');
+
+        if (isAlarmed) {
             stateEl.classList.add('bg-red-600', 'animate-pulse', 'shadow-lg', 'shadow-red-500/50');
         } else if (s.startsWith('hold') || s.startsWith('door') || s.startsWith('sleep')) {
             stateEl.classList.add('bg-yellow-600');
@@ -358,10 +360,47 @@ export class DROHandler {
             stateEl.classList.add('bg-secondary');
         }
 
+        this._setAlarmLock(isAlarmed);
+
         // Check for Idle to reset SD UI (Only if NOT printing)
         if (s === 'idle' && !isSdPrinting) {
             window.dispatchEvent(new CustomEvent('sd-job-complete'));
             window.dispatchEvent(new CustomEvent('machine-idle'));
+        }
+    }
+
+    _setAlarmLock(isAlarmed) {
+        const thingsToLock = [
+            document.querySelector('.jog-pad'),
+            ...document.querySelectorAll('.jog-extra-col'),
+            ...document.querySelectorAll('.dro-zero-btn'),
+            document.getElementById('run-job-btn'),
+            document.getElementById('run-sd-btn')
+        ];
+
+        thingsToLock.forEach(el => {
+            if (!el) return;
+            if (isAlarmed) {
+                el.classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                el.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        });
+
+        // Ensure run buttons restore to correct standard mode state 
+        if (!isAlarmed && window.uiManager && window.uiManager.updateRunButtonsState) {
+            window.uiManager.updateRunButtonsState();
+        }
+
+        const unlockBtn = document.querySelector('button[title="Unlock ($X)"]');
+        if (unlockBtn) {
+            if (isAlarmed) {
+                unlockBtn.classList.remove('btn-secondary');
+                unlockBtn.classList.add('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+            } else {
+                unlockBtn.classList.remove('!bg-red-600', '!text-white', 'animate-pulse', '!border-red-500');
+                unlockBtn.classList.add('btn-secondary');
+            }
         }
     }
 
