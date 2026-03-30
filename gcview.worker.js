@@ -30,6 +30,24 @@ class GrowableBuffer {
   }
 }
 
+class GrowableByteBuffer {
+  constructor(initialCapacity = 1048576) {
+    this.data = new Uint8Array(initialCapacity);
+    this.length = 0;
+  }
+  push(val, count=1) {
+    if (this.length + count > this.data.length) {
+      const newData = new Uint8Array(this.data.length * 2);
+      newData.set(this.data);
+      this.data = newData;
+    }
+    for(let i=0; i<count; i++) this.data[this.length++] = val;
+  }
+  getArray() {
+    return this.data.subarray(0, this.length);
+  }
+}
+
 function GCodeParser(handlers) {
   this.handlers = handlers || {};
   this.lastArgs = { cmd: null };
@@ -47,6 +65,9 @@ function GCodeParser(handlers) {
     }
     text = text.trim();
     if (!text) return;
+
+    // Normalization: Remove whitespace between command letters and their numbers (e.g. "X 10" -> "X10")
+    text = text.replace(/([gmtxyzabcijkfst])\s+/ig, "$1");
 
     // Fast tokenization
     const tokens = text.match(/([A-Z][\-+]?[0-9.]+)/gi);
@@ -132,6 +153,7 @@ function createObjectFromGCode(gcode) {
   const segmentLengthStats = new Array(16).fill(0);
   const rapidGeo = new GrowableBuffer();
   const feedGeo = new GrowableBuffer();
+  const feedTypes = new GrowableByteBuffer();
   const extraObjects = { G17: [], G18: [], G19: [], M_codes: [] };
   const offsetG92 = { x: 0, y: 0, z: 0, e: 0 };
 
@@ -146,8 +168,9 @@ function createObjectFromGCode(gcode) {
   }
 
   function drawArcFrom2PtsAndCenter(vp1, vp2, vpArc, args) {
-    const p1d = { x: vpArc.x - vp1.x, y: vpArc.y - vp1.y, z: vpArc.z - vp1.z };
-    const p2d = { x: vpArc.x - vp2.x, y: vpArc.y - vp2.y, z: vpArc.z - vp2.z };
+    // Vector pointing outwards from the center to the point
+    const p1d = { x: vp1.x - vpArc.x, y: vp1.y - vpArc.y, z: vp1.z - vpArc.z };
+    const p2d = { x: vp2.x - vpArc.x, y: vp2.y - vpArc.y, z: vp2.z - vpArc.z };
     let a1, a2;
     if (args.plane === "G18") { a1 = Math.atan2(p1d.z, p1d.x); a2 = Math.atan2(p2d.z, p2d.x); }
     else if (args.plane === "G19") { a1 = Math.atan2(p1d.z, p1d.y); a2 = Math.atan2(p2d.z, p2d.y); }
@@ -200,6 +223,7 @@ function createObjectFromGCode(gcode) {
         const d = Math.sqrt((pt.x - prev.x) ** 2 + (pt.y - prev.y) ** 2 + (pt.z - prev.z) ** 2);
         dSum += d;
         feedGeo.push(prev.x, prev.y, prev.z, pt.x, pt.y, pt.z);
+        feedTypes.push(2, 2);
       }
       totalDist += dSum;
       if (args.indx !== undefined) {
@@ -218,9 +242,12 @@ function createObjectFromGCode(gcode) {
       const buf = p2.g0 ? rapidGeo : feedGeo;
       const startIdx = buf.length / 3;
       buf.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-      if (!p2.g0 && args.indx !== undefined) {
-        parser.lineMap[args.indx * 2] = startIdx;
-        parser.lineMap[args.indx * 2 + 1] = 2;
+      if (!p2.g0) {
+        feedTypes.push(1, 2);
+        if (args.indx !== undefined) {
+          parser.lineMap[args.indx * 2] = startIdx;
+          parser.lineMap[args.indx * 2 + 1] = 2;
+        }
       }
     }
   }
@@ -276,6 +303,7 @@ function createObjectFromGCode(gcode) {
   return {
     rapidGeo: rapidGeo.getArray(),
     feedGeo: feedGeo.getArray(),
+    feedTypes: feedTypes.getArray(),
     lineMap: parser.lineMap,
     extraObjects,
     inch: !isUnitsMm,
@@ -285,5 +313,5 @@ function createObjectFromGCode(gcode) {
 
 self.addEventListener('message', e => {
   const res = createObjectFromGCode(e.data.data);
-  self.postMessage(res, [res.rapidGeo.buffer, res.feedGeo.buffer, res.lineMap.buffer]);
+  self.postMessage(res, [res.rapidGeo.buffer, res.feedGeo.buffer, res.feedTypes.buffer, res.lineMap.buffer]);
 });

@@ -862,6 +862,16 @@ export class GCodeViewer {
                 this.renderCoolGrid();
                 if (this.loadingOverlay) this.loadingOverlay.classList.add('hidden');
                 worker.terminate();
+
+                // Dispatch stats event for UI panels to consume
+                window.dispatchEvent(new CustomEvent('gcode-stats', {
+                    detail: {
+                        totalDist: payload.totalDist || 0,
+                        totalTime: payload.totalTime || 0,
+                        segmentLengthStats: payload.segmentLengthStats || [],
+                        inch: payload.inch || false
+                    }
+                }));
             }
         };
         worker.postMessage({ data: data });
@@ -882,12 +892,25 @@ export class GCodeViewer {
 
             // Generate initial colors on GPU-side (BufferAttribute)
             const colorBuffer = new Float32Array(feedGeo.length);
-            const c = new THREE.Color(COLORS.feed);
+            
+            // Extract colors from computed CSS styles to match the UI theme
+            const cssAppPrimary = getComputedStyle(document.body).getPropertyValue('--color-primary').trim() || '#449D9F';
+            const cssAppSecondary = getComputedStyle(document.body).getPropertyValue('--color-secondary').trim() || '#FF6600';
+            
+            const colorG1 = new THREE.Color(cssAppPrimary);
+            const colorG23 = new THREE.Color(cssAppSecondary);
+            const feedTypes = payload.feedTypes;
+
             for (let i = 0; i < colorBuffer.length; i += 3) {
+                const type = (feedTypes && (i/3) < feedTypes.length) ? feedTypes[i / 3] : 1;
+                const c = (type === 2) ? colorG23 : colorG1;
+                
                 colorBuffer[i] = c.r;
                 colorBuffer[i + 1] = c.g;
                 colorBuffer[i + 2] = c.b;
             }
+            
+            this.feedColorsCache = new Float32Array(colorBuffer);
             geo.setAttribute('color', new THREE.BufferAttribute(colorBuffer, 3));
 
             const mat = new THREE.LineBasicMaterial({
@@ -902,8 +925,9 @@ export class GCodeViewer {
         if (rapidGeo && rapidGeo.length > 0) {
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.BufferAttribute(rapidGeo, 3));
+            const cssAppDanger = getComputedStyle(document.body).getPropertyValue('--color-axis-x').trim() || COLORS.rapid;
             this.gcodeGroup.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
-                color: COLORS.rapid,
+                color: new THREE.Color(cssAppDanger),
                 linewidth: 1,
                 transparent: true,
                 opacity: 0.5,
@@ -927,9 +951,11 @@ export class GCodeViewer {
         // If currentLine reset (e.g. restart), reset all colors
         if (currentLine < this.lastRenderedLine) {
             const colorAttr = this.feedMesh.geometry.attributes.color;
-            const c = new THREE.Color(COLORS.feed);
-            for (let i = 0; i < colorAttr.count; i++) {
-                colorAttr.setXYZ(i, c.r, c.g, c.b);
+            if (this.feedColorsCache) {
+                for (let i = 0; i < colorAttr.count; i++) {
+                    const idx = i * 3;
+                    colorAttr.setXYZ(i, this.feedColorsCache[idx], this.feedColorsCache[idx+1], this.feedColorsCache[idx+2]);
+                }
             }
             colorAttr.needsUpdate = true;
             this.lastRenderedLine = 0;
