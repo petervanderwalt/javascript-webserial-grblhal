@@ -16,14 +16,13 @@ export class MacroHandler {
             'wind', 'thermometer', 'gauge', 'trash-2'
         ];
 
-        // Color options (Tailwind classes)
         this.colors = [
-            { name: 'Orange', bg: 'bg-secondary', text: 'text-white', border: 'border-secondary-dark' },
-            { name: 'Green', bg: 'bg-green-500', text: 'text-white', border: 'border-green-600' },
-            { name: 'Red', bg: 'bg-red-500', text: 'text-white', border: 'border-red-600' },
-            { name: 'Blue', bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600' },
-            { name: 'Teal', bg: 'bg-primary', text: 'text-black', border: 'border-primary-dark' },
-            { name: 'White', bg: 'bg-white', text: 'text-grey-dark', border: 'border-grey-light' }
+            { name: 'Orange', accent: '#FF6600', soft: '#FFF0E5', border: '#FF6600' },
+            { name: 'Green', accent: '#16A34A', soft: '#E9F9EF', border: '#16A34A' },
+            { name: 'Red', accent: '#DC2626', soft: '#FEECEC', border: '#DC2626' },
+            { name: 'Blue', accent: '#2563EB', soft: '#ECF3FF', border: '#2563EB' },
+            { name: 'Teal', accent: '#449D9F', soft: '#EAF5F5', border: '#449D9F' },
+            { name: 'White', accent: '#6B7280', soft: '#F7F9F9', border: '#D7E1E3' }
         ];
 
         this.load();
@@ -88,23 +87,29 @@ export class MacroHandler {
 
         this.macros.forEach((macro, index) => {
             const btn = document.createElement('div');
-            // Find color definition
             const colorDef = this.colors.find(c => c.name === this.normalizeColorName(macro.color)) || this.colors[0];
+            const preview = this.getGcodePreview(macro.gcode);
 
-            btn.className = `relative group cursor-pointer rounded-xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 transition-all flex flex-col items-center justify-center p-4 h-32 ${colorDef.bg} ${colorDef.text} ${colorDef.border}`;
+            btn.className = 'macro-card relative group cursor-pointer border-2 bg-white shadow-sm transition-all hover:shadow-md p-3 flex items-center';
+            btn.style.borderColor = colorDef.border;
 
-            // MODIFIED: Changed opacity classes to be visible by default (mobile), hidden on md+ unless hovered
             btn.innerHTML = `
-                <i data-lucide="${this.normalizeIcon(macro.icon)}" class="text-3xl mb-2"></i>
-                <span class="font-bold text-sm text-center leading-tight select-none">${macro.name}</span>
+                <div class="flex w-full items-center gap-3 pr-16">
+                    <div class="macro-card-icon shrink-0" style="background-color: ${colorDef.soft}; color: ${colorDef.accent};">
+                        <i data-lucide="${this.normalizeIcon(macro.icon)}" class="text-[1.2rem]"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="macro-card-title font-bold text-lg leading-tight text-secondary select-none">${this.escapeHtml(macro.name || 'Unnamed Macro')}</div>
+                        <div class="macro-card-gcode mt-1 text-sm leading-5 text-grey-dark">${this.escapeHtml(preview)}</div>
+                    </div>
+                </div>
 
-                <!-- Edit Controls (Always visible on mobile, Hover only on Desktop) -->
-                <div class="absolute top-1 right-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button class="edit-btn p-1 bg-black/20 hover:bg-black/40 rounded text-white text-xs" title="Edit">
-                        <i data-lucide="pencil" style="width:14px;height:14px"></i>
+                <div class="macro-card-actions">
+                    <button class="edit-btn macro-card-action-btn" title="Edit" type="button" aria-label="Edit macro">
+                        <i data-lucide="pencil" style="width:12px;height:12px"></i>
                     </button>
-                    <button class="del-btn p-1 bg-black/20 hover:bg-red-600 rounded text-white text-xs" title="Delete">
-                        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+                    <button class="del-btn macro-card-action-btn" title="Delete" type="button" aria-label="Delete macro">
+                        <i data-lucide="trash-2" style="width:12px;height:12px"></i>
                     </button>
                 </div>
             `;
@@ -133,10 +138,12 @@ export class MacroHandler {
 
         // Add "New Macro" Button
         const addBtn = document.createElement('div');
-        addBtn.className = "cursor-pointer rounded-xl border-2 border-dashed border-grey-light hover:border-primary hover:bg-white transition-colors flex flex-col items-center justify-center p-4 h-32 text-grey hover:text-primary";
+        addBtn.className = "macro-card macro-card--add cursor-pointer border-2 border-dashed border-grey-light hover:border-primary hover:bg-white transition-colors flex items-center gap-4 p-4 text-grey hover:text-primary";
         addBtn.innerHTML = `
-            <i data-lucide="plus" style="width:14px;height:14px"></i>
-            <span class="font-bold text-xs uppercase tracking-wider">Add Macro</span>
+            <span class="macro-card-add-icon">
+                <i data-lucide="plus" style="width:20px;height:20px"></i>
+            </span>
+            <span class="macro-card-add-label">Add Macro</span>
         `;
         addBtn.addEventListener('click', () => this.openModal(null));
         container.appendChild(addBtn);
@@ -257,6 +264,28 @@ export class MacroHandler {
             Grey: 'Teal'
         };
         return map[color] || color || 'Orange';
+    }
+
+    getGcodePreview(gcode) {
+        if (!gcode) return 'No gcode configured.';
+
+        const flattened = gcode
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .join(' ');
+
+        if (flattened.length <= 72) return flattened;
+        return `${flattened.slice(0, 69).trimEnd()}...`;
+    }
+
+    escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     saveFromModal() {

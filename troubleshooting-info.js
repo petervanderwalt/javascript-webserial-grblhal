@@ -134,13 +134,19 @@ export class TroubleshootingInfoView {
         return settings;
     }
 
+    _getSdCardStatusLabel() {
+        const isMounted = window._sdPrevMounted;
+        if (isMounted === true) return 'Mounted';
+        if (isMounted === false) return 'Not detected';
+        return 'Unknown';
+    }
+
     _getSdCardLines() {
         const sd = window.sdHandler;
         if (!sd) return [];
 
-        const isMounted = window._sdPrevMounted;
         const lines = [
-            `Presence: ${isMounted === true ? 'Mounted' : isMounted === false ? 'Not detected' : 'Unknown'}`,
+            `Presence: ${this._getSdCardStatusLabel()}`,
             `Current Path: ${sd.path || '/'}`,
             `Listed Entries: ${Array.isArray(sd.listedEntries) ? sd.listedEntries.length : 0}`
         ];
@@ -346,6 +352,7 @@ export class TroubleshootingInfoView {
         html += this._infoRow('Machine Config', firmware.machineConfig, `text-xs font-bold ${window.configWizard?._isUnconfigured?.(firmware.machineConfig) ? 'text-red-500' : 'text-secondary-dark'} text-right break-all`);
         html += firmware.decodedConfig ? `<div class="text-[10px] text-grey leading-relaxed">${this._escapeHtml(firmware.decodedConfig)}</div>` : '';
         html += this._infoRow('Board', firmware.board);
+        html += this._infoRow('SD Card', this._getSdCardStatusLabel());
         if (powerLines.length >= 2) {
             html += this._infoRow('Power Supply Voltage', powerLines[0].replace('Voltage: ', ''));
             html += this._infoRow('Power Supply Current', powerLines[1].replace('Current: ', ''));
@@ -540,6 +547,7 @@ export class TroubleshootingInfoView {
                 row('Machine Config', snapshot.firmware.machineConfig),
                 row('Decoded Config', snapshot.firmware.decodedConfig),
                 row('Board', snapshot.firmware.board),
+                row('SD Card', this._getSdCardStatusLabel()),
                 row('Options', snapshot.firmware.options)
             ]))}
             ${section('Application', rows([

@@ -21,6 +21,15 @@ export class GrblSettings {
         this.renderEmpty();
     }
 
+    hasLoadedData() {
+        return Object.keys(this.groups).length > 0 || Object.keys(this.settings).length > 0;
+    }
+
+    syncEmptyState() {
+        if (!this.tableContainer || this.hasLoadedData()) return;
+        this.renderEmpty();
+    }
+
     // --- Commands ---
 
     fetchSettings() {
@@ -61,7 +70,7 @@ export class GrblSettings {
             console.error('Reporter not available for modal');
             return;
         }
-        reporter.showConfirm('Save Settings', `Save ${ids.length} changed settings to EEPROM?`, () => {
+        reporter.showConfirm('Save Settings', `Save ${ids.length} changed setting(s) to EEPROM?`, () => {
 
             ids.forEach(id => {
                 const val = this.pendingChanges[id];
@@ -276,12 +285,22 @@ export class GrblSettings {
     // --- Rendering ---
 
     renderEmpty() {
+        const isConnected = !!this.ws?.isConnected;
+        const icon = isConnected ? 'sliders-horizontal' : 'plug-zap';
+        const title = isConnected ? 'Settings Not Loaded' : 'Not Connected';
+        const message = isConnected ? 'Click "Refresh" to load settings.' : 'Please connect to load settings...';
+
         this.tableContainer.innerHTML = `
-            <div class="flex flex-col items-center justify-center h-64 text-grey">
-                <i data-lucide="sliders-horizontal" style="width:14px;height:14px"></i>
-                <p>Click "Refresh" to load settings.</p>
+            <div class="flex items-center justify-center h-64">
+                <div class="flex flex-col items-center gap-2 text-center text-grey">
+                    <i data-lucide="${icon}" class="w-8 h-8 text-grey"></i>
+                    <span class="font-bold text-secondary-dark">${title}</span>
+                    <span class="text-xs text-grey">${message}</span>
+                </div>
             </div>
         `;
+
+        if (window.lucide) window.lucide.createIcons();
     }
 
     render() {
@@ -328,18 +347,21 @@ export class GrblSettings {
         let html = `<div class="flex flex-row h-[calc(100vh-220px)] border border-grey-light rounded-lg bg-white overflow-hidden">`;
 
         // --- Left Sidebar ---
-        html += `<div id="settings-sidebar" class="w-[140px] md:w-1/3 bg-grey-bg border-r border-grey-light flex flex-col shrink-0">`;
+        html += `<div id="settings-sidebar" class="w-[140px] md:w-1/3 flex flex-col shrink-0">`;
         html += `
-            <div class="p-2 border-b border-grey-light bg-white sticky top-0 z-20">
-                <div class="relative">
-                    <input type="text" id="settings-search-input"
-                        class="w-full pl-6 pr-1 py-1 text-[10px] md:text-xs border border-grey-light rounded bg-grey-bg focus:bg-white focus:border-primary outline-none transition-colors"
-                        placeholder="Search..."
-                        value="${this.searchQuery}"
-                        oninput="window.grblSettings.setSearchQuery(this.value)">
+            <div class="p-0 sticky top-0 z-20">
+                <div class="settings-sidebar-search-card">
+                    <label for="settings-search-input" class="ooznest-label settings-sidebar-search-label">Search</label>
+                    <div class="relative">
+                        <input type="text" id="settings-search-input"
+                            class="w-full pl-6 pr-2 py-2 text-[10px] md:text-xs border border-grey-light rounded bg-grey-bg focus:bg-white focus:border-primary outline-none transition-colors"
+                            placeholder="Search settings..."
+                            value="${this.searchQuery}"
+                            oninput="window.grblSettings.setSearchQuery(this.value)">
+                    </div>
                 </div>
             </div>
-            <div class="overflow-y-auto flex-1 p-1 md:p-2 space-y-0.5 md:space-y-1">
+            <div class="overflow-y-auto flex-1 bg-grey-bg p-2 md:p-3 space-y-2">
         `;
 
         if (sortedGroups.length === 0) {
@@ -347,19 +369,16 @@ export class GrblSettings {
         } else {
             sortedGroups.forEach(g => {
                 const isActive = (g.id == this.activeGroupId) && (this.searchQuery === "");
-                const activeClass = isActive
-                    ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm'
-                    : 'text-grey-dark hover:bg-grey-light border-l-4 border-transparent';
                 const isSubGroup = g.parentId && g.parentId !== '0';
                 const indent = isSubGroup ? 'ml-4 md:ml-6 pl-4 md:pl-6' : '';
                 const prefix = isSubGroup ? '- ' : '';
                 const pendingCount = this._getPendingCount(g.id);
                 html += `
                     <button onclick="window.grblSettings.setActiveGroup('${g.id}')"
-                        class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all relative ${activeClass}"
+                        class="settings-nav-item ${isActive ? 'is-active' : ''} w-full text-left px-3 py-3 text-[10px] md:text-xs font-bold rounded-lg transition-all relative"
                         title="${g.label}">
                         <span class="truncate pr-6 ${indent}">${prefix}${g.label}</span>
-                        ${pendingCount > 0 ? `<span class="absolute right-1 top-1/2 -translate-y-3/4 bg-primary text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">${pendingCount}</span>` : ''}
+                        ${pendingCount > 0 ? `<span class="settings-nav-badge absolute right-2 top-1/2 -translate-y-1/2 text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">${pendingCount}</span>` : ''}
                     </button>
                 `;
             });
@@ -368,13 +387,12 @@ export class GrblSettings {
         const hasUngrouped = Object.values(this.settings).some(s => !this.groups[s.groupId]);
         if (hasUngrouped) {
             const isActive = ('ungrouped' == this.activeGroupId) && (this.searchQuery === "");
-            const activeClass = isActive ? 'bg-white text-primary-dark border-l-4 border-primary shadow-sm' : 'text-grey-dark hover:bg-grey-light border-l-4 border-transparent';
             const pendingCount = this._getPendingCount('ungrouped');
             html += `
                 <button onclick="window.grblSettings.setActiveGroup('ungrouped')"
-                    class="w-full text-left px-2 py-2 text-[10px] md:text-xs font-bold rounded-r transition-all relative ${activeClass} border-t border-grey-light mt-1">
+                    class="settings-nav-item ${isActive ? 'is-active' : ''} w-full text-left px-3 py-3 text-[10px] md:text-xs font-bold rounded-lg transition-all relative mt-2">
                     <span class="truncate pr-6">Other</span>
-                    ${pendingCount > 0 ? `<span class="absolute right-1 top-1/2 -translate-y-1/2 bg-primary text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">${pendingCount}</span>` : ''}
+                    ${pendingCount > 0 ? `<span class="settings-nav-badge absolute right-2 top-1/2 -translate-y-1/2 text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">${pendingCount}</span>` : ''}
                 </button>
             `;
         }
@@ -386,7 +404,7 @@ export class GrblSettings {
         // Header
         html += `
             <div class="px-4 py-2.5 border-b border-grey-light sticky top-0 z-20 flex items-center gap-2">
-                ${this.searchQuery ? '<i data-lucide="search" style="width:14px;height:14px"></i>' : '<i data-lucide="folder-open" style="width:14px;height:14px"></i>'}
+                ${this.searchQuery ? '<i data-lucide="search" style="width:14px;height:14px"></i>' : '<i data-lucide="folder" style="width:14px;height:14px"></i>'}
                 <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider truncate">${displayTitle}</h3>
             </div>
         `;
@@ -429,13 +447,13 @@ export class GrblSettings {
         if (settingsToDisplay.length > 0) {
             hasContent = true;
             html += `
-                <table class="w-full text-left text-sm table-fixed">
+                <table class="w-full text-left text-sm">
                     <thead class="bg-white text-grey uppercase text-[9px] md:text-[10px] tracking-wider border-b border-grey-light sticky top-0 z-10">
                         <tr>
                             <th class="px-1 md:px-4 py-2 w-8 md:w-16 bg-surface text-center md:text-left">$</th>
                             <th class="px-1 md:px-4 py-2 bg-surface w-auto">Description</th>
-                            <th class="px-1 md:px-4 py-2 w-16 md:w-1/3 bg-surface">Val</th>
-                            <th class="px-1 md:px-4 py-2 w-8 md:w-20 bg-surface">Unit</th>
+                            <th class="px-1 md:px-4 py-2 w-16 md:w-1/3 bg-surface">Value</th>
+                            <th class="px-1 md:px-4 py-2 w-16 md:w-28 bg-surface whitespace-nowrap">Unit</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-grey-light">`;
@@ -454,9 +472,11 @@ export class GrblSettings {
 
                 html += `
                     <tr class="${rowClass} transition-colors group">
-                        <td class="px-0.5 md:px-4 py-2 md:py-3 font-mono text-secondary-dark font-bold text-[10px] md:text-xs align-top pt-3 md:pt-4 text-center md:text-left break-all">$${s.id}</td>
+                        <td class="px-0.5 md:px-4 py-2 md:py-3 font-mono text-secondary-dark font-bold text-[10px] md:text-xs align-top text-center md:text-left break-all leading-tight">
+                            <div class="pt-2 leading-tight">$${s.id}</div>
+                        </td>
                         <td class="px-1 md:px-4 py-2 md:py-3 align-top">
-                            <div class="text-grey-dark font-bold text-[11px] md:text-xs leading-tight">${s.label}</div>
+                            <div class="pt-2 text-grey-dark font-bold text-[11px] md:text-xs leading-tight">${s.label}</div>
                             ${s.desc ? `<div class="hidden md:block text-[10px] text-grey mt-1 leading-tight max-w-md">${s.desc.replace(/\\n/g, '<br>')}</div>` : ''}
                             ${enrichmentHtml}
                         </td>
@@ -464,7 +484,9 @@ export class GrblSettings {
                             ${this._renderInput(s, displayValue)}
                             ${isModified ? '<div class="text-[9px] md:text-[10px] text-primary-dark font-bold mt-0.5 text-right animate-pulse">Save?</div>' : ''}
                         </td>
-                        <td class="px-0.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs text-grey align-top pt-3 md:pt-4 break-all leading-tight">${s.unit || '-'}</td>
+                        <td class="px-0.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs text-grey align-top whitespace-nowrap leading-tight">
+                            <div class="pt-2 leading-tight">${s.unit || '-'}</div>
+                        </td>
                     </tr>
                 `;
             });

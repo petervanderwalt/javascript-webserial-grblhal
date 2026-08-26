@@ -93,17 +93,22 @@ export class WebSerial {
             throw err;
         }
         try {
-            this.port = await navigator.serial.requestPort();
-            await this.port.open({ baudRate });
-            this.clearPendingState();
-            this.isConnected = true;
-            this.listeners.connect.forEach(cb => cb());
-            this.readLoop();
+            const port = await navigator.serial.requestPort();
+            await this.connectToPort(port, baudRate);
         } catch (err) {
             console.error('Serial Connect Error:', err);
             if (err.name !== 'NotFoundError') this.emit('error', err);
             throw err;
         }
+    }
+
+    async connectToPort(port, baudRate = 115200) {
+        this.port = port;
+        await this.port.open({ baudRate });
+        this.clearPendingState();
+        this.isConnected = true;
+        this.listeners.connect.forEach(cb => cb());
+        this.readLoop();
     }
 
     async disconnect() {

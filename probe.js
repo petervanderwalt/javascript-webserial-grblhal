@@ -156,7 +156,7 @@ export class ProbeHandler {
         const note = document.getElementById('probe-safety-note');
 
         bar.className = 'mb-3 rounded-lg border text-xs font-bold safe';
-        msg.textContent = 'Probe test skipped';
+        msg.textContent = 'Probe Test Bypassed';
         if (actions) actions.classList.remove('hidden');
         status.className = 'text-green-600 ml-2';
         status.textContent = 'Operator confirmed';
@@ -292,6 +292,14 @@ export class ProbeHandler {
         return settings.mode || 'plate';
     }
 
+    _getPlateOffsetX(settings = this.store.data.probe) {
+        return Number.isFinite(settings.xPlateOffset) ? settings.xPlateOffset : (settings.xyPlateOffset || 0);
+    }
+
+    _getPlateOffsetY(settings = this.store.data.probe) {
+        return Number.isFinite(settings.yPlateOffset) ? settings.yPlateOffset : (settings.xyPlateOffset || 0);
+    }
+
     saveSettings() {
         const readValue = (ids, fallback = 0) => {
             for (const id of ids) {
@@ -304,10 +312,11 @@ export class ProbeHandler {
         // Basic Config
         this.store.set('probe.toolDiameter', readValue(['prb-tool-outside', 'prb-tool-surface', 'prb-tool'], 0));
         if (document.getElementById('prb-z-thick')) this.store.set('probe.plateThickness', parseFloat(document.getElementById('prb-z-thick').value) || 0);
-        if (document.getElementById('prb-xy-offset')) this.store.set('probe.xyPlateOffset', parseFloat(document.getElementById('prb-xy-offset').value) || 0);
+        if (document.getElementById('prb-x-offset')) this.store.set('probe.xPlateOffset', parseFloat(document.getElementById('prb-x-offset').value) || 0);
+        if (document.getElementById('prb-y-offset')) this.store.set('probe.yPlateOffset', parseFloat(document.getElementById('prb-y-offset').value) || 0);
+        if (document.getElementById('prb-corner-start-inset')) this.store.set('probe.cornerStartInset', parseFloat(document.getElementById('prb-corner-start-inset').value) || 22.5);
 
         if (document.getElementById('prb-feed')) this.store.set('probe.feed', parseFloat(document.getElementById('prb-feed').value) || 100);
-        if (document.getElementById('prb-feed-latch')) this.store.set('probe.feedLatch', parseFloat(document.getElementById('prb-feed-latch').value) || 25);
         if (document.getElementById('prb-dist')) this.store.set('probe.travel', parseFloat(document.getElementById('prb-dist').value) || 25);
         if (document.getElementById('prb-retract')) this.store.set('probe.retract', parseFloat(document.getElementById('prb-retract').value) || 10);
         if (document.getElementById('prb-z-depth')) this.store.set('probe.zDepth', parseFloat(document.getElementById('prb-z-depth').value) || 5);
@@ -348,9 +357,10 @@ export class ProbeHandler {
         setVal('prb-tool-outside', s.toolDiameter);
         setVal('prb-tool-surface', s.toolDiameter);
         setVal('prb-z-thick', s.plateThickness);
-        setVal('prb-xy-offset', s.xyPlateOffset);
+        setVal('prb-x-offset', this._getPlateOffsetX(s));
+        setVal('prb-y-offset', this._getPlateOffsetY(s));
+        setVal('prb-corner-start-inset', s.cornerStartInset ?? 22.5);
         setVal('prb-feed', s.feed);
-        setVal('prb-feed-latch', s.feedLatch);
         setVal('prb-dist', s.travel);
         setVal('prb-retract', s.retract);
         setVal('prb-edge-dist', s.plateClearance);
@@ -683,15 +693,18 @@ export class ProbeHandler {
         const corner = this.selections.outsideCorner;
         const xDir = corner.charAt(1) === 'R' ? 1 : -1;
         const yDir = corner.charAt(0) === 'R' ? 1 : -1;
+        const xPlateOffset = this._getPlateOffsetX(s);
+        const yPlateOffset = this._getPlateOffsetY(s);
         this.autoOffsets = {
             zoffset: s.plateThickness,
-            xoffset: xDir * (rad + s.xyPlateOffset),
-            yoffset: yDir * (rad + s.xyPlateOffset),
+            xoffset: xDir * (rad + xPlateOffset),
+            yoffset: yDir * (rad + yPlateOffset),
             xDir, yDir
         };
         this.term.writeln('\x1b[34m> Auto: zeroing and moving to plate center...\x1b[0m');
         this.ws.sendCommand('G10 P0 L20 X0 Y0 Z0');
-        this.ws.sendCommand('G90 G0 X' + (-xDir * 22.5) + ' Y' + (-yDir * 22.5));
+        const cornerStartInset = Number.isFinite(s.cornerStartInset) ? s.cornerStartInset : 22.5;
+        this.ws.sendCommand('G90 G0 X' + (-xDir * cornerStartInset) + ' Y' + (-yDir * cornerStartInset));
         this.ws.sendCommand('G38.2 Z-25 F' + s.feed);
     }
 
@@ -754,7 +767,9 @@ export class ProbeHandler {
         const s = this.store.data.probe;
         const isPlate = this._getProbeMode(s) === 'plate';
         const rad = s.toolDiameter / 2;
-        const plateOffset = isPlate ? s.xyPlateOffset : 0;
+        const plateOffset = axis === 'X'
+            ? (isPlate ? this._getPlateOffsetX(s) : 0)
+            : (isPlate ? this._getPlateOffsetY(s) : 0);
         const totalOffset = rad + plateOffset;
         const setVal = -(dir * totalOffset);
         this.term.writeln(`\x1b[34m> Probing ${axis}... (${isPlate ? 'Plate' : 'Probe'})\x1b[0m`);
@@ -791,27 +806,30 @@ export class ProbeHandler {
         const xDir = this.tempData.xDir;
         const yDir = this.tempData.yDir;
         const clearance = isPlate ? (s.plateClearance || s.clearance) : (s.probeClearance || s.clearance);
-        const moveDist = clearance + rad + (isPlate ? s.xyPlateOffset : 0) + 2;
+        const xPlateOffset = isPlate ? this._getPlateOffsetX(s) : 0;
+        const yPlateOffset = isPlate ? this._getPlateOffsetY(s) : 0;
+        const xMoveDist = clearance + rad + xPlateOffset + 2;
+        const yMoveDist = clearance + rad + yPlateOffset + 2;
 
         if (this.routineStep === 1) { // Z Done
             this.ws.sendCommand(`G10 L20 P0 Z${isPlate ? s.plateThickness : 0}`);
             this.ws.sendCommand(`G0 Z${s.retract}`);
-            this.ws.sendCommand(`G0 X${(xDir * moveDist).toFixed(3)}`);
+            this.ws.sendCommand(`G0 X${(xDir * xMoveDist).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
             setTimeout(() => { this.ws.sendCommand(`G38.2 X${(-xDir * s.travel).toFixed(3)} F${s.feed}`); }, 200);
             this.routineStep = 2; // Fixed step logic
         } else if (this.routineStep === 2) { // X Done
-            const setX = -(-xDir * (rad + (isPlate ? s.xyPlateOffset : 0)));
+            const setX = -(-xDir * (rad + xPlateOffset));
             this.ws.sendCommand(`G10 L20 P0 X${setX.toFixed(3)}`);
             this.ws.sendCommand(`G0 X${(xDir * s.retract).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);
             this.ws.sendCommand(`G90 G0 X0`);
-            this.ws.sendCommand(`G91 G0 Y${(yDir * moveDist).toFixed(3)}`);
+            this.ws.sendCommand(`G91 G0 Y${(yDir * yMoveDist).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z-${(s.retract + s.zDepth).toFixed(3)}`);
             setTimeout(() => { this.ws.sendCommand(`G38.2 Y${(-yDir * s.travel).toFixed(3)} F${s.feed}`); }, 200);
             this.routineStep = 3;
         } else if (this.routineStep === 3) { // Y Done
-            const setY = -(-yDir * (rad + (isPlate ? s.xyPlateOffset : 0)));
+            const setY = -(-yDir * (rad + yPlateOffset));
             this.ws.sendCommand(`G10 L20 P0 Y${setY.toFixed(3)}`);
             this.ws.sendCommand(`G0 Y${(yDir * s.retract).toFixed(3)}`);
             this.ws.sendCommand(`G0 Z${(s.retract + s.zDepth).toFixed(3)}`);

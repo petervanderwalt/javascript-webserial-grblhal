@@ -1299,6 +1299,7 @@ export class GCodeViewer {
 
     onContextMenu(event) {
         event.preventDefault();
+        if (!this.isMachineIdle()) return;
 
         // Only honor clicks inside the machine's valid workspace
         const { x, y } = this.machineLimits;
@@ -1326,6 +1327,11 @@ export class GCodeViewer {
             if (target.x < xMin || target.x > xMax || target.y < yMin || target.y > yMax) return;
             this.showContextMenu(event.clientX, event.clientY, target.x, target.y);
         }
+    }
+
+    isMachineIdle() {
+        const state = window.droHandler?._lastState || document.getElementById('machine-state')?.textContent || '';
+        return state.toLowerCase().split(':')[0] === 'idle';
     }
 
     showContextMenu(x, y, mX, mY) {

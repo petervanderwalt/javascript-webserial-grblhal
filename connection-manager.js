@@ -22,7 +22,9 @@ export class ConnectionManager {
             disconnect: [],
             line: [],
             sent: [],
-            error: []
+            error: [],
+            firmware: [],
+            ports: []
         };
         this._backendBuffer = '';
 
@@ -419,6 +421,7 @@ export class ConnectionManager {
     handleBackendMessage(msg) {
         switch (msg.type) {
             case 'ports':
+                this.emit('ports', msg.data || []);
                 const select = document.getElementById('port-node');
                 if (select) {
                     const ports = (msg.data || []).filter(p => {
@@ -534,6 +537,12 @@ export class ConnectionManager {
             case 'error':
                 this._setConnectingState(false);
                 this.emit('error', new Error(msg.message));
+                break;
+            case 'firmwareFlashLog':
+            case 'firmwareFlashProgress':
+            case 'firmwareFlashComplete':
+            case 'firmwareFlashError':
+                this.emit('firmware', msg);
                 break;
         }
     }
@@ -1047,8 +1056,46 @@ export class ConnectionManager {
         }
     }
 
+    off(event, callback) {
+        this.removeListener(event, callback);
+    }
+
     emit(event, data) {
         if (this.listeners[event]) this.listeners[event].forEach(cb => cb(data));
+    }
+
+    getConnectionSnapshot() {
+        if (this.type === 'usb') {
+            return {
+                type: 'usb',
+                port: document.getElementById('port-node')?.value || null,
+                baud: parseInt(document.getElementById('baud-node')?.value) || 115200
+            };
+        }
+
+        if (this.type === 'webserial') {
+            return {
+                type: 'webserial',
+                baud: parseInt(document.getElementById('baud-webserial')?.value) || 115200
+            };
+        }
+
+        if (this.type === 'telnet') {
+            return {
+                type: 'telnet',
+                ip: document.getElementById('ip-telnet')?.value || null,
+                port: parseInt(document.getElementById('port-telnet')?.value) || 23
+            };
+        }
+
+        if (this.type === 'websocket') {
+            return {
+                type: 'websocket',
+                url: document.getElementById('url-websocket')?.value || null
+            };
+        }
+
+        return { type: this.type };
     }
 
     _isPrivateIPv4(ip) {

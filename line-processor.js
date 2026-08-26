@@ -145,6 +145,8 @@ class LineProcessor {
                         window.viewer.setHomingDirMask(parseInt(window.grblSettings.settings['23'].val));
                     }
 
+                    window.spoilboardGrid?.syncAutoDimensions?.({ silent: true });
+
                     // Smoothly animate and frame the work area using Default Reset view instead of Iso
                     window.viewer.resetCamera();
                 }, 500);

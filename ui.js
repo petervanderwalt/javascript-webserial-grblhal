@@ -107,7 +107,7 @@ class UIManager {
 
             setTimeout(() => ws.sendCommand('$EA'), 500);
             setTimeout(() => ws.sendCommand('$EE'), 1000);
-            setTimeout(() => sdHandler.refresh(), 1500);
+            setTimeout(() => sdHandler.probeAvailabilityOnBoot(), 1500);
             setTimeout(() => ws.sendCommand('$EG'), 2000);
             setTimeout(() => ws.sendCommand('$ES'), 2500);
             setTimeout(() => ws.sendCommand('$$'), 3000);
@@ -167,9 +167,18 @@ class UIManager {
         // UI Control Selectors
         const jogControls = '.jog-btn, .jog-btn-extra, .dro-zero-btn, .dro-sub-btn, #stepSize, #jogContinuous';
         const runControls = '#run-job-btn';
-        const macroControls = '#macros-view button, #probe-panel-content, #probe-panel-content button, #probe-panel-content input, #sd-tools button';
+        const macroControls = '#macros-view button, #probe-panel-content, #probe-panel-content button, #probe-panel-content input';
         const txtConsole = '#console-input-area, #cmdInput, #btnSend';
         const unlockBtn = 'button[title="Unlock ($X)"]';
+        const ensureSdTabEnabled = () => {
+            const sdTabBtn = document.getElementById('sd-tab-btn');
+            if (!sdTabBtn) return;
+            sdTabBtn.disabled = false;
+            sdTabBtn.classList.remove('opacity-50', 'pointer-events-none');
+        };
+        const syncJogModeState = () => {
+            if (window.joggingController?.syncModeState) window.joggingController.syncModeState();
+        };
 
         if (state === 'offline') {
             setDisabled(jogControls, true);
@@ -241,6 +250,9 @@ class UIManager {
 
             this.updateRunButtonsState();
         }
+
+        ensureSdTabEnabled();
+        syncJogModeState();
     }
 
     /**

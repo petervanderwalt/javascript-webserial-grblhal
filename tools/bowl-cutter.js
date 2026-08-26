@@ -6,7 +6,6 @@ export class BowlCutter {
             depth: 20,
             cornerRadius: 5,
             toolDia: 6,
-            toolType: 'flat',
             stepover: 35,
             stepdown: 1,
             feed: 500,
@@ -129,14 +128,12 @@ export class BowlCutter {
             const el = document.getElementById(id);
             return el ? parseFloat(el.value) : fallback;
         };
-        const tt = document.getElementById('bc-tool-type');
         return {
             width: g('bc-width', this.defaults.width),
             length: g('bc-length', this.defaults.length),
             depth: g('bc-depth', this.defaults.depth),
             cornerRadius: g('bc-corner-radius', this.defaults.cornerRadius),
             toolDia: g('bc-tool-dia', this.defaults.toolDia),
-            toolType: tt ? tt.value : this.defaults.toolType,
             stepover: g('bc-stepover', this.defaults.stepover),
             stepdown: g('bc-stepdown', this.defaults.stepdown),
             feed: g('bc-feed', this.defaults.feed),

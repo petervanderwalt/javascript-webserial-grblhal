@@ -37,6 +37,7 @@ class ConsoleManager {
             cursorBlink: true,
             fontSize: 13,
             fontFamily: '"JetBrains Mono", monospace',
+            scrollback: 1000,
             rightClickSelectsWord: true,
             minimumContrastRatio: 1,   /* Disable auto-contrast: xterm 5.x reads DOM bg color which may be white from sidebar CSS, then shifts all text towards white making it invisible */
             theme: {

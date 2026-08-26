@@ -1,4 +1,4 @@
-/* Ooznest calibration-specific UI */
+/* Ooznest calibration-specific UI (shared card patterns) */
 
 .calibration-choice-card {
     display: flex;
@@ -131,4 +131,58 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+}
+
+/* Calibration wizard modal styles */
+
+#calibration-modal-body input[type="checkbox"],
+#calibration-modal-body input[type="radio"] {
+    accent-color: var(--oz-secondary);
+}
+
+#calibration-modal-body .config-filter-choice__control {
+    flex: 0 0 auto;
+    border: 1px solid rgba(68, 157, 159, 0.6);
+    background: #fff;
+    color: #fff;
+}
+
+#calibration-modal-body .config-filter-choice__control.is-selected {
+    border-color: var(--oz-secondary);
+    background: var(--oz-secondary);
+}
+
+#calibration-modal-body .config-filter-choice {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#calibration-modal-body .axis-option,
+#calibration-modal-body .method-option {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+#calibration-modal-body .axis-option:hover,
+#calibration-modal-body .method-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 22px rgba(13, 31, 34, 0.08);
+}
+
+#calibration-modal-body button.bg-green-500 {
+    background: var(--oz-primary) !important;
+}
+
+#calibration-modal-body input[type="number"]::-webkit-outer-spin-button,
+#calibration-modal-body input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#calibration-modal-body input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+#calibration-modal-body button.bg-green-500:hover {
+    background: var(--oz-primary-light) !important;
 }

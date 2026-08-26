@@ -36,7 +36,7 @@ class EditorIntegration {
     uploadEditorToSD() {
         if (!window.editor) return;
         if (!window.isSdActionAvailable || !window.isSdActionAvailable()) {
-            if (window.reporter) window.reporter.showAlert('SD Card Unavailable', 'SD card functions are currently unavailable.');
+            if (window.reporter) window.reporter.showAlert('SD Card Unavailable', 'SD Card functions are currently unavailable.');
             return;
         }
         const content = window.editor.getValue();
@@ -46,7 +46,6 @@ class EditorIntegration {
 
         window.reporter.showPrompt('Upload to SD Card', 'Enter filename for SD Card:', defaultName, (filename) => {
             if (!filename) return;
-
             const file = new File([content], filename, { type: "text/plain" });
             window.sdHandler.startUpload(file);
         });
@@ -57,12 +56,12 @@ class EditorIntegration {
      */
     runFromSD() {
         if (!window.isSdActionAvailable || !window.isSdActionAvailable()) {
-            if (window.reporter) window.reporter.showAlert('SD Card Unavailable', 'SD card functions are currently unavailable.');
+            if (window.reporter) window.reporter.showAlert('SD Card Unavailable', 'SD Card functions are currently unavailable.');
             return;
         }
         // Case 1: File is already on SD (Context Aware)
         if (window.currentSDFile) {
-            window.reporter.showConfirm('Run from SD', `Run ${window.currentSDFile} directly from SD card?`, () => {
+            window.reporter.showConfirm('Run from SD', `Run ${window.currentSDFile} directly from SD Card?`, () => {
                 // Start SD Print
                 window.ws.sendCommand(`$F=${window.currentSDFile}`);
                 // UI will update via status reports
@@ -77,7 +76,7 @@ class EditorIntegration {
             ? document.getElementById('editor-file-name').innerText
             : "job.gcode";
 
-        window.reporter.showPrompt('Upload & Run', 'Upload this job to SD card and run it?', defaultName, (filename) => {
+        window.reporter.showPrompt('Upload & Run', 'Upload this job to SD Card and run it?', defaultName, (filename) => {
             if (!filename) return;
             const file = new File([content], filename, { type: "text/plain" });
 

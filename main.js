@@ -8,6 +8,7 @@ const os = require('os');
 const { SerialPort } = require('serialport');
 const { WebSocketServer } = require('ws');
 const { autoUpdater } = require('electron-updater');
+const { runFirmwareFlash } = require('./firmware-flash-backend.js');
 const expressApp = express();
 const port = 8081; // Pick a port for the internal server
 expressApp.use(express.static(__dirname));
@@ -102,6 +103,7 @@ ipcMain.handle('get-network-info', async () => {
 
 let activePort = null;
 let activeSocket = null;
+let firmwareFlashInProgress = false;
 
 function getActiveControllerHttpTarget () {
     if (status.comms.type !== 'telnet' || !status.comms.ip) {
@@ -430,6 +432,51 @@ async function handleMessage(data, ws) {
             }
             break;
 
+        case 'firmwareFlash':
+            if (firmwareFlashInProgress) {
+                ws.send(JSON.stringify({ type: 'firmwareFlashError', message: 'A firmware flash is already in progress.' }));
+                break;
+            }
+
+            firmwareFlashInProgress = true;
+            try {
+                const result = await runFirmwareFlash({
+                    baseDir: __dirname,
+                    firmwareKey: data.firmwareKey,
+                    previousPort: data.previousPort,
+                    programmingPort: data.programmingPort,
+                    log: (line) => ws.send(JSON.stringify({ type: 'firmwareFlashLog', line })),
+                    progress: (percent) => ws.send(JSON.stringify({ type: 'firmwareFlashProgress', percent })),
+                    beforeFlashClose: async () => {
+                        if (!activePort) return;
+                        const portToClose = activePort;
+                        activePort = null;
+                        try {
+                            if (portToClose.close) {
+                                await new Promise((resolve) => portToClose.close(() => resolve()));
+                            }
+                        } catch (_) {
+                            // Best-effort close before flashing.
+                        }
+                        try {
+                            if (portToClose.destroy) portToClose.destroy();
+                        } catch (_) {
+                            // Ignore destroy errors.
+                        }
+                    }
+                });
+
+                ws.send(JSON.stringify({ type: 'firmwareFlashComplete', ...result }));
+            } catch (error) {
+                ws.send(JSON.stringify({
+                    type: 'firmwareFlashError',
+                    message: error?.message || String(error)
+                }));
+            } finally {
+                firmwareFlashInProgress = false;
+            }
+            break;
+
         case 'loadGCode':
             updateStatus('gcode.content', data.content);
             updateStatus('gcode.filename', data.filename);
@@ -610,29 +657,71 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-    createWindow();
-    
     // Auto-Updater Logic
-    autoUpdater.checkForUpdatesAndNotify().catch(err => {
-        console.error('Auto-update check failed:', err.message);
-    });
+    let updateDownloadWatchdog = null;
+    let updateCheckStarted = false;
+    const updateEvents = new Map();
+    const sendUpdateEvent = (channel, payload) => {
+        updateEvents.set(channel, payload);
+        BrowserWindow.getAllWindows().forEach(win => win.webContents.send(channel, payload));
+    };
+    const replayUpdateEvents = (webContents) => {
+        ['update-checking', 'update-available', 'update-download-progress', 'update-download-timeout', 'update-error', 'update-downloaded', 'update-not-available']
+            .forEach(channel => {
+                if (updateEvents.has(channel)) webContents.send(channel, updateEvents.get(channel));
+            });
+    };
+    const clearUpdateDownloadWatchdog = () => {
+        if (updateDownloadWatchdog) clearTimeout(updateDownloadWatchdog);
+        updateDownloadWatchdog = null;
+    };
+    const armUpdateDownloadWatchdog = () => {
+        clearUpdateDownloadWatchdog();
+        updateDownloadWatchdog = setTimeout(() => {
+            sendUpdateEvent('update-download-timeout', {
+                message: 'No update download progress has been received for two minutes. Check your internet connection and try restarting the app.'
+            });
+        }, 120000);
+    };
+
     autoUpdater.on('update-available', (info) => {
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-available', info);
-        });
+        sendUpdateEvent('update-available', info);
+        armUpdateDownloadWatchdog();
+    });
+    autoUpdater.on('download-progress', (progress) => {
+        sendUpdateEvent('update-download-progress', progress);
+        armUpdateDownloadWatchdog();
     });
     autoUpdater.on('update-downloaded', (info) => {
-        BrowserWindow.getAllWindows().forEach(win => {
-            win.webContents.send('update-downloaded');
-        });
+        clearUpdateDownloadWatchdog();
+        sendUpdateEvent('update-downloaded', info);
     });
     autoUpdater.on('error', (err) => {
+        clearUpdateDownloadWatchdog();
         console.error('Auto-updater error:', err.message || err);
+        sendUpdateEvent('update-error', { message: err.message || String(err) });
+    });
+    autoUpdater.on('update-not-available', (info) => {
+        sendUpdateEvent('update-not-available', info);
+    });
+
+    ipcMain.on('updater-ready', (event) => {
+        replayUpdateEvents(event.sender);
+        if (updateCheckStarted) return;
+
+        updateCheckStarted = true;
+        sendUpdateEvent('update-checking', { message: 'Checking for updates...' });
+        autoUpdater.checkForUpdatesAndNotify().catch(err => {
+            console.error('Auto-update check failed:', err.message);
+            sendUpdateEvent('update-error', { message: err.message || String(err) });
+        });
     });
 
     ipcMain.on('install-update', () => {
         autoUpdater.quitAndInstall();
     });
+
+    createWindow();
 
     // Renderer asks to open a G-code file via native dialog
     ipcMain.handle('load-gcode-dialog', async () => {

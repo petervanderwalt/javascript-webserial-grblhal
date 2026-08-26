@@ -47,7 +47,7 @@ export class DROHandler {
             console.error('Reporter not available for modal');
             return;
         }
-        reporter.showConfirm('Run Homing Cycle', 'Run Homing Cycle ($H)? Ensure path is clear.', () => {
+        reporter.showConfirm('Run Homing Cycle', 'Run Homing Cycle ($H)? It will first Home Z, then Home X, then Home Y. Ensure the path is clear.', () => {
             this.ws.sendCommand('$H');
         });
     }
@@ -60,7 +60,7 @@ export class DROHandler {
             return;
         }
         const originalMachineZ = Number.isFinite(this.mpos[2]) ? this.mpos[2] : null;
-        reporter.showConfirm('Go To XY Zero', 'Move to X0 Y0? Z will first raise to G53 Z-5, then move X, then Y, then return Z to its starting position. Ensure the path is clear.', () => {
+        reporter.showConfirm('Go To XY Zero', 'Go to X0 Y0? It will first raise Z, then move X, then move Y, then return Z to its original position. Ensure the path is clear.', () => {
             this.ws.sendCommand('G53 G0 Z-5');
             this.ws.sendCommand('G0 X0');
             this.ws.sendCommand('G0 Y0');
@@ -448,6 +448,7 @@ export class DROHandler {
         stateEl.textContent = cleanState;
         stateEl.className = "machine-status-pill text-center transition-all duration-300";
         const s = cleanState.toLowerCase();
+        window.dispatchEvent(new CustomEvent('machine-state-changed', { detail: { state: s } }));
 
         // Detect alarm → non-alarm transition (alarm cleared via $X or reset)
         const wasAlarmed = this._lastState && this._lastState.startsWith('alarm');

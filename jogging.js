@@ -88,6 +88,15 @@ class JoggingController {
         return Math.max(f, 0.1).toFixed(isMm ? 0 : 2);
     }
 
+    syncModeState() {
+        const toggle = document.getElementById('jogContinuous');
+        const distSelect = document.getElementById('stepSize');
+        if (!toggle || !distSelect) return;
+
+        window.store.set('jog.continuous', toggle.checked);
+        distSelect.disabled = toggle.checked || !(window.ws && window.ws.isConnected);
+    }
+
     /**
      * Initialize jogging controls
      */
@@ -97,15 +106,10 @@ class JoggingController {
         const btns = document.querySelectorAll('[data-jog]');
         const toggle = document.getElementById('jogContinuous');
         toggle.checked = window.store.get('jog.continuous');
-        const distSelect = document.getElementById('stepSize');
-        const setModeState = () => {
-            window.store.set('jog.continuous', toggle.checked);
-            if (distSelect) distSelect.disabled = toggle.checked;
-        };
-        setModeState();
+        this.syncModeState();
 
         toggle.addEventListener('change', () => {
-            setModeState();
+            this.syncModeState();
         });
 
         document.getElementById('stepSize').addEventListener('change', (e) => {

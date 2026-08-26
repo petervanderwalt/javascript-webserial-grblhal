@@ -1,6 +1,5 @@
-/* --- START OF FILE calibration.js --- */
-
 import { makeLine, getTextWidth, drawTextString } from './gcode-draw.js';
+import { registerModal } from './modal.js';
 
 export class CalibrationHandler {
     constructor(ws, term, store) {
@@ -8,80 +7,443 @@ export class CalibrationHandler {
         this.term = term;
         this.store = store;
 
-        this.axis = 'X'; // Default
+        this.axis = 'X';
         this.method = 'distance';
-        this.step = 'intro';
+        this.step = 'axis';
         this.oldSteps = 100;
         this.newSteps = 100;
         this.errorFactor = 1;
         this.commandedDistance = 100;
+        this.isCutting = false;
+        this.modal = null;
+        this.posInterval = null;
+        this.alarmWatch = null;
+        this.okListener = null;
 
         this.initUI();
     }
 
     initUI() {
+        this._initModal();
+        this.refreshA();
+    }
+
+    _initModal() {
+        this.modal = registerModal('calibration-modal', {
+            onShow: () => {
+                this.axis = 'X';
+                this.method = 'distance';
+                this.commandedDistance = this.getDefaultDistance(this.axis);
+                this.isCutting = false;
+                this.setStep('axis');
+            },
+            onHide: () => this.cancel(undefined, { returnToOperation: false })
+        });
+    }
+
+    showModal() {
+        if (!this.modal) this._initModal();
+        if (this.modal) this.modal.show();
+    }
+
+    hideModal() {
+        if (this.modal) this.modal.hide();
+    }
+
+    refreshA() {
+        // A-axis no longer shown in calibration
+    }
+
+    setStep(step) {
+        this.step = step;
+        this.renderWizard();
+    }
+
+    renderWizard() {
+        const container = document.getElementById('calibration-modal-body');
+        const footer = document.getElementById('calibration-modal-footer');
+        if (!container || !footer) return;
+
+        const steps = ['Axis', 'Method', 'Setup', this.method === 'vernier' ? 'Cut' : 'Move', 'Measure', 'Result', 'Done'];
+        const stepOrder = ['axis', 'method', 'setup', 'cut', 'measure', 'result', 'done'];
+        const currentIndex = stepOrder.indexOf(this.step);
+
+        let html = '';
+
+        // Step indicator
+        html += '<div class="wizard-stepper wizard-stepper--compact mb-6 px-1">';
+        steps.forEach((label, i) => {
+            const isActive = i === currentIndex;
+            const isDone = i < currentIndex;
+            html += `<div class="wizard-stepper__item ${isActive ? 'is-active' : ''} ${isDone ? 'is-complete' : ''}">`;
+            if (isDone) {
+                html += '<span class="wizard-stepper__circle"><i data-lucide="check" style="width:16px;height:16px"></i></span>';
+            } else {
+                html += `<span class="wizard-stepper__circle">${i + 1}</span>`;
+            }
+            html += `<span class="wizard-stepper__label">${label}</span></div>`;
+        });
+        html += '</div>';
+
+        // Step content
+        html += '<div>';
+        switch (this.step) {
+            case 'axis': html += this._renderAxisStep(); break;
+            case 'method': html += this._renderMethodStep(); break;
+            case 'setup': html += this._renderSetupStep(); break;
+            case 'cut': html += this._renderCutStep(); break;
+            case 'measure': html += this._renderMeasureStep(); break;
+            case 'result': html += this._renderResultStep(); break;
+            case 'done': html += this._renderDoneStep(); break;
+        }
+        html += '</div>';
+
+        container.innerHTML = html;
+
+        // Footer
+        footer.innerHTML = this._renderFooter();
+        footer.classList.remove('hidden');
+
+        this._wireCalibrationEvents();
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    _renderAxisStep() {
+        const hasA = window.dro && window.dro.mpos && window.dro.mpos.length > 3;
+        const axisOptions = [
+            { id: 'X', label: 'X Axis' },
+            { id: 'Y', label: 'Y Axis' },
+            { id: 'Z', label: 'Z Axis' },
+        ];
+
+        let html = '<p class="text-sm text-grey mb-4">Choose which machine axis you want to calibrate.</p>';
+        html += '<div class="config-filter-group bg-white rounded-xl border border-grey-light overflow-hidden">';
+        html += '<div class="divide-y divide-grey-light/60">';
+        axisOptions.forEach(opt => {
+            const sel = this.axis === opt.id;
+            html += `<div class="axis-option config-filter-choice ${sel ? 'is-selected' : ''} flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer" data-axis="${opt.id}">`;
+            html += `<div class="config-filter-choice__control ${sel ? 'is-selected' : ''} w-4 h-4 rounded-full flex items-center justify-center"><div class="w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : ''}"></div></div>`;
+            html += `<span class="config-filter-choice__label">${opt.label}</span>`;
+            html += '</div>';
+        });
+        html += '</div></div>';
+        html += '<p class="text-[10px] text-grey mt-3"><i data-lucide="info" style="width:12px;height:12px"></i> Select the axis you want to calibrate. X and Y support both measured travel and vernier scale methods. Z uses measured travel only.</p>';
+        return html;
+    }
+
+    _renderMethodStep() {
+        const intro = this.axis === 'Z'
+            ? 'Z axis uses measured travel calibration only.'
+            : `Choose how you want to calibrate the ${this.axis} axis.`;
+
+        const methods = this.axis === 'Z'
+            ? [{ id: 'distance', label: 'Measured Travel', desc: 'Command a move, measure the actual travel, then correct steps/mm.' }]
+            : [
+                { id: 'distance', label: 'Measured Travel', desc: 'Command a move, measure the actual travel, then correct steps/mm.' },
+                { id: 'vernier', label: 'Vernier Scale', desc: 'Cut a fine reference scale and compare it visually against a ruler.' },
+              ];
+
+        let html = `<p class="text-sm text-grey mb-4">${intro}</p>`;
+        html += '<div class="config-filter-group bg-white rounded-xl border border-grey-light overflow-hidden">';
+        html += '<div class="divide-y divide-grey-light/60">';
+        methods.forEach(opt => {
+            const sel = this.method === opt.id;
+            html += `<div class="method-option config-filter-choice ${sel ? 'is-selected' : ''} flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer" data-method="${opt.id}">`;
+            html += `<div class="config-filter-choice__control ${sel ? 'is-selected' : ''} w-4 h-4 rounded-full flex items-center justify-center"><div class="w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : ''}"></div></div>`;
+            html += `<div><span class="config-filter-choice__label">${opt.label}</span><div class="config-filter-subtitle">${opt.desc}</div></div>`;
+            html += '</div>';
+        });
+        html += '</div></div>';
+        return html;
+    }
+
+    _renderSetupStep() {
+        const isVernier = this.method === 'vernier';
+        const axis = this.axis;
+        const axisIdx = this.getAxisIndex(axis);
+        const pos = window.dro && window.dro.wpos ? (window.dro.wpos[axisIdx] || 0).toFixed(3) : '---';
+
+        const steps = isVernier
+            ? [
+                'Secure a scrap piece of <strong>MDF or Wood</strong> to your wasteboard. Ensure it is at least 120mm long.',
+                'Install a <strong>sharp V-Bit</strong> or engraving tool.',
+                'Jog to the starting position on the scrap material and <strong>zero the Z axis</strong> on the surface.'
+              ]
+            : [
+                `Set up a <strong>ruler, calipers, or dial indicator</strong> so you can measure ${axis} axis travel accurately.`,
+                `Jog to a safe start point with enough room to move <strong>${this.commandedDistance}mm</strong> in the positive ${axis} direction.`,
+                `Zero or reference your measuring device, then zero the ${axis} work coordinate if that helps your setup.`
+              ];
+
+        const warning = isVernier
+            ? `Ensure there is enough travel in the ${axis} direction (approx 100mm) from the current position.`
+            : `Ensure there is enough clear travel in the ${axis} direction for the commanded move before starting.`;
+
+        let html = '<div class="config-filter-group bg-white rounded-xl border border-grey-light overflow-hidden">';
+
+        // Compact instructions
+        html += '<div class="divide-y divide-grey-light/60">';
+        html += '<div class="px-4 py-3 space-y-2">';
+        steps.forEach((text, i) => {
+            html += `<div class="flex items-start gap-2 text-sm text-grey-dark leading-relaxed"><span class="font-bold text-primary shrink-0">${i + 1}.</span><span>${text}</span></div>`;
+        });
+        html += '</div>';
+
+        // Quick control row
+        html += `<div class="px-4 py-3 bg-grey-bg/30 border-t border-grey-light flex items-center justify-between gap-4">`;
+        html += `<div class="flex items-center gap-2"><span class="text-xs font-bold text-secondary-dark">${axis}:</span><span id="cal-axis-pos" class="font-mono font-bold text-xs">${pos}</span></div>`;
+        html += `<button onclick="window.calibration.zeroSelectedAxis()" class="btn btn-secondary text-xs">Zero ${axis} Axis</button>`;
+        html += '</div>';
+
+        // Warning
+        html += `<div class="px-4 py-3 border-t border-grey-light flex items-start gap-2 bg-yellow-50/50"><i data-lucide="triangle-alert" class="text-yellow-600 shrink-0 mt-0.5" style="width:14px;height:14px"></i><p class="text-[10px] text-yellow-800">${warning}</p></div>`;
+
+        html += '</div></div>';
+        return html;
+    }
+
+    _renderCutStep() {
+        const isVernier = this.method === 'vernier';
+        const axis = this.axis;
+
+        let html = '';
+
+        if (isVernier) {
+            html += '<h4 class="text-base font-bold text-secondary-dark mb-3">Ready to cut?</h4>';
+            html += '<p class="text-sm text-grey mb-6">The machine will now cut 100 lines spaced 0.9mm apart. This will take approximately 2 minutes.</p>';
+
+            html += '<div id="cal-cut-spindle-warning" class="bg-red-50 border border-red-100 p-4 rounded-lg mb-6 flex items-center gap-3 text-left">';
+            html += '<i data-lucide="fan" class="text-red-500 shrink-0" style="width:20px;height:20px"></i>';
+            html += '<div><p class="text-xs font-black text-red-800 uppercase">Warning</p><p class="text-xs text-red-700">Please ensure your <strong>spindle is turned ON</strong> before clicking Start Cut.</p></div>';
+            html += '</div>';
+
+            // Progress
+            html += '<div id="cal-cut-progress" class="mb-6">';
+            html += '<div class="flex justify-between text-[10px] font-bold text-grey uppercase mb-1">';
+            html += '<span>Cutting Mark <span id="cal-mark-num">0</span>/100</span>';
+            html += '<span id="cal-cut-pct">0%</span>';
+            html += '</div>';
+            html += '<div class="h-2 w-full bg-grey-bg rounded-full overflow-hidden">';
+            html += '<div id="cal-cut-bar" class="h-full bg-primary transition-all duration-300 w-0"></div>';
+            html += '</div></div>';
+        } else {
+            html += '<h4 class="text-base font-bold text-secondary-dark mb-3">Ready to move?</h4>';
+            html += `<p class="text-sm text-grey mb-6">The machine will move the ${axis} axis by the commanded distance. Measure the actual travel, then enter it on the next step.</p>`;
+
+            html += '<div id="cal-distance-panel" class="mb-6 text-left bg-grey-bg border border-grey-light rounded-xl p-4">';
+            html += '<label class="ooznest-label text-[10px] font-bold text-grey-dark uppercase tracking-wider block mb-1">Commanded Travel (mm)</label>';
+            html += `<input type="number" id="cal-input-commanded" class="ooznest-field input-field text-right font-mono" value="${this.commandedDistance}" min="0.1" step="0.1">`;
+            html += '<p class="text-[10px] text-grey mt-2">The machine will move the selected axis by this amount in the positive direction.</p>';
+            html += '</div>';
+        }
+
+        return html;
+    }
+
+    _renderMeasureStep() {
+        const isVernier = this.method === 'vernier';
+        const axis = this.axis;
+
+        let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-8">';
+
+        // Left: Help
+        html += '<div>';
+        html += `<h4 class="font-bold text-secondary-dark mb-4 flex items-center gap-2 text-sm"><i data-lucide="info" class="text-primary" style="width:16px;height:16px"></i> ${isVernier ? 'How to Read' : 'How to Measure'}</h4>`;
+
+        if (isVernier) {
+            html += '<div class="space-y-3 text-sm text-grey-dark leading-relaxed">';
+            html += '<p>1. Place a <strong>standard steel ruler</strong> against the cut marks, aligning the <strong>0 mark</strong> of the ruler with the <strong>first cut mark</strong>.</p>';
+            html += '<p>2. Look along the ruler and find where a <strong>cut mark</strong> aligns perfectly with a <strong>millimeter mark</strong> on your ruler.</p>';
+            html += '<div class="p-3 bg-grey-bg rounded-lg border border-grey-light italic text-xs">"The CNC marks are 0.9mm apart. By finding where they align with the 1mm marks on your ruler, we can calculate the exact error."</div>';
+            html += '</div>';
+        } else {
+            html += '<div class="space-y-3 text-sm text-grey-dark leading-relaxed">';
+            html += `<p>1. Measure how far the <strong>${axis} axis</strong> actually moved after the commanded travel.</p>`;
+            html += `<p>2. Use the same units as the commanded move. The machine was commanded to move <strong><span id="cal-commanded-display-inline">${this.commandedDistance.toFixed(2)}</span> mm</strong>.</p>`;
+            html += '</div>';
+        }
+        html += '</div>';
+
+        // Right: Inputs
+        html += '<div class="space-y-4 bg-grey-bg p-5 rounded-xl border border-grey-light">';
+        html += '<h4 class="text-[10px] font-black text-grey uppercase tracking-wider">Enter Readings</h4>';
+
+        if (isVernier) {
+            html += '<div>';
+            html += '<label class="ooznest-label text-[10px] font-bold text-grey-dark uppercase tracking-wider block mb-2">Which CNC mark aligns perfectly? (0-100)</label>';
+            html += '<div class="mb-1"><label class="text-[10px] font-bold text-grey block mb-1">MARK</label>';
+            html += '<input type="number" id="cal-input-mark" class="ooznest-field input-field text-right font-mono w-full" placeholder="96" min="0" max="100"></div>';
+            html += '<p class="text-[10px] text-grey mt-1 italic">Calculated CNC Distance: <span id="cal-cnc-dist-display">0.00</span> mm</p>';
+            html += '</div>';
+            html += '<div>';
+            html += '<label class="ooznest-label text-[10px] font-bold text-grey-dark uppercase tracking-wider block mb-2">Ruler reading at that mark (mm)</label>';
+            html += '<div><label class="text-[10px] font-bold text-grey block mb-1">REAL</label>';
+            html += '<input type="number" id="cal-input-real" class="ooznest-field input-field text-right font-mono w-full" placeholder="86.0" step="0.1"></div>';
+            html += '</div>';
+        } else {
+            html += '<div>';
+            html += '<label class="ooznest-label text-[10px] font-bold text-grey-dark uppercase tracking-wider block mb-2">Commanded Travel (mm)</label>';
+            html += `<input type="text" id="cal-commanded-display" class="ooznest-field input-field text-right font-mono w-full" value="${this.commandedDistance.toFixed(2)}" readonly>`;
+            html += '</div>';
+            html += '<div>';
+            html += '<label class="ooznest-label text-[10px] font-bold text-grey-dark uppercase tracking-wider block mb-2">Actual Measured Travel (mm)</label>';
+            html += `<input type="number" id="cal-input-actual-travel" class="ooznest-field input-field text-right font-mono w-full" value="${this.commandedDistance.toFixed(2)}" step="0.01">`;
+            html += '</div>';
+        }
+
+        html += '</div>';
+        html += '</div>';
+
+        return html;
+    }
+
+    _renderResultStep() {
+        const settingId = this.getAxisSettingId(this.axis);
+
+        let html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">';
+        html += '<div class="bg-grey-bg p-4 rounded-xl border border-grey-light text-center">';
+        html += '<span class="text-[10px] font-black text-grey uppercase block mb-1">Current Steps/mm</span>';
+        html += `<span id="cal-old-steps" class="text-2xl font-mono font-bold text-secondary-dark">${this.oldSteps.toFixed(3)}</span>`;
+        html += '</div>';
+        html += '<div class="bg-primary/5 p-4 rounded-xl border border-primary/20 text-center ring-4 ring-primary/5">';
+        html += '<span class="text-[10px] font-black text-primary uppercase block mb-1">New Steps/mm</span>';
+        html += `<span id="cal-new-steps" class="text-3xl font-mono font-black text-primary">${this.newSteps.toFixed(3)}</span>`;
+        html += '</div>';
+        html += '<div class="bg-grey-bg p-4 rounded-xl border border-grey-light text-center">';
+        html += '<span class="text-[10px] font-black text-grey uppercase block mb-1">Error Factor</span>';
+        html += `<span id="cal-error-factor" class="text-2xl font-mono font-bold text-secondary-dark">${this.errorFactor.toFixed(6)}</span>`;
+        html += '</div>';
+        html += '</div>';
+
+        const verifyTail = this.method === 'vernier'
+            ? 'It is recommended to perform a test cut after applying to verify the accuracy.'
+            : 'It is recommended to repeat the travel check after applying to verify the accuracy.';
+
+        html += `<div class="bg-blue-50 border border-blue-100 p-5 rounded-xl mb-4 flex items-start gap-3">`;
+        html += `<i data-lucide="info" class="text-blue-500 shrink-0" style="width:18px;height:18px"></i>`;
+        html += `<div class="text-sm text-blue-800 leading-relaxed"><p class="font-bold mb-1">Verification</p><p>Applying this change will update your machine's <strong>$${settingId}</strong> setting. ${verifyTail}</p></div>`;
+        html += '</div>';
+
+        return html;
+    }
+
+    _renderDoneStep() {
+        const axis = this.axis;
+        const desc = this.method === 'vernier'
+            ? `The new steps/mm have been saved to your machine's non-volatile memory. Your ${axis} axis is now tuned using the Vernier method.`
+            : `The new steps/mm have been saved to your machine's non-volatile memory. Your ${axis} axis is now tuned using measured travel.`;
+
+        let html = '<div class="text-center">';
+        html += '<div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="check" class="text-3xl"></i></div>';
+        html += '<h3 class="text-xl font-black text-secondary-dark mb-2">Calibration Complete!</h3>';
+        html += `<p class="text-sm text-grey mb-6 max-w-md mx-auto">${desc}</p>`;
+        html += '</div>';
+        return html;
+    }
+
+    _renderFooter() {
+        if (this.step === 'done') {
+            return `<div class="flex w-full justify-center gap-3">
+                <button onclick="window.calibration.cancel()" class="btn btn-primary"><i data-lucide="repeat" style="width:14px;height:14px"></i> Calibrate Another Axis</button>
+                <button onclick="window.calibration.hideModal()" class="btn btn-secondary"><i data-lucide="x" style="width:14px;height:14px"></i> Close</button>
+            </div>`;
+        }
+
+        const isDisabled = this.isCutting;
+        const forwardLabel = this.step === 'cut'
+            ? (this.method === 'vernier' ? 'Start Cut' : 'Run Test Move')
+            : this.step === 'result' ? 'Apply' : 'Continue';
+
+        const backAction = this.step === 'axis'
+            ? 'window.calibration.hideModal()'
+            : 'window.calibration.prevStep()';
+
+        const forwardAction = this.step === 'cut'
+            ? 'window.calibration.runCutJob()'
+            : this.step === 'measure' ? 'window.calibration.calculate()'
+            : this.step === 'result' ? 'window.calibration.apply()'
+            : 'window.calibration.nextStep()';
+
+        return `<div class="flex w-full justify-between items-center gap-3">
+            <button onclick="${backAction}" class="btn btn-secondary" ${isDisabled ? 'disabled' : ''}>${this.step === 'axis' ? 'Close' : 'Back'}</button>
+            <button id="btn-cal-fwd" onclick="${forwardAction}" class="btn btn-primary" ${isDisabled ? 'disabled' : ''}>${forwardLabel}</button>
+        </div>`;
+    }
+
+    _wireCalibrationEvents() {
+        // Axis selection
+        document.querySelectorAll('.axis-option').forEach(el => {
+            el.onclick = () => {
+                const axis = el.dataset.axis;
+                if (axis) this.selectAxis(axis);
+            };
+        });
+
+        // Method selection
+        document.querySelectorAll('.method-option').forEach(el => {
+            el.onclick = () => {
+                const method = el.dataset.method;
+                if (method) this.selectMethod(method);
+            };
+        });
+
+        // Vernier mark input
         const markInput = document.getElementById('cal-input-mark');
         if (markInput) {
             markInput.addEventListener('input', () => {
                 const n = parseFloat(markInput.value) || 0;
                 const dist = n * 0.9;
-                document.getElementById('cal-cnc-dist-display').textContent = dist.toFixed(2);
+                const display = document.getElementById('cal-cnc-dist-display');
+                if (display) display.textContent = dist.toFixed(2);
             });
         }
 
+        // Commanded distance input
         const commandedInput = document.getElementById('cal-input-commanded');
         if (commandedInput) {
-            commandedInput.addEventListener('input', () => this.syncCommandedDistanceUI());
+            commandedInput.addEventListener('input', () => {
+                const val = parseFloat(commandedInput.value) || this.commandedDistance || 0;
+                const display = document.getElementById('cal-commanded-display');
+                const displayInline = document.getElementById('cal-commanded-display-inline');
+                if (display) display.value = val.toFixed(2);
+                if (displayInline) displayInline.textContent = val.toFixed(2);
+            });
         }
-
-        this.refreshA();
     }
 
-    refreshA() {
-        const btnA = document.getElementById('cal-btn-axis-a');
-        if (btnA && window.dro && window.dro.mpos) {
-            // grblHAL typically has mpos array length matching number of axes
-            if (window.dro.mpos.length > 3) btnA.classList.remove('hidden');
-            else btnA.classList.add('hidden');
-        }
+    selectAxis(axis) {
+        this.axis = axis;
+        if (axis === 'Z') this.method = 'distance';
+        this.commandedDistance = this.getDefaultDistance(axis);
+        this.renderWizard();
+    }
+
+    selectMethod(method) {
+        this.method = method;
+        this.renderWizard();
     }
 
     startWizard(axis, method = 'distance') {
         this.axis = axis;
         this.method = method;
-        
-        // Show/Hide A axis button based on machine configuration
-        const btnA = document.getElementById('cal-btn-axis-a');
-        if (btnA && window.dro && window.dro.mpos) {
-            if (window.dro.mpos.length > 3) btnA.classList.remove('hidden');
-            else btnA.classList.add('hidden');
-        }
 
         if (method === 'vernier' && axis !== 'X' && axis !== 'Y') {
             this.term.writeln(`\x1b[33m[Calibration] Vernier calibration is available for X and Y only.\x1b[0m`);
-            if (window.reporter) window.reporter.showToast('Vernier calibration is available for X and Y only.', 'info');
+            if (window.showToast) window.showToast('Vernier calibration is available for X and Y only.', 'info', 'info');
             return;
         }
 
         if (axis === 'A') {
             this.term.writeln(`\x1b[33m[Calibration] A axis calibration coming soon.\x1b[0m`);
-            if (window.reporter) window.reporter.showToast('A axis calibration coming soon.', 'info');
+            if (window.showToast) window.showToast('A axis calibration coming soon.', 'info', 'info');
             return;
         }
 
-        this.setStep('setup');
         this.commandedDistance = this.getDefaultDistance(axis);
-        this.resetWizardFields();
-        
-        document.getElementById('cal-axis-display').textContent = axis;
-        document.getElementById('cal-axis-display-2').textContent = axis;
-        document.querySelectorAll('.cal-axis-name').forEach(el => el.textContent = axis);
-        this.renderWizard();
+        this.setStep('setup');
 
         // Fetch current steps/mm for this axis
         const settingId = this.getAxisSettingId(axis);
-        document.getElementById('cal-setting-num').textContent = settingId;
-        
         if (window.grblSettings && Object.keys(window.grblSettings.settings).length > 0) {
             if (window.grblSettings.settings[settingId]) {
                 this.oldSteps = parseFloat(window.grblSettings.settings[settingId].val);
@@ -89,7 +451,6 @@ export class CalibrationHandler {
         } else if (window.grblSettings) {
             this.term.writeln('\x1b[33m[Calibration] Fetching settings from machine...\x1b[0m');
             window.grblSettings.fetchSettings();
-            // We'll wait a bit for the value to arrive, or just use 100 as default
             setTimeout(() => {
                 if (window.grblSettings.settings[settingId]) {
                     this.oldSteps = parseFloat(window.grblSettings.settings[settingId].val);
@@ -99,7 +460,7 @@ export class CalibrationHandler {
 
         this.oldSteps = this.oldSteps || 100;
 
-        // Start position monitoring for Z
+        // Start position monitoring
         if (this.posInterval) clearInterval(this.posInterval);
         this.posInterval = setInterval(() => {
             if (window.dro && window.dro.wpos) {
@@ -112,47 +473,38 @@ export class CalibrationHandler {
         }, 200);
     }
 
-    setStep(step) {
-        this.step = step;
-        // Hide all steps
-        ['intro', 'setup', 'cut', 'measure', 'result', 'done'].forEach(s => {
-            const el = document.getElementById(`cal-step-${s}`);
-            if (el) el.classList.add('hidden');
-        });
-        // Show current
-        const target = document.getElementById(`cal-step-${step}`);
-        if (target) target.classList.remove('hidden');
-
-        // Re-enable buttons if we leave the 'cut' step or reset
-        const btnRun = document.getElementById('btn-cal-run');
-        const btnBack = document.getElementById('btn-cal-back-1');
-        if (btnRun) btnRun.disabled = false;
-        if (btnBack) btnBack.disabled = false;
-
-        this.renderWizard();
-    }
-
     nextStep() {
-        if (this.step === 'setup') this.setStep('cut');
+        if (this.step === 'axis') this.setStep('method');
+        else if (this.step === 'method') this.startWizard(this.axis, this.method);
+        else if (this.step === 'setup') this.setStep('cut');
         else if (this.step === 'cut') this.setStep('measure');
         else if (this.step === 'measure') this.setStep('result');
         else if (this.step === 'result') this.setStep('done');
     }
 
     prevStep() {
-        if (this.step === 'setup') this.setStep('intro');
+        if (this.step === 'method') this.setStep('axis');
+        else if (this.step === 'setup') this.setStep('method');
         else if (this.step === 'cut') this.setStep('setup');
         else if (this.step === 'measure') this.setStep('cut');
         else if (this.step === 'result') this.setStep('measure');
     }
 
-    cancel(msg) {
+    cancel(msg, options = {}) {
+        const { returnToOperation = true } = options;
         if (this.posInterval) clearInterval(this.posInterval);
+        this.posInterval = null;
         if (this.alarmWatch) clearInterval(this.alarmWatch);
+        this.alarmWatch = null;
         this.isCutting = false;
         if (this.okListener) this.ws.removeListener('line', this.okListener);
         this.okListener = null;
-        this.setStep('intro');
+        if (returnToOperation) {
+            this.axis = 'X';
+            this.method = 'distance';
+            this.commandedDistance = this.getDefaultDistance(this.axis);
+            this.setStep('axis');
+        }
         if (msg && this.term) {
             this.term.writeln(`\x1b[31m[Calibration] ${msg}\x1b[0m`);
         }
@@ -165,17 +517,19 @@ export class CalibrationHandler {
         }
 
         const gcode = this.generateGCode();
-        
-        document.getElementById('cal-cut-progress').classList.remove('hidden');
-        document.getElementById('btn-cal-run').disabled = true;
-        document.getElementById('btn-cal-back-1').disabled = true;
+
+        this.isCutting = true;
+        this.renderWizard();
+
+        // Re-grab progress elements after render
+        const progress = document.getElementById('cal-cut-progress');
+        if (progress) progress.classList.remove('hidden');
 
         this.term.writeln(`\x1b[34m[Calibration] Starting cut job for ${this.axis} axis...\x1b[0m`);
-        
+
         this.lines = gcode.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         this.currentLineIndex = 0;
         this.marksCut = 0;
-        this.isCutting = true;
 
         // Watch for alarms during the cut job
         if (this.alarmWatch) clearInterval(this.alarmWatch);
@@ -187,7 +541,7 @@ export class CalibrationHandler {
             if (window.dro && window.dro.status === 'Alarm') {
                 clearInterval(this.alarmWatch);
                 this.term.writeln(`\x1b[31m[Calibration] Machine alarm detected! Aborting job.\x1b[0m`);
-                if (window.reporter) window.reporter.showToast('Calibration aborted due to machine alarm', 'error');
+                if (window.showToast) window.showToast('Calibration aborted due to machine alarm', 'triangle-alert', 'error');
                 this.cancel('Aborted due to machine alarm. Check machine and re-home before retrying.');
             }
         }, 200);
@@ -202,7 +556,6 @@ export class CalibrationHandler {
         this.ws.on('line', this.okListener);
 
         // Start by sending the first few lines to fill the buffer
-        // We'll send up to 10 lines or until the end
         for (let i = 0; i < 10; i++) {
             if (this.currentLineIndex < this.lines.length) {
                 this.sendNextLine();
@@ -219,12 +572,8 @@ export class CalibrationHandler {
         }
 
         this.commandedDistance = distance;
-        this.syncCommandedDistanceUI();
-
-        const btnRun = document.getElementById('btn-cal-run');
-        const btnBack = document.getElementById('btn-cal-back-1');
-        if (btnRun) btnRun.disabled = true;
-        if (btnBack) btnBack.disabled = true;
+        this.isCutting = true;
+        this.renderWizard();
 
         const feed = this.axis === 'Z' ? 300 : 1000;
         const axisWord = `${this.axis}${distance}`;
@@ -240,9 +589,9 @@ export class CalibrationHandler {
         if (!this.isCutting) return;
 
         if (this.currentLineIndex >= this.lines.length) {
-            // All lines sent, now wait for Idle
             this.isCutting = false;
             this.ws.removeListener('line', this.okListener);
+            this.okListener = null;
             this.waitForIdle();
             return;
         }
@@ -253,19 +602,22 @@ export class CalibrationHandler {
 
         // Update Progress UI
         const pct = Math.round((this.currentLineIndex / this.lines.length) * 100);
-        document.getElementById('cal-cut-bar').style.width = `${pct}%`;
-        document.getElementById('cal-cut-pct').textContent = `${pct}%`;
-        
-        // Count marks: every time we plunge into the material
+        const bar = document.getElementById('cal-cut-bar');
+        const pctEl = document.getElementById('cal-cut-pct');
+        if (bar) bar.style.width = `${pct}%`;
+        if (pctEl) pctEl.textContent = `${pct}%`;
+
+        // Count marks
         if (/G0?1.*Z-/.test(line)) {
             this.marksCut++;
-            document.getElementById('cal-mark-num').textContent = Math.min(this.marksCut, 100);
+            const markNum = document.getElementById('cal-mark-num');
+            if (markNum) markNum.textContent = Math.min(this.marksCut, 100);
         }
     }
 
     waitForIdle(mustSeeMotion = false) {
         this.term.writeln(`\x1b[34m[Calibration] Waiting for machine to finish moving...\x1b[0m`);
-        
+
         let attempts = 0;
         let sawMotion = !mustSeeMotion;
         const checkIdle = setInterval(() => {
@@ -273,22 +625,20 @@ export class CalibrationHandler {
             if (window.dro && window.dro.status && window.dro.status !== 'Idle' && window.dro.status !== 'Check') {
                 sawMotion = true;
             }
-            // Check for Idle or Check state
             if (window.dro && sawMotion && (window.dro.status === 'Idle' || window.dro.status === 'Check')) {
                 clearInterval(checkIdle);
-                this.term.writeln(`\x1b[32m[Calibration] Cut job complete.\x1b[0m`);
+                this.term.writeln(`\x1b[32m[Calibration] Job complete.\x1b[0m`);
+                this.isCutting = false;
                 this.nextStep();
             }
-            
-            // Safety: if we've waited 30 seconds and status is still something else, maybe it's stuck or we missed it
             if (attempts > 60) {
                 clearInterval(checkIdle);
                 this.term.writeln(`\x1b[33m[Calibration] Timeout waiting for Idle. Proceeding...\x1b[0m`);
+                this.isCutting = false;
                 this.nextStep();
             }
         }, 500);
     }
-
 
     generateGCode() {
         const orientation = this.axis;
@@ -309,7 +659,6 @@ export class CalibrationHandler {
         gcode += `G21 G90 G17 F${feedrate}\n`;
         gcode += `G0 X0 Y0 Z${up}\n`;
 
-        // 1. Draw scale lines spanning 90mm with 101 divisions
         for (let i = 0; i <= 100; i++) {
             const u = i * 0.9;
             let tickHeight = hightLet * 0.5;
@@ -325,7 +674,6 @@ export class CalibrationHandler {
             gcode += makeLine(rapide, orientation, u, tickHeight, { z: up });
         }
 
-        // 2. Render division label values aligning with ticks
         const labelBaseline = hightLet + 1.5;
         for (let i = 0; i <= 100; i += 10) {
             const uTick = i * 0.9;
@@ -340,7 +688,6 @@ export class CalibrationHandler {
             }
         }
 
-        // 3. Compute vertical spacing for the upper dimension boundary bar
         let maxLabelLength = 0;
         if (rotateLabels) {
             maxLabelLength = getTextWidth("100X", lengthLet, space);
@@ -352,19 +699,16 @@ export class CalibrationHandler {
         const extensionMinV = labelBaseline + maxLabelLength + 1.2;
         const extensionMaxV = dimensionBaseline + 1.5;
 
-        // Left bounds bar line
         gcode += makeLine(rapide, orientation, 0, extensionMinV, { z: up });
         gcode += makeLine(lent, orientation, 0, extensionMinV, { z: down, f: plungeRate });
         gcode += makeLine(lent, orientation, 0, extensionMaxV, { z: down });
         gcode += makeLine(rapide, orientation, 0, extensionMaxV, { z: up });
 
-        // Right bounds bar line
         gcode += makeLine(rapide, orientation, 90, extensionMinV, { z: up });
         gcode += makeLine(lent, orientation, 90, extensionMinV, { z: down, f: plungeRate });
         gcode += makeLine(lent, orientation, 90, extensionMaxV, { z: down });
         gcode += makeLine(rapide, orientation, 90, extensionMaxV, { z: up });
 
-        // Dimension text "90mm" centered along the main axis
         const dimText = "90MM";
         const dimTextWidth = getTextWidth(dimText, lengthLet, space);
         const dimTextStart = 45 - dimTextWidth / 2;
@@ -375,7 +719,6 @@ export class CalibrationHandler {
         const textGap = 2.0;
         const lineV = dimensionBaseline;
 
-        // Horizontal connector segments
         gcode += makeLine(rapide, orientation, 0, lineV, { z: up });
         gcode += makeLine(lent, orientation, 0, lineV, { z: down, f: plungeRate });
         gcode += makeLine(lent, orientation, 45 - (dimTextWidth / 2) - textGap, lineV, { z: down });
@@ -386,7 +729,6 @@ export class CalibrationHandler {
         gcode += makeLine(lent, orientation, 90, lineV, { z: down });
         gcode += makeLine(rapide, orientation, 90, lineV, { z: up });
 
-        // Return safe home
         gcode += makeLine(rapide, orientation, 0, 0, { z: up });
 
         return gcode;
@@ -394,7 +736,7 @@ export class CalibrationHandler {
 
     calculate() {
         if (this.method === 'distance') {
-            const commanded = parseFloat(document.getElementById('cal-input-commanded')?.value);
+            const commanded = this.commandedDistance;
             const actual = parseFloat(document.getElementById('cal-input-actual-travel')?.value);
 
             if (isNaN(commanded) || commanded <= 0 || isNaN(actual) || actual <= 0) {
@@ -406,11 +748,7 @@ export class CalibrationHandler {
             this.errorFactor = actual / commanded;
             this.newSteps = this.oldSteps * (commanded / actual);
 
-            document.getElementById('cal-old-steps').textContent = this.oldSteps.toFixed(3);
-            document.getElementById('cal-new-steps').textContent = this.newSteps.toFixed(3);
-            document.getElementById('cal-error-factor').textContent = this.errorFactor.toFixed(6);
-
-            this.nextStep();
+            this.setStep('result');
             return;
         }
 
@@ -424,30 +762,23 @@ export class CalibrationHandler {
 
         const cncDist = n * 0.9;
         this.errorFactor = real / cncDist;
-        
-        // new = old / k OR new = old * (cnc / real)
-        // new = old * (n * 0.9 / real)
         this.newSteps = this.oldSteps * (cncDist / real);
 
-        document.getElementById('cal-old-steps').textContent = this.oldSteps.toFixed(3);
-        document.getElementById('cal-new-steps').textContent = this.newSteps.toFixed(3);
-        document.getElementById('cal-error-factor').textContent = this.errorFactor.toFixed(6);
-
-        this.nextStep();
+        this.setStep('result');
     }
 
     apply() {
         const settingId = this.getAxisSettingId(this.axis);
         const val = this.newSteps.toFixed(3);
-        
+
         this.ws.sendCommand(`$${settingId}=${val}`);
         if (this.axis === 'Y') {
             this.ws.sendCommand(`$103=${val}`);
         }
         this.term.writeln(`\x1b[32m[Calibration] Applied $${settingId}=${val} to firmware.\x1b[0m`);
-        
+
         if (window.reporter) {
-            window.reporter.showToast(`Updated $${settingId} to ${val}`, 'success');
+            if (window.showToast) window.showToast(`Updated $${settingId} to ${val}`, 'check-circle', 'success');
         }
 
         this.setStep('done');
@@ -467,109 +798,5 @@ export class CalibrationHandler {
 
     getDefaultDistance(axis) {
         return axis === 'Z' ? 25 : axis === 'A' ? 360 : 100;
-    }
-
-    resetWizardFields() {
-        const commandedInput = document.getElementById('cal-input-commanded');
-        const actualTravelInput = document.getElementById('cal-input-actual-travel');
-        const markInput = document.getElementById('cal-input-mark');
-        const realInput = document.getElementById('cal-input-real');
-        const progress = document.getElementById('cal-cut-progress');
-        const bar = document.getElementById('cal-cut-bar');
-        const pct = document.getElementById('cal-cut-pct');
-        const markNum = document.getElementById('cal-mark-num');
-
-        if (commandedInput) commandedInput.value = this.commandedDistance;
-        if (actualTravelInput) actualTravelInput.value = '';
-        if (markInput) markInput.value = '';
-        if (realInput) realInput.value = '';
-        if (progress) progress.classList.add('hidden');
-        if (bar) bar.style.width = '0%';
-        if (pct) pct.textContent = '0%';
-        if (markNum) markNum.textContent = '0';
-
-        this.syncCommandedDistanceUI();
-    }
-
-    syncCommandedDistanceUI() {
-        const value = parseFloat(document.getElementById('cal-input-commanded')?.value) || this.commandedDistance || 0;
-        const display = document.getElementById('cal-commanded-display');
-        const displayInline = document.getElementById('cal-commanded-display-inline');
-        if (display) display.value = value.toFixed(2);
-        if (displayInline) displayInline.textContent = value.toFixed(2);
-    }
-
-    renderWizard() {
-        const isVernier = this.method === 'vernier';
-        const axis = this.axis;
-
-        const setupTitle = document.getElementById('cal-setup-title');
-        const setupStep1 = document.getElementById('cal-setup-step-1');
-        const setupStep2 = document.getElementById('cal-setup-step-2');
-        const setupStep3 = document.getElementById('cal-setup-step-3');
-        const setupWarning = document.getElementById('cal-setup-warning');
-        const liveLabel = document.getElementById('cal-live-axis-label');
-        const zeroBtn = document.getElementById('cal-zero-axis-btn');
-        const methodChip = document.getElementById('cal-method-chip');
-        const step2Title = document.getElementById('cal-step2-title');
-        const step2Heading = document.getElementById('cal-step2-heading');
-        const step2Desc = document.getElementById('cal-step2-desc');
-        const spindleWarning = document.getElementById('cal-cut-spindle-warning');
-        const progress = document.getElementById('cal-cut-progress');
-        const distancePanel = document.getElementById('cal-distance-panel');
-        const runLabel = document.getElementById('cal-run-btn-label');
-        const measureVernierHelp = document.getElementById('cal-measure-vernier-help');
-        const measureDistanceHelp = document.getElementById('cal-measure-distance-help');
-        const measureVernierImage = document.getElementById('cal-measure-vernier-image');
-        const measureVernierInputs = document.getElementById('cal-measure-vernier-inputs');
-        const measureDistanceInputs = document.getElementById('cal-measure-distance-inputs');
-        const measureTitle = document.getElementById('cal-measure-title');
-        const resultVerifyTail = document.getElementById('cal-result-verify-tail');
-        const doneDesc = document.getElementById('cal-done-desc');
-
-        if (methodChip) methodChip.textContent = isVernier ? 'VERNIER SCALE' : 'MEASURED TRAVEL';
-        if (liveLabel) liveLabel.textContent = axis;
-        if (zeroBtn) zeroBtn.textContent = `Zero ${axis} Axis`;
-
-        if (setupTitle) setupTitle.textContent = isVernier ? 'Step 1: Machine Setup' : 'Step 1: Setup Measurement';
-        if (setupStep1) setupStep1.textContent = isVernier
-            ? 'Secure a scrap piece of MDF or wood to your wasteboard. Ensure it is at least 120mm long.'
-            : `Set up a ruler, calipers, or dial indicator so you can measure ${axis} axis travel accurately.`;
-        if (setupStep2) setupStep2.textContent = isVernier
-            ? 'Install a sharp V-Bit or engraving tool.'
-            : `Jog to a safe start point with enough room to move ${this.commandedDistance}mm in the positive ${axis} direction.`;
-        if (setupStep3) setupStep3.textContent = isVernier
-            ? 'Jog to the starting position on the scrap material and zero the Z axis on the surface.'
-            : `Zero or reference your measuring device, then zero the ${axis} work coordinate if that helps your setup.`;
-        if (setupWarning) setupWarning.textContent = isVernier
-            ? `Ensure there is enough travel in the ${axis} direction (approx 100mm) from the current position.`
-            : `Ensure there is enough clear travel in the ${axis} direction for the commanded move before starting.`;
-
-        if (step2Title) step2Title.textContent = isVernier ? 'Step 2: Cut Calibration Scale' : 'Step 2: Run Test Move';
-        if (step2Heading) step2Heading.textContent = isVernier ? 'Ready to cut?' : 'Ready to move?';
-        if (step2Desc) step2Desc.textContent = isVernier
-            ? 'The machine will now cut 100 lines spaced 0.9mm apart. This will take approximately 2 minutes.'
-            : `The machine will move the ${axis} axis by the commanded distance. Measure the actual travel, then enter it on the next step.`;
-        if (runLabel) runLabel.textContent = isVernier ? 'Start Cut' : 'Run Test Move';
-
-        if (spindleWarning) spindleWarning.classList.toggle('hidden', !isVernier);
-        if (progress) progress.classList.toggle('hidden', !isVernier || progress.classList.contains('hidden'));
-        if (distancePanel) distancePanel.classList.toggle('hidden', isVernier);
-
-        if (measureTitle) measureTitle.textContent = isVernier ? 'How to Read' : 'How to Measure';
-        if (measureVernierHelp) measureVernierHelp.classList.toggle('hidden', !isVernier);
-        if (measureDistanceHelp) measureDistanceHelp.classList.toggle('hidden', isVernier);
-        if (measureVernierImage) measureVernierImage.classList.toggle('hidden', !isVernier);
-        if (measureVernierInputs) measureVernierInputs.classList.toggle('hidden', !isVernier);
-        if (measureDistanceInputs) measureDistanceInputs.classList.toggle('hidden', isVernier);
-
-        if (resultVerifyTail) resultVerifyTail.textContent = isVernier
-            ? 'It is recommended to perform a test cut after applying to verify the accuracy.'
-            : 'It is recommended to repeat the travel check after applying to verify the accuracy.';
-        if (doneDesc) doneDesc.textContent = isVernier
-            ? `The new steps/mm have been saved to your machine's non-volatile memory. Your ${axis} axis is now tuned using the Vernier method.`
-            : `The new steps/mm have been saved to your machine's non-volatile memory. Your ${axis} axis is now tuned using measured travel.`;
-
-        this.syncCommandedDistanceUI();
     }
 }

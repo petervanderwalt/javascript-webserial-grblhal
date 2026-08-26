@@ -1,26 +1,33 @@
 /* Ooznest configuration wizard patterns */
 
 #config-wizard-body input[type="checkbox"],
-#config-wizard-body input[type="radio"] {
+#config-wizard-body input[type="radio"],
+#firmware-flasher-body input[type="checkbox"],
+#firmware-flasher-body input[type="radio"] {
     accent-color: var(--oz-secondary);
 }
 
 #config-wizard-body .border,
-#config-wizard-body .border-grey-light {
+#config-wizard-body .border-grey-light,
+#firmware-flasher-body .border,
+#firmware-flasher-body .border-grey-light {
     border-color: rgba(68, 157, 159, 0.16) !important;
 }
 
 #config-wizard-body .bg-grey-bg,
+#firmware-flasher-body .bg-grey-bg,
 #config-wizard-status {
     background: #ffffff !important;
 }
 
 #config-wizard-body button,
+#firmware-flasher-body button,
 .machine-select-item,
 .toolhead-option,
 .modbus-select-item,
 .dust-shoe-option,
-.enclosure-option {
+.enclosure-option,
+.firmware-option {
     transition:
         transform 0.18s ease,
         box-shadow 0.18s ease,
@@ -33,7 +40,8 @@
 .toolhead-option:hover,
 .modbus-select-item:hover,
 .dust-shoe-option:hover,
-.enclosure-option:hover {
+.enclosure-option:hover,
+.firmware-option:hover {
     transform: translateY(-1px);
     box-shadow: 0 12px 22px rgba(13, 31, 34, 0.08);
 }
@@ -41,7 +49,8 @@
 .machine-select-item,
 .toolhead-option,
 .dust-shoe-option,
-.enclosure-option {
+.enclosure-option,
+.firmware-option {
     border-color: rgba(68, 157, 159, 0.18) !important;
     background: rgba(255, 255, 255, 0.92);
 }
@@ -111,6 +120,10 @@
     background: var(--oz-secondary);
 }
 
+.cal-choice-item.is-selected {
+    background: rgba(68, 157, 159, 0.08) !important;
+}
+
 .config-filter-subtitle {
     color: var(--oz-grey-dark);
     font-size: 0.78rem;
@@ -118,10 +131,12 @@
     line-height: 1.3;
 }
 
-#config-wizard-body button.bg-green-500 {
+#config-wizard-body button.bg-green-500,
+#firmware-flasher-body button.bg-green-500 {
     background: var(--oz-primary) !important;
 }
 
-#config-wizard-body button.bg-green-500:hover {
+#config-wizard-body button.bg-green-500:hover,
+#firmware-flasher-body button.bg-green-500:hover {
     background: var(--oz-primary-light) !important;
 }

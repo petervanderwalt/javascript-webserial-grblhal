@@ -11,7 +11,7 @@
     <link rel="icon" href="./favicon-16x16.png" sizes="16x16">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     <!-- Themes -->
-    <link id="theme-stylesheet" rel="stylesheet" href="themes/ooznest.css">
+    <link id="theme-stylesheet" rel="stylesheet" href="themes/ooznest.css?v=20260804b">
     <link rel="stylesheet" href="themes/ooznest-navbar.css">
     <link rel="stylesheet" href="themes/ooznest-sidebar.css">
     <link rel="stylesheet" href="themes/ooznest-3dview.css">
@@ -36,7 +36,7 @@
             if (stored) {
                 const config = JSON.parse(stored);
                 if (config.uiTheme) {
-                    document.getElementById('theme-stylesheet').href = `themes/${config.uiTheme}.css`;
+                    document.getElementById('theme-stylesheet').href = `themes/${config.uiTheme}.css?v=20260804b`;
                 }
             }
         } catch (e) { console.error("Theme Init:", e); }
@@ -100,6 +100,10 @@
             padding-right: 12px;
         }
 
+        #gcode-editor textarea {
+            padding: 16px 12px;
+        }
+
         .editor-actions-edge {
             margin-right: 0;
         }
@@ -116,6 +120,11 @@
             }
 
             .editor-footer-padding {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            #gcode-editor textarea {
                 padding-left: 16px;
                 padding-right: 16px;
             }
@@ -137,8 +146,9 @@
                 padding-right: 24px;
             }
 
-            .editor-actions-edge {
-                margin-right: -20px;
+            #gcode-editor textarea {
+                padding-left: 24px;
+                padding-right: 24px;
             }
 
         }
@@ -175,7 +185,7 @@
             box-shadow: 0 16px 34px rgba(13, 31, 34, 0.08);
         }
 
-        .probe-instruction-card .calibration-choice-card__media {
+        .probe-instruction-card .ooznest-instruction-card__media {
             display: flex;
             flex: 1;
             align-items: center;
@@ -190,7 +200,7 @@
                 linear-gradient(180deg, #f4f7f8 0%, #edf2f3 100%);
         }
 
-        .probe-instruction-card .calibration-choice-card__media img {
+        .probe-instruction-card .ooznest-instruction-card__media img {
             position: absolute;
             inset: 0;
             width: 100%;
@@ -208,7 +218,34 @@
             backface-visibility: hidden;
         }
 
-        .probe-instruction-card .calibration-choice-card__info {
+        .tool-illustration-card {
+            display: block;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 56%),
+                linear-gradient(180deg, #f7fafb 0%, #eef3f4 100%);
+        }
+
+        .tool-illustration-media {
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-illustration-image {
+            width: 100%;
+            height: 100%;
+            max-height: 260px;
+            object-fit: contain;
+            image-rendering: auto;
+            image-rendering: optimizeQuality;
+            shape-rendering: geometricPrecision;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        .ooznest-instruction-card__info {
             display: block;
             flex: 0 0 auto;
             min-height: 0;
@@ -219,8 +256,61 @@
             box-shadow: inset 0 0 0 1px rgba(230, 236, 238, 0.9);
         }
 
-        .probe-instruction-card .calibration-choice-card__title {
+        .ooznest-instruction-card__title {
             margin-bottom: 8px;
+            color: #4a555c;
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .ooznest-instruction-card__text {
+            color: #718087;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .tool-setup-bar.safe {
+            background: var(--oz-notice-success) !important;
+            border-color: var(--oz-success) !important;
+            color: #166534 !important;
+        }
+
+        .tool-setup-bar.unsafe {
+            background: var(--oz-notice-error) !important;
+            border-color: var(--oz-error) !important;
+            color: var(--oz-error) !important;
+        }
+
+        .tool-setup-step.is-done {
+            background: rgba(22, 101, 52, 0.08) !important;
+            border-color: rgba(22, 101, 52, 0.22) !important;
+            color: #166534 !important;
+        }
+
+        .tool-setup-step:not(.is-next):not(.is-done) {
+            background: rgba(255, 255, 255, 0.72) !important;
+            color: var(--oz-error) !important;
+        }
+
+        .tool-setup-step.is-next {
+            background: var(--oz-primary) !important;
+            border-color: var(--oz-primary) !important;
+            color: #fff !important;
+        }
+
+        @media (min-width: 768px) {
+            .tool-setup-action {
+                margin-left: auto !important;
+                width: 11rem !important;
+                flex: 0 0 11rem !important;
+            }
+
+            .tool-setup-z-actions {
+                margin-left: auto !important;
+                width: 22.5rem !important;
+                flex: 0 0 22.5rem !important;
+            }
         }
 
         .probe-instruction-card__footer-chip {
@@ -645,16 +735,16 @@
                         <button class="tab-btn" data-tab="editor-view" onclick="switchTab('editor-view', this)"><i data-lucide="square-code"></i>Editor</button>
                         <button class="tab-btn" data-tab="probe-view" onclick="switchTab('probe-view', this)"><i data-lucide="crosshair"></i>Probe</button>
                         <button class="tab-btn" data-tab="macros-view" onclick="switchTab('macros-view', this)"><i data-lucide="zap"></i>Macros</button>
-                        <button class="tab-btn" data-tab="tools-view" onclick="switchTab('tools-view', this)">
-                            <i data-lucide="wrench"></i>Tools
-                        </button>
                         <button id="sd-tab-btn" class="tab-btn" data-tab="sd-view" onclick="switchTab('sd-view', this)">
                             <i data-lucide="hard-drive"></i>SD Card
                             <span id="sd-badge"
                                 class="hidden ml-2 tab-badge text-[10px] font-bold px-1.5 py-0 rounded-full text-white">0</span>
                         </button>
-                        <button class="tab-btn" data-tab="settings-view" onclick="switchTab('settings-view', this)"><i data-lucide="sliders-horizontal"></i>Settings</button>
+                        <button class="tab-btn" data-tab="tools-view" onclick="switchTab('tools-view', this)">
+                            <i data-lucide="wrench"></i>Tools
+                        </button>
                         <button class="tab-btn" data-tab="console-view" onclick="switchTab('console-view', this)"><i data-lucide="terminal"></i>Console</button>
+                        <button class="tab-btn" data-tab="settings-view" onclick="switchTab('settings-view', this)"><i data-lucide="sliders-horizontal"></i>Settings</button>
                         <button class="tab-btn" data-tab="troubleshooting-view" onclick="switchTab('troubleshooting-view', this)"><i data-lucide="siren"></i>Troubleshooting</button>
                     </div>
 
@@ -927,7 +1017,7 @@
 
                 <!-- G-Code Editor View -->
                 <div id="editor-view" class="tab-pane hidden w-full h-full flex flex-col bg-grey-bg relative">
-                    <div class="flex flex-col h-full overflow-y-auto tab-shell-padding">
+                    <div class="flex flex-col h-full overflow-y-auto">
                         <div class="w-full flex-1 flex flex-col">
 
                             <!-- Toolbar -->
@@ -983,18 +1073,10 @@
                 <!-- Macros View -->
                 <div id="macros-view" class="tab-pane hidden w-full h-full bg-grey-bg">
                     <div class="w-full h-full tab-shell-padding overflow-y-auto">
-                        <div class="w-full pb-20">
-                            <div
-                                class="min-h-[3rem] h-auto flex items-center justify-end mb-6 gap-3 py-2">
-                                <button class="btn btn-primary shadow-soft w-full md:w-auto"
-                                    onclick="window.macroHandler.openModal(null)">
-                                    <i data-lucide="plus" ></i> Create New
-                                </button>
-                            </div>
-
+                        <div class="w-full pt-4 pb-20">
                             <!-- Macro Grid -->
                             <div id="macro-grid"
-                                class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                                class="macro-grid-responsive grid gap-3">
                                 <!-- Populated by JS -->
                             </div>
                         </div>
@@ -1010,6 +1092,10 @@
                                 <!-- SD Actions (Disabled when offline) -->
                                  <div id="sd-tools"
                                      class="flex gap-2 w-full md:w-auto transition-opacity duration-200">
+                                    <button id="sd-mkdir-btn" class="btn btn-secondary flex-1 md:flex-initial disabled:opacity-40 disabled:cursor-not-allowed"
+                                        onclick="window.sdHandler.createDirectory()" disabled>
+                                        <i data-lucide="folder-plus" ></i> New Folder
+                                    </button>
                                     <button id="sd-upload-btn" class="btn btn-primary flex-1 md:flex-initial disabled:opacity-40 disabled:cursor-not-allowed"
                                         onclick="document.getElementById('sd-upload-input').click()" disabled>
                                         <i data-lucide="cloud-upload" ></i> Upload
@@ -1029,7 +1115,7 @@
                             <!-- Breadcrumb (Disabled when offline) -->
                             <div id="sd-breadcrumb"
                                 class="bg-white border border-grey-light rounded-lg p-3 mb-4 flex items-center gap-3 shadow-card opacity-50 pointer-events-none transition-opacity duration-200 overflow-hidden">
-                                <button id="sd-up-level-btn" class="btn-icon text-grey-dark shrink-0 disabled:opacity-40 disabled:cursor-not-allowed" onclick="window.sdHandler.upLevel()"
+                                <button id="sd-up-level-btn" class="btn-icon text-grey-dark shrink-0 pointer-events-auto disabled:opacity-40 disabled:cursor-not-allowed" onclick="window.sdHandler.upLevel()"
                                     aria-label="Go up one directory level" disabled>
                                     <i data-lucide="corner-up-left" ></i>
                                 </button>
@@ -1043,19 +1129,28 @@
                                 <div class="px-4 py-2.5 border-b border-grey-light flex items-center gap-2">
                                     <h3 class="font-bold text-secondary-dark text-xs uppercase tracking-wider">File Listing</h3>
                                 </div>
-                                <table class="w-full text-left text-sm" id="sd-table">
+                                <table class="w-full table-fixed text-left text-sm" id="sd-table">
+                                    <colgroup>
+                                        <col>
+                                        <col style="width: 64px">
+                                        <col style="width: 120px">
+                                    </colgroup>
                                     <thead
                                         class="border-b border-grey-light text-grey uppercase text-[10px] tracking-wider">
                                         <tr>
-                                            <th class="px-6 py-4 font-bold">Filename</th>
-                                            <th class="px-6 py-4 font-bold">Size</th>
-                                            <th class="px-6 py-4 font-bold text-right">Actions</th>
+                                            <th class="px-4 py-3 font-bold">Filename</th>
+                                            <th class="w-[64px] px-2 py-3 font-bold whitespace-nowrap">Size</th>
+                                            <th class="w-[120px] px-1 py-3 font-bold text-right whitespace-nowrap">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-grey-light">
                                         <tr>
-                                            <td colspan="3" class="px-6 py-12 text-center text-grey italic">
-                                                Click Refresh to load files...
+                                            <td colspan="3" class="px-6 py-12 text-center text-grey">
+                                                <div class="flex flex-col items-center gap-2">
+                                                    <i data-lucide="plug-zap" class="w-8 h-8 text-grey"></i>
+                                                    <span class="font-bold text-secondary-dark">Not Connected</span>
+                                                    <span class="text-xs text-grey">Please connect to load files...</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -1075,7 +1170,7 @@
                                 class="hidden flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
                                 <div>
                                     <h2 class="text-2xl font-bold text-secondary-dark flex items-center gap-2">
-                                        <i data-lucide="wrench" ></i> Tools & Calibration
+                                        <i data-lucide="wrench" ></i> Tools
                                     </h2>
                                     <p class="text-sm text-grey">Various tools and widgets — new tools added over time.
                                     </p>
@@ -1098,11 +1193,6 @@
                                     class="subtab-btn text-grey border-b-2 border-transparent tools-tab-btn"
                                     onclick="window.toolsHandler.switchToolsTab('tab-tool-bowl', this)">
                                     Bowl Cutter
-                                </button>
-                                <button
-                                    class="subtab-btn text-grey border-b-2 border-transparent tools-tab-btn"
-                                    onclick="window.toolsHandler.switchToolsTab('tab-tool-calibration', this)">
-                                    Calibration
                                 </button>
                             </div>
 
@@ -1257,393 +1347,89 @@
 
                             <!-- Sub-Tab Content: Calibration -->
                             <div id="tab-tool-calibration" class="tools-tab-content hidden">
-                                <div id="calibration-wizard" class="max-w-4xl mx-auto">
-                                    <!-- Initial State -->
-                                    <div id="cal-step-intro" class="bg-white p-8 rounded-xl border border-grey-light shadow-soft text-center">
-                                        <div class="space-y-6 max-w-4xl mx-auto text-left">
-                                            <div>
-                                                <div class="flex items-center justify-between mb-3">
-                                                    <h4 class="text-xs font-black text-grey uppercase tracking-wider">Measured Travel</h4>
-                                                    <span class="text-[10px] text-grey">Command a move, measure the actual travel, then correct steps/mm.</span>
-                                                </div>
-                                                <div class="calibration-choice-grid calibration-choice-grid--compact">
-                                                    <button onclick="window.calibration.startWizard('X', 'distance')" class="calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Measured Travel</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">X Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">X</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">X Axis Travel Calibration</div>
-                                                            <p class="calibration-choice-card__text">Command a move, measure the actual travel, then correct steps/mm for X.</p>
-                                                            <div class="calibration-choice-card__footer">Start Measured Travel</div>
-                                                        </div>
-                                                    </button>
-                                                    <button onclick="window.calibration.startWizard('Y', 'distance')" class="calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Measured Travel</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">Y Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">Y</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">Y Axis Travel Calibration</div>
-                                                            <p class="calibration-choice-card__text">Command a move, measure the actual travel, then correct steps/mm for Y.</p>
-                                                            <div class="calibration-choice-card__footer">Start Measured Travel</div>
-                                                        </div>
-                                                    </button>
-                                                    <button onclick="window.calibration.startWizard('Z', 'distance')" class="calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Measured Travel</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">Z Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">Z</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">Z Axis Travel Calibration</div>
-                                                            <p class="calibration-choice-card__text">Command a move, measure the actual travel, then correct steps/mm for Z.</p>
-                                                            <div class="calibration-choice-card__footer">Start Measured Travel</div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <div class="flex items-center justify-between mb-3">
-                                                    <h4 class="text-xs font-black text-grey uppercase tracking-wider">Vernier Scale</h4>
-                                                    <span class="text-[10px] text-grey">Cuts a reference scale for visual alignment against a ruler.</span>
-                                                </div>
-                                                <div class="calibration-choice-grid calibration-choice-grid--compact">
-                                                    <button onclick="window.calibration.startWizard('X', 'vernier')" class="calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Vernier Scale</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">X Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">X</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">X Axis Vernier Scale</div>
-                                                            <p class="calibration-choice-card__text">Cut a reference scale for fine X-axis visual calibration against a ruler.</p>
-                                                            <div class="calibration-choice-card__footer">Start Vernier Scale</div>
-                                                        </div>
-                                                    </button>
-                                                    <button onclick="window.calibration.startWizard('Y', 'vernier')" class="calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Vernier Scale</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">Y Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">Y</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">Y Axis Vernier Scale</div>
-                                                            <p class="calibration-choice-card__text">Cut a reference scale for fine Y-axis visual calibration against a ruler.</p>
-                                                            <div class="calibration-choice-card__footer">Start Vernier Scale</div>
-                                                        </div>
-                                                    </button>
-                                                    <button id="cal-btn-axis-a" onclick="window.calibration.startWizard('A', 'distance')" class="hidden calibration-choice-card group text-left">
-                                                        <div class="calibration-choice-card__media">
-                                                            <div class="calibration-choice-card__badges">
-                                                                <span class="calibration-choice-badge calibration-choice-badge--method">Rotary</span>
-                                                                <span class="calibration-choice-badge calibration-choice-badge--axis">A Axis</span>
-                                                            </div>
-                                                            <div class="calibration-choice-card__glyph">A</div>
-                                                        </div>
-                                                        <div class="calibration-choice-card__info">
-                                                            <div class="calibration-choice-card__title">A Axis Calibration</div>
-                                                            <p class="calibration-choice-card__text">Reserved for future rotational-axis calibration support.</p>
-                                                            <div class="calibration-choice-card__footer">Coming Soon</div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Step 1: Setup -->
-                                    <div id="cal-step-setup" class="hidden bg-white rounded-xl border border-grey-light shadow-soft overflow-hidden">
-                                        <div class="bg-grey-bg px-6 py-4 border-b border-grey-light flex justify-between items-center">
-                                            <h3 id="cal-setup-title" class="font-black text-secondary-dark uppercase tracking-wider">Step 1: Machine Setup</h3>
-                                            <span class="text-xs font-bold text-primary">AXIS: <span id="cal-axis-display">X</span> <span id="cal-method-chip" class="ml-2 text-[10px] text-grey">MEASURED TRAVEL</span></span>
-                                        </div>
-                                        <div class="p-8 flex flex-col md:flex-row gap-8">
-                                            <div class="flex-1 space-y-4">
-                                                <div class="flex gap-4 items-start">
-                                                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 font-bold">1</div>
-                                                    <p id="cal-setup-step-1" class="text-grey-dark pt-1">Secure a scrap piece of <strong>MDF or Wood</strong> to your wasteboard. Ensure it's at least 120mm long.</p>
-                                                </div>
-                                                <div class="flex gap-4 items-start">
-                                                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 font-bold">2</div>
-                                                    <p id="cal-setup-step-2" class="text-grey-dark pt-1">Install a <strong>sharp V-Bit</strong> or engraving tool.</p>
-                                                </div>
-                                                <div class="flex gap-4 items-start">
-                                                    <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0 font-bold">3</div>
-                                                    <p id="cal-setup-step-3" class="text-grey-dark pt-1">Jog to the starting position on the scrap material and <strong>Zero the Z Axis</strong> on the surface.</p>
-                                                </div>
-                                                <div class="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
-                                                    <i data-lucide="triangle-alert" class="text-yellow-600 text-xl"></i>
-                                                    <p id="cal-setup-warning" class="text-xs text-yellow-800">Ensure there is enough travel in the <span class="cal-axis-name">X</span> direction (approx 100mm) from the current position.</p>
-                                                </div>
-                                            </div>
-                                            <div class="w-full md:w-64 bg-grey-bg p-4 rounded-xl border border-grey-light">
-                                                <h4 class="text-[10px] font-black text-grey uppercase mb-3">Quick Control</h4>
-                                                <div class="space-y-2 mb-4">
-                                                    <div class="flex justify-between items-center bg-white p-2 rounded border border-grey-light">
-                                                        <span id="cal-live-axis-label" class="text-xs font-bold text-axis-z">Z</span>
-                                                        <span id="cal-axis-pos" class="font-mono font-bold">9999.999</span>
-                                                    </div>
-                                                </div>
-                                                <button id="cal-zero-axis-btn" onclick="window.calibration.zeroSelectedAxis()" class="btn btn-secondary w-full justify-center mb-4">Zero Z Axis</button>
-                                                <div class="grid grid-cols-2 gap-2">
-                                                    <button onclick="window.calibration.cancel()" class="btn btn-secondary justify-center">Cancel</button>
-                                                    <button onclick="window.calibration.nextStep()" class="btn btn-primary justify-center">Next Step</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Step 2: Cut -->
-                                    <div id="cal-step-cut" class="hidden bg-white rounded-xl border border-grey-light shadow-soft overflow-hidden">
-                                        <div class="bg-grey-bg px-6 py-4 border-b border-grey-light flex justify-between items-center">
-                                            <h3 id="cal-step2-title" class="font-black text-secondary-dark uppercase tracking-wider">Step 2: Cut Calibration Scale</h3>
-                                            <span class="text-xs font-bold text-primary">AXIS: <span id="cal-axis-display-2">X</span></span>
-                                        </div>
-                                        <div class="p-12 text-center">
-                                            <div class="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                                                <i data-lucide="play" class="text-5xl text-orange-500"></i>
-                                            </div>
-                                            <h4 id="cal-step2-heading" class="text-xl font-bold text-secondary-dark mb-4">Ready to cut?</h4>
-                                            <p id="cal-step2-desc" class="text-grey max-w-md mx-auto mb-8">The machine will now cut 100 lines spaced 0.9mm apart. This will take approximately 2 minutes.</p>
-
-                                            <div id="cal-cut-spindle-warning" class="bg-red-50 border border-red-100 p-4 rounded-lg mb-8 max-w-md mx-auto flex items-center gap-3 text-left">
-                                                <i data-lucide="fan" class="text-red-500 text-2xl animate-spin"></i>
-                                                <div>
-                                                    <p class="text-xs font-black text-red-800 uppercase">Warning</p>
-                                                    <p class="text-xs text-red-700">Please ensure your <strong>spindle is turned ON</strong> before clicking Start Cut.</p>
-                                                </div>
-                                            </div>
-
-                                            <div id="cal-distance-panel" class="hidden mb-8 max-w-md mx-auto text-left bg-grey-bg border border-grey-light rounded-xl p-4">
-                                                <label class="ooznest-label text-xs font-bold text-secondary-dark block mb-2">Commanded Travel (mm)</label>
-                                                <input type="number" id="cal-input-commanded" class="ooznest-field input-field text-right text-lg font-mono" value="100" min="0.1" step="0.1">
-                                                <p class="text-[10px] text-grey mt-2">The machine will move the selected axis by this amount in the positive direction.</p>
-                                            </div>
-
-                                            <div id="cal-cut-progress" class="hidden mb-8 max-w-md mx-auto">
-                                                <div class="flex justify-between text-[10px] font-bold text-grey uppercase mb-1">
-                                                    <span>Cutting Mark <span id="cal-mark-num">0</span>/100</span>
-                                                    <span id="cal-cut-pct">0%</span>
-                                                </div>
-                                                <div class="h-2 w-full bg-grey-bg rounded-full overflow-hidden">
-                                                    <div id="cal-cut-bar" class="h-full bg-primary transition-all duration-300 w-0"></div>
-                                                </div>
-                                            </div>
-
-                                            <div class="flex justify-center gap-4">
-                                                <button id="btn-cal-back-1" onclick="window.calibration.prevStep()" class="btn btn-secondary px-8">Back</button>
-                                                <button id="btn-cal-run" onclick="window.calibration.runCutJob()" class="btn btn-primary px-12 text-lg h-12 shadow-lg"><span id="cal-run-btn-label">Start Cut</span></button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Step 3: Measure -->
-                                    <div id="cal-step-measure" class="hidden bg-white rounded-xl border border-grey-light shadow-soft overflow-hidden">
-                                        <div class="bg-grey-bg px-6 py-4 border-b border-grey-light flex justify-between items-center">
-                                            <h3 class="font-black text-secondary-dark uppercase tracking-wider">Step 3: Measurement</h3>
-                                        </div>
-                                        <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
-                                            <div>
-                                                <h4 id="cal-measure-title" class="font-bold text-secondary-dark mb-4 flex items-center gap-2">
-                                                    <i data-lucide="info" class="-fill text-primary"></i> How to Read
-                                                </h4>
-                                                <div id="cal-measure-vernier-help" class="space-y-4 text-sm text-grey-dark leading-relaxed">
-                                                    <p>1. Place a <strong>standard steel ruler</strong> against the cut marks, aligning the <strong>0 mark</strong> of the ruler with the <strong>first cut mark</strong>.</p>
-                                                    <p>2. Look along the ruler and find where a <strong>cut mark</strong> aligns perfectly with a <strong>millimeter mark</strong> on your ruler.</p>
-                                                    <div class="p-4 bg-grey-bg rounded-lg border border-grey-light italic text-xs">
-                                                        "The CNC marks are 0.9mm apart. By finding where they align with the 1mm marks on your ruler, we can calculate the exact error."
-                                                    </div>
-                                                </div>
-                                                <div id="cal-measure-distance-help" class="hidden space-y-4 text-sm text-grey-dark leading-relaxed">
-                                                    <p>1. Measure how far the <strong><span class="cal-axis-name">X</span> axis</strong> actually moved after the commanded travel.</p>
-                                                    <p>2. Use the same units as the commanded move. The default expected value is <strong><span id="cal-commanded-display-inline">100.00</span> mm</strong>.</p>
-                                                    <div class="p-4 bg-grey-bg rounded-lg border border-grey-light italic text-xs">
-                                                        "If the machine was told to move 100mm but only moved 99.6mm, the steps/mm need to increase slightly."
-                                                    </div>
-                                                </div>
-                                                <div id="cal-measure-vernier-image" class="mt-6">
-                                                    <img
-                                                        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 300'%3E%3Crect width='720' height='300' rx='20' fill='%23f7fafb'/%3E%3Crect x='40' y='52' width='640' height='196' rx='18' fill='white' stroke='%23d7e5ea' stroke-width='2'/%3E%3Ctext x='64' y='88' font-family='Arial,sans-serif' font-size='18' font-weight='700' fill='%23245563'%3EPhysical ruler (1 mm marks)%3C/text%3E%3Ctext x='64' y='194' font-family='Arial,sans-serif' font-size='18' font-weight='700' fill='%23ff6600'%3ECNC vernier scale (0.9 mm marks)%3C/text%3E%3Cg stroke='%23245563' stroke-width='2'%3E%3Cline x1='64' y1='118' x2='656' y2='118'/%3E%3C/g%3E%3Cg stroke='%23ff6600' stroke-width='2'%3E%3Cline x1='64' y1='224' x2='656' y2='224'/%3E%3C/g%3E%3Cg fill='%235e6b85' font-family='Arial,sans-serif' font-size='12'%3E%3Cline x1='104' y1='96' x2='104' y2='138' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='98' y='154'%3E0%3C/text%3E%3Cline x1='164' y1='102' x2='164' y2='134' stroke='%23245563' stroke-width='2'/%3E%3Cline x1='224' y1='96' x2='224' y2='138' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='218' y='154'%3E2%3C/text%3E%3Cline x1='284' y1='102' x2='284' y2='134' stroke='%23245563' stroke-width='2'/%3E%3Cline x1='344' y1='96' x2='344' y2='138' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='338' y='154'%3E4%3C/text%3E%3Cline x1='404' y1='102' x2='404' y2='134' stroke='%23245563' stroke-width='2'/%3E%3Cline x1='464' y1='96' x2='464' y2='138' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='458' y='154'%3E6%3C/text%3E%3Cline x1='524' y1='102' x2='524' y2='134' stroke='%23245563' stroke-width='2'/%3E%3Cline x1='584' y1='96' x2='584' y2='138' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='578' y='154'%3E8%3C/text%3E%3Cline x1='644' y1='102' x2='644' y2='134' stroke='%23245563' stroke-width='2'/%3E%3Ctext x='634' y='154'%3E10%3C/text%3E%3C/g%3E%3Cg stroke='%23ff6600' stroke-width='2'%3E%3Cline x1='104' y1='202' x2='104' y2='244'/%3E%3Cline x1='158' y1='208' x2='158' y2='240'/%3E%3Cline x1='212' y1='202' x2='212' y2='244'/%3E%3Cline x1='266' y1='208' x2='266' y2='240'/%3E%3Cline x1='320' y1='202' x2='320' y2='244'/%3E%3Cline x1='374' y1='208' x2='374' y2='240'/%3E%3Cline x1='428' y1='202' x2='428' y2='244'/%3E%3Cline x1='482' y1='208' x2='482' y2='240'/%3E%3Cline x1='536' y1='202' x2='536' y2='244'/%3E%3Cline x1='590' y1='208' x2='590' y2='240'/%3E%3Cline x1='644' y1='202' x2='644' y2='244'/%3E%3C/g%3E%3Cline x1='428' y1='84' x2='428' y2='252' stroke='%230f5968' stroke-width='3' stroke-dasharray='6 6'/%3E%3Crect x='448' y='84' width='188' height='58' rx='14' fill='white' stroke='%23d7e5ea'/%3E%3Ctext x='466' y='108' font-family='Arial,sans-serif' font-size='14' font-weight='700' fill='%230f5968'%3EAlignment example%3C/text%3E%3Ctext x='466' y='128' font-family='Arial,sans-serif' font-size='13' fill='%235e6b85'%3EOne CNC mark lines up with a ruler mark.%3C/text%3E%3C/svg%3E"
-                                                        alt="Vernier reading diagram"
-                                                        class="rounded-lg border border-grey-light shadow-sm w-full"
-                                                    >
-                                                </div>
-                                            </div>
-                                            <div class="space-y-6 bg-grey-bg p-6 rounded-xl border border-grey-light">
-                                                <h4 class="text-[10px] font-black text-grey uppercase tracking-wider">Enter Readings</h4>
-
-                                                <div id="cal-measure-vernier-inputs">
-                                                    <div>
-                                                        <label class="ooznest-label text-xs font-bold text-secondary-dark block mb-2">Which CNC mark aligns perfectly? (0-100)</label>
-                                                        <div>
-                                                            <label class="ooznest-label text-[10px] font-bold text-grey block mb-1">MARK</label>
-                                                            <input type="number" id="cal-input-mark" class="ooznest-field input-field text-right text-lg font-mono" placeholder="96" min="0" max="100">
-                                                        </div>
-                                                        <p class="text-[10px] text-grey mt-1 italic">Calculated CNC Distance: <span id="cal-cnc-dist-display">0.00</span> mm</p>
-                                                    </div>
-
-                                                    <div>
-                                                        <label class="ooznest-label text-xs font-bold text-secondary-dark block mb-2">What is the Ruler reading at that mark? (mm)</label>
-                                                        <div>
-                                                            <label class="ooznest-label text-[10px] font-bold text-grey block mb-1">REAL</label>
-                                                            <input type="number" id="cal-input-real" class="ooznest-field input-field text-right text-lg font-mono" placeholder="86.0" step="0.1">
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div id="cal-measure-distance-inputs" class="hidden space-y-4">
-                                                    <div>
-                                                        <label class="ooznest-label text-xs font-bold text-secondary-dark block mb-2">Commanded Travel (mm)</label>
-                                                        <input type="text" id="cal-commanded-display" class="ooznest-field input-field text-right text-lg font-mono" value="100.00" readonly>
-                                                    </div>
-                                                    <div>
-                                                        <label class="ooznest-label text-xs font-bold text-secondary-dark block mb-2">Actual Measured Travel (mm)</label>
-                                                        <input type="number" id="cal-input-actual-travel" class="ooznest-field input-field text-right text-lg font-mono" placeholder="99.8" step="0.01">
-                                                    </div>
-                                                </div>
-
-                                                <div class="pt-4">
-                                                    <button onclick="window.calibration.calculate()" class="btn btn-primary w-full justify-center h-12 text-lg shadow-md">Calculate Result</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Step 4: Result -->
-                                    <div id="cal-step-result" class="hidden bg-white rounded-xl border border-grey-light shadow-soft overflow-hidden">
-                                        <div class="bg-grey-bg px-6 py-4 border-b border-grey-light flex justify-between items-center">
-                                            <h3 class="font-black text-secondary-dark uppercase tracking-wider">Calibration Result</h3>
-                                        </div>
-                                        <div class="p-8">
-                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                                <div class="bg-grey-bg p-4 rounded-xl border border-grey-light text-center">
-                                                    <span class="text-[10px] font-black text-grey uppercase block mb-1">Current Steps/mm</span>
-                                                    <span id="cal-old-steps" class="text-2xl font-mono font-bold text-secondary-dark">9999.999</span>
-                                                </div>
-                                                <div class="bg-primary/5 p-4 rounded-xl border border-primary/20 text-center ring-4 ring-primary/5">
-                                                    <span class="text-[10px] font-black text-primary uppercase block mb-1">New Steps/mm</span>
-                                                    <span id="cal-new-steps" class="text-3xl font-mono font-black text-primary">9999.999</span>
-                                                </div>
-                                                <div class="bg-grey-bg p-4 rounded-xl border border-grey-light text-center">
-                                                    <span class="text-[10px] font-black text-grey uppercase block mb-1">Error Factor</span>
-                                                    <span id="cal-error-factor" class="text-2xl font-mono font-bold text-secondary-dark">9999.9990</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="bg-blue-50 border border-blue-100 p-6 rounded-xl mb-8 flex items-start gap-4">
-                                                <i data-lucide="info" class="-fill text-blue-500 text-2xl"></i>
-                                                <div class="text-sm text-blue-800 leading-relaxed">
-                                                    <p class="font-bold mb-1">Verification</p>
-                                                    <p>Applying this change will update your machine's <strong>$<span id="cal-setting-num">100</span></strong> setting. <span id="cal-result-verify-tail">It is recommended to perform a test cut after applying to verify the accuracy.</span></p>
-                                                </div>
-                                            </div>
-
-                                            <div class="flex justify-center gap-4">
-                                                <button onclick="window.calibration.cancel()" class="btn btn-secondary px-8">Discard</button>
-                                                <button onclick="window.calibration.apply()" class="btn btn-primary px-12 h-14 text-lg shadow-lg">Save to Firmware ($$)</button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Step: Done -->
-                                    <div id="cal-step-done" class="hidden bg-white p-12 rounded-xl border border-grey-light shadow-soft text-center animate-in fade-in zoom-in duration-300">
-                                        <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <i data-lucide="check" class="text-4xl"></i>
-                                        </div>
-                                        <h3 class="text-2xl font-black text-secondary-dark mb-2">Calibration Complete!</h3>
-                                        <p id="cal-done-desc" class="text-grey max-w-md mx-auto mb-8">The new steps/mm have been saved to your machine's non-volatile memory. Your <span class="cal-axis-name font-bold">X</span> axis is now perfectly tuned.</p>
-
-                                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                                            <button onclick="window.calibration.cancel()" class="btn btn-primary px-8 h-12 shadow-md">
-                                                <i data-lucide="repeat" ></i> Calibrate Another Axis
-                                            </button>
-                                            <button onclick="window.toolsHandler.switchToolsTab('tab-tool-table', document.querySelector('.tools-tab-btn'))" class="btn btn-secondary px-8 h-12">
-                                                <i data-lucide="table" ></i> Back to Tool Table
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Calibration wizard rendered dynamically by calibration.js -->
                             </div>
 
 
                             <!-- Sub-Tab Content: Surfacing -->
                             <div id="tab-tool-surfacing" class="tools-tab-content">
                                 <div class="w-full">
+                                    <p class="text-xs text-grey leading-relaxed mb-5 pb-2">
+                                        Flatten a spoilboard or stock material. For best results use a surfacing router bit and ensure your router head is trammed perpendicular to the bed.
+                                    </p>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="space-y-6">
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
                                                 <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
                                                     Tool & Speeds</h3>
-                                                <p class="text-xs text-grey leading-relaxed mb-3">
-                                                    Flatten a spoilboard or stock material using a surfacing bit. Ensure your spindle is trammed perpendicular to the bed, and set Z zero at the highest point.
-                                                </p>
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="surf-tool">Tool Diameter (mm)</label><input type="number" id="surf-tool"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
+                                                            class="ooznest-field input-field font-mono text-sm">
+                                                    </div>
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="surf-stepover">Stepover (%)</label><input type="number" id="surf-stepover"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
+                                                            class="ooznest-field input-field font-mono text-sm">
+                                                        <p class="ooznest-form-info mt-1">Percentage of the tool diameter overlapped on each pass.</p>
+                                                    </div>
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="surf-feed">Feed Rate (mm/min)</label><input type="number" id="surf-feed"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
+                                                            class="ooznest-field input-field font-mono text-sm">
+                                                    </div>
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="surf-rpm">Spindle RPM</label><input type="number" id="surf-rpm"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
+                                                            class="ooznest-field input-field font-mono text-sm">
+                                                        <p class="ooznest-form-info mt-1">Spindle speed command added to the generated job (For Variable Speed spindles).</p>
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                                <div class="flex items-center justify-between mb-4 border-b border-grey-light pb-2 gap-3">
+                                                <div class="mb-4 border-b border-grey-light pb-2">
                                                     <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-0 flex items-center">
                                                         Dimensions</h3>
-                                                    <label class="oz-segmented-toggle h-8 w-40 shrink-0" for="surf-dim-toggle">
-                                                        <input type="checkbox" id="surf-dim-toggle" class="sr-only"
-                                                            onchange="window.surfacing.toggleDimMode()">
-                                                        <div class="oz-segmented-bg h-full w-full">
-                                                            <div class="oz-segmented-slider"></div>
-                                                            <span class="oz-segmented-option left-opt">Custom</span>
-                                                            <span class="oz-segmented-option right-opt">Spoilboard</span>
+                                                    <div class="sidebar-control-stack mt-3 max-w-[14rem]">
+                                                        <label class="oz-segmented-toggle oz-segmented-toggle--dark h-8 w-full" for="surf-dim-toggle">
+                                                            <input type="checkbox" id="surf-dim-toggle" class="sr-only"
+                                                                onchange="window.surfacing.toggleDimMode()">
+                                                            <div class="oz-segmented-bg h-full w-full">
+                                                                <div class="oz-segmented-slider"></div>
+                                                                <span class="oz-segmented-option left-opt">Spoilboard</span>
+                                                                <span class="oz-segmented-option right-opt">Custom</span>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="space-y-3">
+                                                    <div id="surf-dim-fields"
+                                                        class="grid grid-cols-2 gap-4 transition-all duration-300 overflow-hidden">
+                                                        <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                                for="surf-x">Width (X)</label><input type="number" id="surf-x"
+                                                                class="ooznest-field input-field font-mono text-sm"></div>
+                                                        <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                                for="surf-y">Height (Y)</label><input type="number" id="surf-y"
+                                                                class="ooznest-field input-field font-mono text-sm"></div>
+                                                    </div>
+                                                    <p id="surf-dim-custom-info" class="ooznest-form-info">
+                                                        Starts at the front-left of the entered area and surfaces the width and length.
+                                                    </p>
+                                                    <div id="surf-dim-spoilboard"
+                                                        class="hidden grid grid-cols-2 gap-4 transition-all duration-300 overflow-hidden">
+                                                        <div>
+                                                            <span class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1">Width (X)</span>
+                                                            <div id="surf-dim-spoilboard-x" class="text-sm font-bold text-grey-dark">--</div>
                                                         </div>
-                                                    </label>
+                                                        <div>
+                                                            <span class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1">Height (Y)</span>
+                                                            <div id="surf-dim-spoilboard-y" class="text-sm font-bold text-grey-dark">--</div>
+                                                        </div>
+                                                    <p id="surf-dim-spoilboard-info" class="ooznest-form-info col-span-2">
+                                                            Starts at the front-left of the entered area and surfaces the width and length.
+                                                    </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="space-y-3">
-                                                <div id="surf-dim-fields"
-                                                    class="grid grid-cols-2 gap-4 transition-all duration-300 overflow-hidden">
-                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
-                                                            for="surf-x">Width (X)</label><input type="number" id="surf-x"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
-                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
-                                                            for="surf-y">Height (Y)</label><input type="number" id="surf-y"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
-                                                </div>
-                                                <div>
-                                                    <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
-                                                        for="surf-dir">Cutting Direction</label>
-                                                    <select id="surf-dir" class="ooznest-select oz-select text-sm">
-                                                        <option value="X">Along X-Axis</option>
-                                                        <option value="Y">Along Y-Axis</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        <div class="space-y-6">
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
                                                 <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
                                                     Depth Control</h3>
@@ -1651,41 +1437,104 @@
                                                     <div class="grid grid-cols-2 gap-4">
                                                         <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                                 for="surf-z-step">Depth per Pass (mm)</label><input type="number" id="surf-z-step"
-                                                                class="ooznest-field input-field font-mono text-sm"></div>
+                                                                class="ooznest-field input-field font-mono text-sm">
+                                                        </div>
                                                         <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                                 for="surf-z-final">Final Depth (mm)</label><input type="number" id="surf-z-final"
-                                                                class="ooznest-field input-field font-mono text-sm"></div>
+                                                                class="ooznest-field input-field font-mono text-sm">
+                                                            <p class="ooznest-form-info mt-1">Total amount removed below the current Z zero.</p>
+                                                        </div>
                                                     </div>
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="surf-z-safe">Safe Z Clearance (mm)</label><input type="number" id="surf-z-safe"
-                                                            class="ooznest-field input-field font-mono text-sm"></div>
+                                                            class="ooznest-field input-field font-mono text-sm">
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
                                                 <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
                                                     Options</h3>
-                                                <div class="flex items-center justify-between bg-grey-bg p-3 rounded-lg border border-grey-light mb-2">
-                                                    <span class="text-xs font-bold text-secondary-dark">Use Coolant (M8)?</span>
-                                                    <label class="inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" id="surf-coolant" class="sr-only peer" aria-label="Use coolant">
-                                                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                                    </label>
+                                                <div class="mb-3">
+                                                    <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                        for="surf-dir">Cutting Direction</label>
+                                                    <select id="surf-dir" class="ooznest-select oz-select text-sm">
+                                                        <option value="X">Along X-Axis</option>
+                                                        <option value="Y">Along Y-Axis</option>
+                                                    </select>
+                                                    <p class="ooznest-form-info mt-1">Chooses whether the main surfacing passes run along X or Y.</p>
                                                 </div>
-                                                <div class="flex items-center justify-between bg-grey-bg p-3 rounded-lg border border-grey-light">
-                                                    <span class="text-xs font-bold text-secondary-dark">Add Framing Pass?</span>
-                                                    <label class="inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" id="surf-framing" class="sr-only peer" aria-label="Add framing pass">
-                                                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                                    </label>
+                                                <div class="mb-2">
+                                                    <div class="flex items-center justify-between">
+                                                        <label for="surf-coolant" class="ooznest-label text-secondary-dark text-xs">Use Coolant (M8)?</label>
+                                                        <label class="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" id="surf-coolant" class="sr-only peer" aria-label="Use coolant">
+                                                            <div class="w-9 h-5 bg-grey-light rounded-full peer-checked:bg-primary peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                                                        </label>
+                                                    </div>
+                                                    <p class="ooznest-form-info mt-1">Adds M8 at the start of the job and turns coolant off at the end.</p>
+                                                </div>
+                                                <div>
+                                                    <div class="flex items-center justify-between">
+                                                        <label for="surf-framing" class="ooznest-label text-secondary-dark text-xs">Add Framing Pass?</label>
+                                                        <label class="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" id="surf-framing" class="sr-only peer" aria-label="Add framing pass">
+                                                            <div class="w-9 h-5 bg-grey-light rounded-full peer-checked:bg-primary peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                                                        </label>
+                                                    </div>
+                                                    <p class="ooznest-form-info mt-1">Adds a cleanup pass around the outside edge of the surfacing area.</p>
+                                                </div>
+                                            </div>
+
+                                            <div id="surf-spoilboard-setup-checklist" class="tool-setup-bar unsafe hidden rounded-lg border text-xs font-bold p-2">
+                                                <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                                                    <div id="surf-setup-msg" class="px-1 md:flex-1">Complete setup before generating the spoilboard job.</div>
+                                                    <button id="surf-setup-connect-btn" type="button" class="tool-setup-step tool-setup-action btn btn-secondary h-9 !text-[10px]" onclick="handleConnectClick()">
+                                                        1. Connect
+                                                    </button>
+                                                    <button id="surf-setup-home-btn" type="button" class="tool-setup-step tool-setup-action btn btn-secondary h-9 !text-[10px]" onclick="window.surfacing.markSpoilboardSetupStep('home')">
+                                                        Confirm Homed
+                                                    </button>
+                                                    <div id="surf-setup-z-actions" class="tool-setup-z-actions hidden">
+                                                        <button id="surf-setup-z-btn" type="button" class="tool-setup-step btn btn-secondary h-9 !text-[10px]" onclick="window.surfacing.setSpoilboardZZero()">
+                                                            Confirm Z Zero
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button id="surf-generate-btn" class="btn btn-primary shadow-soft w-full h-12"
+                                                onclick="window.surfacing.loadToViewer()"><i data-lucide="check" ></i>
+                                                Generate G-Code</button>
+
+                                        </div>
+
+                                        <div class="space-y-6">
+                                            <div class="tool-illustration-card bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <div class="tool-illustration-media">
+                                                    <img class="tool-illustration-image" src="themes/SURFACE.svg" alt="Surfacing illustration">
+                                                </div>
+                                                <div class="ooznest-instruction-card__info">
+                                                    <div id="surf-setup-custom-title" class="ooznest-instruction-card__title">Custom Surfacing Setup</div>
+                                                    <ol id="surf-setup-custom" class="ooznest-form-steps">
+                                                        <li>Install the Router Bit.</li>
+                                                        <li>Jog the machine so the centre of the router bit is over the front left corner of the stock material.</li>
+                                                        <li>Zero X and Y.</li>
+                                                        <li>Zero Z to the highest point of the stock material.</li>
+                                                        <li>Turn on your Router Head &amp; Dust Extractor (If applicable).</li>
+                                                        <li>Press Run Job.</li>
+                                                    </ol>
+                                                    <div id="surf-setup-spoilboard-title" class="ooznest-instruction-card__title hidden">Spoilboard Surfacing Setup</div>
+                                                    <ol id="surf-setup-spoilboard" class="ooznest-form-steps hidden">
+                                                        <li>Install the Router Bit.</li>
+                                                        <li>Home the machine.</li>
+                                                        <li>Zero Z to the highest point of the spoilboard.</li>
+                                                        <li>Turn on your Router Head &amp; Dust Extractor (If applicable).</li>
+                                                        <li>Press Run Job.</li>
+                                                    </ol>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="mt-6">
-                                        <button class="btn btn-primary shadow-soft w-full h-12"
-                                            onclick="window.surfacing.loadToViewer()"><i data-lucide="check" ></i>
-                                            Generate G-Code</button>
                                     </div>
                                 </div>
                             </div>
@@ -1693,50 +1542,28 @@
                             <!-- Sub-Tab Content: Spoilboard Grid -->
                             <div id="tab-tool-spoilboard" class="tools-tab-content hidden">
                                 <div class="w-full">
+                                    <p class="text-xs text-grey leading-relaxed mb-5 pb-2">
+                                        Engrave a grid pattern that starts at the front-left work zero, with ruler ticks and numbers placed above and to the right. Use a V-bit or engraving tool for best results.
+                                    </p>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="space-y-6">
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
                                                 <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
                                                     Grid Dimensions</h3>
-                                                <p class="text-xs text-grey leading-relaxed mb-3">
-                                                    Engrave a grid pattern with outward-facing rulers along the left and bottom edges. Use a V-bit or engraving tool for best results.
-                                                </p>
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                <div class="flex items-start gap-4">
+                                                    <div class="flex-1 min-w-0"><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="sg-width">Width (X mm)</label><input type="number" id="sg-width"
-                                                            class="ooznest-field input-field font-mono text-sm" value="300"></div>
-                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                            class="ooznest-field input-field font-mono text-sm" value="300">
+                                                    </div>
+                                                    <div class="flex-1 min-w-0"><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="sg-height">Height (Y mm)</label><input type="number" id="sg-height"
-                                                            class="ooznest-field input-field font-mono text-sm" value="300"></div>
-                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
-                                                            for="sg-spacing">Grid Spacing (mm)</label><input type="number" id="sg-spacing"
-                                                            class="ooznest-field input-field font-mono text-sm" value="50"></div>
+                                                            class="ooznest-field input-field font-mono text-sm" value="300">
+                                                    </div>
                                                 </div>
+                                                <div class="mt-4"><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                        for="sg-spacing">Grid Spacing (mm)</label><input type="number" id="sg-spacing"
+                                                        class="ooznest-field input-field font-mono text-sm" value="50"></div>
                                             </div>
-
-                                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                                <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
-                                                    Coordinate System</h3>
-                                                <div>
-                                                    <select id="sg-coords" class="ooznest-select oz-select text-sm">
-                                                        <option value="Work">Work Coordinates</option>
-                                                        <option value="Machine">Machine Coordinates</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                                <div class="flex items-center justify-between">
-                                                    <span class="text-xs font-bold text-secondary-dark">Outward-Facing Rulers</span>
-                                                    <label class="inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" id="sg-ruler" class="sr-only peer" checked aria-label="Include rulers">
-                                                        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-6">
                                             <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
                                                 <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
                                                     Depth & Feeds</h3>
@@ -1753,18 +1580,70 @@
                                                     <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
                                                             for="sg-plunge">Plunge Rate (mm/min)</label><input type="number" id="sg-plunge"
                                                             class="ooznest-field input-field font-mono text-sm" value="100"></div>
+                                                    <div class="col-span-2"><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1"
+                                                            for="sg-rpm">Spindle RPM</label><input type="number" id="sg-rpm"
+                                                            class="ooznest-field input-field font-mono text-sm" value="12000"></div>
+                                                </div>
+                                                <p class="ooznest-form-info mt-1">Adds an `M3 S...` spindle start command to the generated job.</p>
+                                            </div>
+
+                                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">
+                                                    Options</h3>
+                                                <div class="space-y-3">
+                                                    <div>
+                                                        <div class="flex items-center justify-between">
+                                                            <label for="sg-ruler" class="ooznest-label text-secondary-dark text-xs">Add Ruler Markings</label>
+                                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" id="sg-ruler" class="sr-only peer" checked aria-label="Include rulers">
+                                                                <div class="w-9 h-5 bg-grey-light rounded-full peer-checked:bg-primary peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                                                            </label>
+                                                        </div>
+                                                        <p class="ooznest-form-info mt-1">Include markings, and numeric markers.</p>
+                                                    </div>
                                                 </div>
                                             </div>
 
+                                            <div id="sg-setup-checklist" class="tool-setup-bar unsafe rounded-lg border text-xs font-bold p-2">
+                                                <div class="flex flex-col md:flex-row gap-2 md:items-center">
+                                                    <div id="sg-setup-msg" class="px-1 md:flex-1">Complete setup before generating the spoilboard grid.</div>
+                                                    <button id="sg-setup-connect-btn" type="button" class="tool-setup-step tool-setup-action btn btn-secondary h-9 !text-[10px]" onclick="handleConnectClick()">
+                                                        1. Connect
+                                                    </button>
+                                                    <button id="sg-setup-home-btn" type="button" class="tool-setup-step tool-setup-action btn btn-secondary h-9 !text-[10px]" onclick="window.spoilboardGrid.markSetupStep('home')">
+                                                        Confirm Homed
+                                                    </button>
+                                                    <div id="sg-setup-z-actions" class="tool-setup-z-actions hidden">
+                                                        <button id="sg-setup-z-btn" type="button" class="tool-setup-step btn btn-secondary h-9 !text-[10px]" onclick="window.spoilboardGrid.setZZero()">
+                                                            Confirm Z Zero
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button id="sg-generate-btn" class="btn btn-primary shadow-soft w-full h-12"
+                                                onclick="window.spoilboardGrid.generateGrid()"><i data-lucide="check" ></i>
+                                                Generate G-Code</button>
 
                                         </div>
-                                    </div>
-                                    <div class="mt-6 flex flex-col gap-3">
-                                        <button class="btn btn-secondary shadow-soft w-full h-12"
-                                            onclick="window.spoilboardGrid.autoSpoilboard()"><i data-lucide="maximize" ></i> Auto</button>
-                                        <button class="btn btn-primary shadow-soft w-full h-12"
-                                            onclick="window.spoilboardGrid.generateGrid()"><i data-lucide="check" ></i>
-                                            Generate G-Code</button>
+
+                                        <div class="space-y-6">
+                                            <div class="tool-illustration-card bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <div class="tool-illustration-media">
+                                                    <img class="tool-illustration-image" src="themes/GRID.svg" alt="Spoilboard grid illustration">
+                                                </div>
+                                                <div id="sg-setup-info" class="ooznest-instruction-card__info">
+                                                    <div class="ooznest-instruction-card__title">Grid Setup</div>
+                                                    <ol class="ooznest-form-steps">
+                                                        <li>Install a V-bit.</li>
+                                                        <li>Home the machine.</li>
+                                                        <li>Zero Z to the highest point of the spoilboard.</li>
+                                                        <li>Turn on your Router Head &amp; Dust Extractor (If applicable).</li>
+                                                        <li>Press Run Job.</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1772,36 +1651,61 @@
                             <!-- Sub-Tab Content: Bowl Cutter -->
                             <div id="tab-tool-bowl" class="tools-tab-content hidden">
                                 <div class="w-full">
-                                    <div class="space-y-6">
-                                        <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                            <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Bowl Dimensions</h3>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-width">Width (mm)</label><input type="number" id="bc-width" class="ooznest-field input-field font-mono text-sm" value="100"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-length">Length (mm)</label><input type="number" id="bc-length" class="ooznest-field input-field font-mono text-sm" value="100"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-depth">Depth (mm)</label><input type="number" id="bc-depth" class="ooznest-field input-field font-mono text-sm" value="20"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-corner-radius">Corner Radius (mm)</label><input type="number" id="bc-corner-radius" class="ooznest-field input-field font-mono text-sm" value="5"></div>
-                                            </div>
-                                        </div>
-                                        <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
-                                            <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Tool & Feeds</h3>
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-tool-dia">Endmill Diameter (mm)</label><input type="number" id="bc-tool-dia" class="ooznest-field input-field font-mono text-sm" step="0.5" value="6"></div>
-                                                <div>
-                                                    <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-tool-type">Endmill Type</label>
-                                                    <select id="bc-tool-type" class="ooznest-select oz-select text-sm">
-                                                        <option value="flat">Flat</option>
-                                                        <option value="ball">Ball</option>
-                                                    </select>
+                                    <p class="text-xs text-grey leading-relaxed mb-5 pb-2">
+                                        Cut a recessed bowl or tray with rounded inside corners. Set its overall size, depth, and corner radius, then use an endmill to machine the pocket.
+                                    </p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div class="space-y-6">
+                                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Bowl Dimensions</h3>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-width">Width (mm)</label><input type="number" id="bc-width" class="ooznest-field input-field font-mono text-sm" value="100"></div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-length">Length (mm)</label><input type="number" id="bc-length" class="ooznest-field input-field font-mono text-sm" value="100"></div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-depth">Depth (mm)</label><input type="number" id="bc-depth" class="ooznest-field input-field font-mono text-sm" value="20">
+                                                        <p class="ooznest-form-info mt-1">Maximum depth cut below the current Z zero.</p>
+                                                    </div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-corner-radius">Corner Radius (mm)</label><input type="number" id="bc-corner-radius" class="ooznest-field input-field font-mono text-sm" value="5">
+                                                        <p class="ooznest-form-info mt-1">Radius used to round the inside corners of the bowl.</p>
+                                                    </div>
                                                 </div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-stepover">Stepover (%)</label><input type="number" id="bc-stepover" class="ooznest-field input-field font-mono text-sm" value="35"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-stepdown">Stepdown (mm)</label><input type="number" id="bc-stepdown" class="ooznest-field input-field font-mono text-sm" step="0.5" value="1"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-feed">Feed Rate (mm/min)</label><input type="number" id="bc-feed" class="ooznest-field input-field font-mono text-sm" value="500"></div>
-                                                <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-plunge">Plunge Rate (mm/min)</label><input type="number" id="bc-plunge" class="ooznest-field input-field font-mono text-sm" value="100"></div>
+                                            </div>
+
+                                            <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Tool & Feeds</h3>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-tool-dia">Endmill Diameter (mm)</label><input type="number" id="bc-tool-dia" class="ooznest-field input-field font-mono text-sm" step="0.5" value="6">
+                                                        <p class="ooznest-form-info mt-1">Diameter of the cutter used to generate the bowl toolpath.</p>
+                                                    </div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-stepover">Stepover (%)</label><input type="number" id="bc-stepover" class="ooznest-field input-field font-mono text-sm" value="35">
+                                                        <p class="ooznest-form-info mt-1">Percentage of the tool diameter overlapped on each pass.</p>
+                                                    </div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-stepdown">Stepdown (mm)</label><input type="number" id="bc-stepdown" class="ooznest-field input-field font-mono text-sm" step="0.5" value="1">
+                                                        <p class="ooznest-form-info mt-1">Maximum Z depth removed on each cutting level.</p>
+                                                    </div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-feed">Feed Rate (mm/min)</label><input type="number" id="bc-feed" class="ooznest-field input-field font-mono text-sm" value="500"></div>
+                                                    <div><label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="bc-plunge">Plunge Rate (mm/min)</label><input type="number" id="bc-plunge" class="ooznest-field input-field font-mono text-sm" value="100"></div>
+                                                </div>
+                                            </div>
+
+                                            <button class="btn btn-primary shadow-soft w-full h-12" onclick="window.bowlCutter.generate()"><i data-lucide="check" ></i> Generate G-Code</button>
+                                        </div>
+
+                                        <div class="space-y-6">
+                                            <div class="tool-illustration-card bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                <div class="tool-illustration-media">
+                                                    <img class="tool-illustration-image" src="themes/BOWL.svg" alt="Bowl cutter illustration">
+                                                </div>
+                                                <div class="ooznest-instruction-card__info">
+                                                    <div class="ooznest-instruction-card__title">Bowl Cut Setup</div>
+                                                    <ol class="ooznest-form-steps">
+                                                        <li>Install a ball end bit.</li>
+                                                        <li>Zero X and Y at the center of where the bowl should be.</li>
+                                                        <li>Zero Z at the top surface of the stock.</li>
+                                                        <li>Run the job. It cuts the bowl using the configured dimensions, depth, and feeds.</li>
+                                                    </ol>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="mt-6">
-                                        <button class="btn btn-primary shadow-soft w-full h-12" onclick="window.bowlCutter.generate()"><i data-lucide="check" ></i> Generate G-Code</button>
                                     </div>
                                 </div>
                             </div>
@@ -1817,6 +1721,15 @@
                             <div
                                 class="min-h-[3rem] h-auto flex items-center justify-end mb-6 gap-3 py-2 shrink-0">
                                 <div class="flex flex-wrap gap-2 w-full md:w-auto" id="settings-toolbar">
+                                    <button class="btn btn-secondary flex-1" onclick="window.configWizard.showWizard()">
+                                        <i data-lucide="wand" ></i> Wizard
+                                    </button>
+                                    <button class="btn btn-secondary flex-1" onclick="window.firmwareFlasher.showModal()">
+                                        <i data-lucide="cpu" ></i> Firmware
+                                    </button>
+                                    <button class="btn btn-secondary flex-1 whitespace-nowrap" onclick="window.calibration.showModal()">
+                                        <i data-lucide="ruler" ></i> Calibration
+                                    </button>
                                     <button class="btn btn-secondary flex-1"
                                         onclick="window.grblSettings.fetchSettings()">
                                         <i data-lucide="refresh-cw" ></i> Refresh
@@ -1833,9 +1746,6 @@
 
                                     <button class="btn btn-primary flex-1 whitespace-nowrap" onclick="window.grblSettings.saveChanges()">
                                         <i data-lucide="save" ></i> Save
-                                    </button>
-                                    <button class="btn btn-secondary flex-1" onclick="window.configWizard.showWizard()">
-                                        <i data-lucide="wand" ></i> Wizard
                                     </button>
                                 </div>
                             </div>
@@ -1920,7 +1830,7 @@
                                                 class="subtab-btn text-grey border-b-2 border-transparent probe-tab-btn"
                                                 data-target="tab-probe-config"
                                                 onclick="window.probeHandler.switchProbeTab('tab-probe-config', this)">
-                                                Probe Config
+                                                Probe Configuration
                                             </button>
                                         </div>
                                     </div>
@@ -1945,63 +1855,88 @@
                                     </div>
 
                                     <div id="tab-probe-config" class="probe-tab-content hidden">
-                                        <div class="grid grid-cols-1 gap-4">
-                                            <div class="bg-white p-4 rounded-xl shadow-soft flex flex-col min-h-[420px]">
-                                                <div class="space-y-3 flex-1">
-                                                    <div
-                                                        class="probe-config-subcard bg-grey-bg p-2 rounded border border-grey-light prb-3d-probe-only">
-                                                        <span class="text-xs font-bold text-secondary-dark block mb-1.5">Probe Mode</span>
-                                                        <label class="oz-segmented-toggle w-full h-12" for="prb-mode-toggle">
-                                                            <input type="checkbox" id="prb-mode-toggle" class="sr-only"
-                                                                onchange="window.probeHandler.toggleProbeMode()">
-                                                            <div class="oz-segmented-bg w-full h-12">
-                                                                <div class="oz-segmented-slider h-6 top-[2px]"></div>
-                                                                <span class="oz-segmented-option left-opt !text-[10px] font-bold w-1/2 flex items-center justify-center">Probe Plate</span>
-                                                                <span class="oz-segmented-option right-opt !text-[10px] font-bold w-1/2 flex items-center justify-center">3D Probe</span>
+                                        <div class="w-full">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Plate Configuration</h3>
+                                                    <div class="space-y-4">
+                                                        <div
+                                                            class="probe-config-subcard bg-grey-bg p-2 rounded border border-grey-light prb-3d-probe-only">
+                                                            <span class="text-xs font-bold text-secondary-dark block mb-1.5">Probe Mode</span>
+                                                            <label class="oz-segmented-toggle w-full h-12" for="prb-mode-toggle">
+                                                                <input type="checkbox" id="prb-mode-toggle" class="sr-only"
+                                                                    onchange="window.probeHandler.toggleProbeMode()">
+                                                                <div class="oz-segmented-bg w-full h-12">
+                                                                    <div class="oz-segmented-slider h-6 top-[2px]"></div>
+                                                                    <span class="oz-segmented-option left-opt !text-[10px] font-bold w-1/2 flex items-center justify-center">Probe Plate</span>
+                                                                    <span class="oz-segmented-option right-opt !text-[10px] font-bold w-1/2 flex items-center justify-center">3D Probe</span>
+                                                                </div>
+                                                            </label>
+                                                            <div id="probe-config-label" class="hidden mt-1.5 text-[10px] font-bold text-green-600">
+                                                                <i data-lucide="check-circle" class="text-[9px]"></i> <span id="probe-config-label-text">Plate configured as Ooznest XYZ Probe</span>
                                                             </div>
-                                                        </label>
-                                                        <div id="probe-config-label" class="hidden mt-1.5 text-[10px] font-bold text-green-600">
-                                                            <i data-lucide="check-circle" class="text-[9px]"></i> <span id="probe-config-label-text">Plate configured as Ooznest XYZ Probe</span>
+                                                        </div>
+
+                                                        <div class="grid grid-cols-2 gap-4 prb-plate-only">
+                                                            <div>
+                                                                <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-x-offset">Plate Offset X (mm)</label>
+                                                                <input type="number" id="prb-x-offset" class="ooznest-field input-field font-mono text-sm h-8" step="0.01">
+                                                                <p class="ooznest-form-info">The X distance from the plate contact surface to the workpiece surface.</p>
+                                                            </div>
+                                                            <div>
+                                                                <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-y-offset">Plate Offset Y (mm)</label>
+                                                                <input type="number" id="prb-y-offset" class="ooznest-field input-field font-mono text-sm h-8" step="0.01">
+                                                                <p class="ooznest-form-info">The Y distance from the plate contact surface to the workpiece surface.</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="prb-plate-only">
+                                                            <div>
+                                                                <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-z-thick">Plate Thickness (Z, mm)</label>
+                                                                <input type="number" id="prb-z-thick" class="ooznest-field input-field font-mono text-sm h-8" step="0.01">
+                                                                <p class="ooznest-form-info">The Z distance from the plate contact surface to the workpiece surface.</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="prb-plate-only">
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-corner-start-inset">Corner Start-Hole Inset (XY, mm)</label>
+                                                            <input type="number" id="prb-corner-start-inset" class="ooznest-field input-field font-mono text-sm h-8" step="0.01">
+                                                            <p class="ooznest-form-info">How far the outside corner routine moves in X and Y from the Start Here hole toward the plate centre before probing Z.</p>
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <div class="prb-plate-only">
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-z-thick">Plate Thickness (Z, mm)</label>
-                                                        <input type="number" id="prb-z-thick" class="ooznest-field input-field font-mono text-xs h-8" step="0.01">
-                                                    </div>
-                                                    <div class="prb-plate-only">
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-xy-offset">Plate Offset (XY, mm)</label>
-                                                        <input type="number" id="prb-xy-offset" class="ooznest-field input-field font-mono text-xs h-8" step="0.01">
-                                                    </div>
-
-                                                    <hr class="border-grey-light">
-
-                                                    <div>
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-feed">Fast Feed (mm/min)</label>
-                                                        <input type="number" id="prb-feed" class="ooznest-field input-field font-mono text-xs h-8">
-                                                    </div>
-                                                    <div>
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-feed-latch">Seek Feed (mm/min)</label>
-                                                        <input type="number" id="prb-feed-latch" class="ooznest-field input-field font-mono text-xs h-8">
-                                                    </div>
-                                                    <div>
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-dist">Max Dist (mm)</label>
-                                                        <input type="number" id="prb-dist" class="ooznest-field input-field font-mono text-xs h-8">
-                                                    </div>
-                                                    <div>
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-retract">Retract (mm)</label>
-                                                        <input type="number" id="prb-retract" class="ooznest-field input-field font-mono text-xs h-8">
-                                                    </div>
-                                                    <div class="prb-plate-only">
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-edge-dist">Plate Clearance (XY, mm)</label>
-                                                        <input type="number" id="prb-edge-dist" class="ooznest-field input-field font-mono text-xs h-8">
-                                                    </div>
-                                                    <div>
-                                                        <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-z-depth">Probe Depth (mm)</label>
-                                                        <input type="number" id="prb-z-depth" class="ooznest-field input-field font-mono text-xs h-8">
+                                                <div class="bg-white p-5 rounded-xl border border-grey-light shadow-soft">
+                                                    <h3 class="text-xs font-black text-grey uppercase tracking-wider mb-4 border-b border-grey-light pb-2">Movement</h3>
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-feed">Probe Feedrate (mm/min)</label>
+                                                            <input type="number" id="prb-feed" class="ooznest-field input-field font-mono text-sm h-8">
+                                                            <p class="ooznest-form-info">The main probing speed used for the first approach move.</p>
+                                                        </div>
+                                                        <div>
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-dist">Max Distance (mm)</label>
+                                                            <input type="number" id="prb-dist" class="ooznest-field input-field font-mono text-sm h-8">
+                                                            <p class="ooznest-form-info">The maximum distance the tool is allowed to travel while searching for a probe contact.</p>
+                                                        </div>
+                                                        <div>
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-retract">Probe Retract Distance (mm)</label>
+                                                            <input type="number" id="prb-retract" class="ooznest-field input-field font-mono text-sm h-8">
+                                                            <p class="ooznest-form-info">How far the tool backs off immediately after a probe touch before continuing.</p>
+                                                        </div>
+                                                        <div>
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-edge-dist">Keep-Clear Distance (XY, mm)</label>
+                                                            <input type="number" id="prb-edge-dist" class="ooznest-field input-field font-mono text-sm h-8">
+                                                            <p class="ooznest-form-info">Extra X/Y spacing used when moving around the probe plate or feature so the tool stays clear before the next move.</p>
+                                                        </div>
+                                                        <div>
+                                                            <label class="ooznest-label text-[11px] font-bold text-secondary-dark block mb-1" for="prb-z-depth">Probe Depth (mm)</label>
+                                                            <input type="number" id="prb-z-depth" class="ooznest-field input-field font-mono text-sm h-8">
+                                                            <p class="ooznest-form-info">The starting Z depth used when positioning for outside corner routines.</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <button class="btn btn-primary mt-4 self-start" type="button" onclick="window.probeHandler.saveSettings()">
+                                            </div>
+                                            <div class="mt-6">
+                                                <button class="btn btn-primary shadow-soft w-full h-12" type="button" onclick="window.probeHandler.saveSettings()">
                                                     <i data-lucide="save" ></i> Apply
                                                 </button>
                                             </div>
@@ -2060,7 +1995,7 @@
                                             </div>
                                             <div class="min-h-[420px]">
                                                 <div class="probe-instruction-card">
-                                                    <div class="calibration-choice-card__media relative">
+                                                    <div class="ooznest-instruction-card__media relative">
                                                         <div class="flex flex-col items-center justify-center text-secondary-dark gap-3">
                                                             <div class="w-24 h-24 rounded-full bg-white/80 border border-grey-light flex items-center justify-center shadow-sm">
                                                                 <i data-lucide="ruler" class="w-12 h-12"></i>
@@ -2068,9 +2003,9 @@
                                                             <div class="text-xs font-bold uppercase tracking-[0.2em] text-grey">Tool Length Offset</div>
                                                         </div>
                                                     </div>
-                                                    <div class="calibration-choice-card__info">
-                                                        <div class="calibration-choice-card__title">Tool Setter Setup</div>
-                                                        <p class="calibration-choice-card__text">Enter the fixed tool setter location in machine coordinates. Establish a reference with the first tool, then measure each subsequent tool to update Z automatically.</p>
+                                                    <div class="ooznest-instruction-card__info">
+                                                        <div class="ooznest-instruction-card__title">Tool Setter Setup</div>
+                                                        <p class="ooznest-instruction-card__text">Enter the fixed tool setter location in machine coordinates. Establish a reference with the first tool, then measure each subsequent tool to update Z automatically.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2087,6 +2022,7 @@
                                                 <div class="mb-4">
                                                     <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-tool-outside">Endmill / Dowel Pin Diameter (mm)</label>
                                                     <input type="number" id="prb-tool-outside" class="ooznest-field input-field font-mono text-xs h-8 max-w-[14rem]" step="0.01">
+                                                    <p class="ooznest-form-info">Enter the diameter of the endmill or dowel pin currently in the collet. This is used to calculate the tool radius when setting the correct X/Y zero from the probe contact point.</p>
                                                 </div>
                                                 <div class="probe-selector-card p-3 flex-1 flex items-center justify-center">
                                                     <div id="outside-corner-grid" class="probe-corner-grid grid grid-cols-2 gap-2 w-full aspect-square">
@@ -2118,12 +2054,12 @@
 
                                             <div class="min-h-[420px]">
                                                 <div class="probe-instruction-card">
-                                                    <div class="calibration-choice-card__media relative">
+                                                    <div class="ooznest-instruction-card__media relative">
                                                         <img id="probe-corner-diagram" class="probe-diagram-image" src="themes/FL.svg" alt="Probe corner diagram">
                                                     </div>
-                                                    <div class="calibration-choice-card__info">
-                                                        <div class="calibration-choice-card__title">Outside Corner Setup</div>
-                                                        <p id="outside-corner-help" class="calibration-choice-card__text">Place probe plate on the front left outside corner. Position the tool above the Start Here hole before probing.</p>
+                                                    <div class="ooznest-instruction-card__info">
+                                                        <div class="ooznest-instruction-card__title">Outside Corner Setup</div>
+                                                        <p id="outside-corner-help" class="ooznest-instruction-card__text">Place probe plate on the front left outside corner. Position the tool above the Start Here hole before probing.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2135,11 +2071,12 @@
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div class="bg-white p-4 rounded-xl shadow-soft border border-grey-light flex flex-col min-h-[420px]">
                                                 <p class="text-xs text-grey leading-relaxed mb-4">
-                                                    Find the location of a single surface in X, Y, or Z.
+                                                    Probe a single surface to set its X/Y/Z zero.
                                                 </p>
                                                 <div class="mb-4">
                                                     <label class="ooznest-label text-[10px] font-bold text-grey block mb-1" for="prb-tool-surface">Endmill / Dowel Pin Diameter (mm)</label>
                                                     <input type="number" id="prb-tool-surface" class="ooznest-field input-field font-mono text-xs h-8 max-w-[14rem]" step="0.01">
+                                                    <p class="ooznest-form-info">Enter the diameter of the endmill or dowel pin currently in the collet. This is used to calculate the tool radius when setting the correct X/Y zero from the probe contact point.</p>
                                                 </div>
                                                 <div id="single-surface-grid" class="probe-selector-card p-3 flex-1 flex items-center justify-center">
                                                     <div class="single-surface-pad">
@@ -2174,12 +2111,12 @@
 
                                             <div class="min-h-[420px]">
                                                 <div class="probe-instruction-card">
-                                                    <div class="calibration-choice-card__media relative">
+                                                    <div class="ooznest-instruction-card__media relative">
                                                         <img id="probe-single-diagram" class="probe-diagram-image" src="themes/SS-RIGHT.svg" alt="Single surface diagram">
                                                     </div>
-                                                    <div class="calibration-choice-card__info">
-                                                        <div class="calibration-choice-card__title">Surface Setup</div>
-                                                        <p id="single-surface-help" class="calibration-choice-card__text">Place probe plate on the left surface. Position the tool beside the plate so it can probe toward it.</p>
+                                                    <div class="ooznest-instruction-card__info">
+                                                        <div class="ooznest-instruction-card__title">Single Surface Setup</div>
+                                                        <p id="single-surface-help" class="ooznest-instruction-card__text">Place probe plate on the left surface. Position the tool beside the plate so it can probe toward it.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2636,14 +2573,20 @@
 
                 <!-- CONSOLE TAB PANE -->
                 <div id="console-view" class="tab-pane hidden w-full h-full flex flex-col bg-grey-bg">
-                    <div class="flex flex-col h-full overflow-hidden tab-shell-padding py-4">
+                    <div class="flex flex-col h-full overflow-hidden tab-shell-padding pt-2 pb-4">
+                        <div id="console-toolbar" class="flex justify-end gap-2 mb-2 shrink-0">
+                            <button id="btnClearConsole" onclick="window.term.clear()" title="Clear log"
+                                class="btn btn-secondary flex-1 md:flex-initial">
+                                <i data-lucide="trash-2"></i> Clear Log
+                            </button>
+                        </div>
                         <div class="console-shell flex-1 flex flex-col min-h-0">
                             <div id="terminal-container" class="console-terminal w-full flex-1 min-h-0"></div>
                             <div id="console-input-area" class="flex gap-2 mt-3 shrink-0">
-                                <input type="text" id="cmdInput" class="font-mono flex-1 text-xs" placeholder="G-Code..." aria-label="G-Code command input">
-                                <button id="btnSend" aria-label="Send G-Code"><i data-lucide="send" class="text-[12px]"></i></button>
-                                <button id="btnClearConsole" onclick="window.term.clear()" title="Clear console"
-                                    class="text-grey hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="text-[12px]"></i></button>
+                                <div class="console-input-card flex items-center gap-2 w-full">
+                                    <input type="text" id="cmdInput" class="font-mono flex-1 text-xs" placeholder="G-Code..." aria-label="G-Code command input">
+                                    <button id="btnSend" aria-label="Send G-Code"><i data-lucide="send" class="text-[12px]"></i><span>Send</span></button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2840,7 +2783,7 @@
                     <textarea id="macro-gcode-input"
                         class="ooznest-field ooznest-textarea w-full h-40 font-mono text-sm border-2 border-grey-light rounded-lg p-3 bg-grey-bg focus:bg-white focus:border-secondary outline-none resize-none"
                         placeholder="G21&#10;G91&#10;G0 Z10"></textarea>
-                    <p class="text-[10px] text-grey italic">Enter one G-code command per line.</p>
+                    <p class="ooznest-form-info">Enter one G-code command per line.</p>
                 </div>
             </div>
 
@@ -2950,6 +2893,17 @@
         </div>
     </div>
 
+    <div id="calibration-modal" class="oz-modal hidden z-[1100] modal-radial-overlay">
+        <div class="oz-modal__dialog w-full max-w-2xl" data-modal-panel>
+            <div class="oz-modal__header">
+                <h3><i data-lucide="ruler" ></i><span>Calibration</span></h3>
+                <button type="button" data-modal-close><i data-lucide="x" ></i></button>
+            </div>
+            <div id="calibration-modal-body" class="oz-modal__body"></div>
+            <div id="calibration-modal-footer" class="oz-modal__footer oz-modal__footer--actions hidden"></div>
+        </div>
+    </div>
+
     <!-- Chart.js for GCode stats histogram -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
 
@@ -2999,7 +2953,7 @@
             // Already on SD — run directly
             if (window.currentSDFile) {
                 window.reporter.showConfirm('Run from SD',
-                    `Run ${window.currentSDFile} directly from SD card?`,
+                    `Run ${window.currentSDFile} directly from SD Card?`,
                     () => window.ws.sendCommand(`$F=${window.currentSDFile}`)
                 );
                 return;
@@ -3012,7 +2966,7 @@
             const content = window.currentGCodeContent || window.editor.getValue();
             const defaultName = document.getElementById('editor-file-name')?.innerText || 'job.gcode';
             window.reporter.showConfirm('Upload & Run from SD',
-                'Upload the current job to the SD card and start running it?',
+                'Upload the current job to the SD Card and start running it?',
                 () => {
                     const file = new File([content], defaultName, { type: 'text/plain' });
                     window.sdHandler.startUpload(file, (uploadedName) => {
@@ -3154,6 +3108,18 @@
             }, 0);
             const shouldOverflow = tabsNaturalWidth > container.clientWidth + 2;
             bar.classList.add(shouldOverflow ? 'tabs-overflow' : 'tabs-fit');
+
+            buttons.forEach(button => {
+                button.style.removeProperty('--tab-flex-grow');
+            });
+
+            if (!shouldOverflow) {
+                const averageWidth = tabsNaturalWidth / Math.max(buttons.length, 1);
+                buttons.forEach(button => {
+                    const grow = Math.max(0.75, Math.ceil(button.scrollWidth) / averageWidth);
+                    button.style.setProperty('--tab-flex-grow', grow.toFixed(3));
+                });
+            }
         }
 
         window.updateTabsLayout = updateTabsLayout;
@@ -3176,7 +3142,7 @@
         import { WebSerial } from './webserial.js';
         import { GCodeViewer } from './3dview.js';
         import { ProbeHandler } from './probe.js?v=20260710';
-        import { SDCardHandler } from './sdcard.js';
+        import { SDCardHandler } from './sdcard.js?v=20260721a';
         import { AlarmsAndErrors } from './alarms_and_errors.js';
         import { DROHandler } from './dro.js';
         import { GrblSettings } from './grbl_settings.js';
@@ -3188,6 +3154,7 @@
         import { TroubleshootingInfoView } from './troubleshooting-info.js';
         import { CalibrationHandler } from './calibration.js';
         import { ConfigWizard } from './config-wizard.js';
+        import { FirmwareFlasher } from './firmware-flasher.js';
         import { GCodeEditor } from './editor.js';
         import { initializeApp } from './init.js';
         import { SpoilboardGridHandler } from './spoilboard-grid.js';
@@ -3235,6 +3202,10 @@
 
         // --- ERROR HANDLING ---
         ws.on('error', (err) => {
+            if (window.firmwareFlasher?.shouldSuppressConnectionError?.(err)) {
+                return;
+            }
+
             let msg = err.message;
             let code = "Connection";
             if (msg.includes("Failed to open serial port")) {
@@ -3374,6 +3345,9 @@
             window.troubleshootingInfo = troubleshootingInfo;
             const configWizard = new ConfigWizard(ws, store);
             window.configWizard = configWizard;
+            const firmwareFlasher = new FirmwareFlasher(ws);
+            window.firmwareFlasher = firmwareFlasher;
+            ws.on('firmware', (msg) => firmwareFlasher.handleBackendMessage(msg));
             const spoilboardGrid = new SpoilboardGridHandler(ws, window.term, store);
             window.spoilboardGrid = spoilboardGrid;
 
@@ -3381,8 +3355,31 @@
             window.bowlCutter = bowlCutter;
 
             if (window.electron && window.electron.on) {
+                let lastUpdateProgress = -5;
+                window.electron.on('update-checking', (detail) => {
+                    window.term.writeln(`\x1b[33m[Update] ${detail.message}\x1b[0m`);
+                });
                 window.electron.on('update-available', (info) => {
+                    lastUpdateProgress = -5;
                     window.term.writeln(`\x1b[33m[Update] v${info.version} available — downloading...\x1b[0m`);
+                });
+                window.electron.on('update-not-available', () => {
+                    window.term.writeln('\x1b[32m[Update] You are running the latest version.\x1b[0m');
+                });
+                window.electron.on('update-download-progress', (progress) => {
+                    const percent = Math.floor(progress.percent || 0);
+                    if (percent >= lastUpdateProgress + 5 || percent === 100) {
+                        lastUpdateProgress = percent;
+                        window.term.writeln(`\x1b[33m[Update] Downloading: ${percent}%\x1b[0m`);
+                    }
+                });
+                window.electron.on('update-download-timeout', (detail) => {
+                    window.term.writeln(`\x1b[33m[Update] ${detail.message}\x1b[0m`);
+                    if (window.showToast) window.showToast('Update download stalled', 'triangle-alert', 'warning');
+                });
+                window.electron.on('update-error', (detail) => {
+                    window.term.writeln(`\x1b[31m[Update] Download failed: ${detail.message}\x1b[0m`);
+                    if (window.showToast) window.showToast('Update download failed', 'triangle-alert', 'error');
                 });
                 window.electron.on('update-downloaded', () => {
                     reporter.showConfirm(
@@ -3396,6 +3393,7 @@
                         'Later'
                     );
                 });
+                window.electron.send('updater-ready');
             }
 
             if (window.term) {
@@ -3455,10 +3453,14 @@
             window.uiManager.updateConnectionState(true, window.ws, window.sdHandler);
             setTimeout(window.updateLaserMode, 5000);
             if (window.syncSdUploadBtn) window.syncSdUploadBtn();
+            if (window.grblSettings?.syncEmptyState) window.grblSettings.syncEmptyState();
+            window.dispatchEvent(new CustomEvent('machine-connection-changed', { detail: { connected: true } }));
         });
         window.ws.on('disconnect', () => {
             window.uiManager.updateConnectionState(false, window.ws, window.sdHandler);
             if (window.syncSdUploadBtn) window.syncSdUploadBtn();
+            if (window.grblSettings?.syncEmptyState) window.grblSettings.syncEmptyState();
+            window.dispatchEvent(new CustomEvent('machine-connection-changed', { detail: { connected: false } }));
         });
         window.ws.on('line', (line) => {
             window.lineProcessor.processLine(line);
@@ -3569,15 +3571,13 @@
         window.uploadEditorToSD = function () {
             if (!window.editor) return;
             if (!window.isSdActionAvailable || !window.isSdActionAvailable()) {
-                reporter.showAlert('SD Card Unavailable', 'SD card functions are currently unavailable.');
+                reporter.showAlert('SD Card Unavailable', 'SD Card functions are currently unavailable.');
                 return;
             }
             const content = window.editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "edited.gcode";
             reporter.showPrompt('Upload to SD Card', 'Enter filename for SD Card:', defaultName, (filename) => {
-
                 if (!filename) return;
-
                 const file = new File([content], filename, { type: "text/plain" });
                 window.sdHandler.startUpload(file);
             });
@@ -3586,12 +3586,12 @@
         // New function: Run from SD (Smart)
         window.runFromSD = function () {
             if (!window.isSdActionAvailable || !window.isSdActionAvailable()) {
-                reporter.showAlert('SD Card Unavailable', 'SD card functions are currently unavailable.');
+                reporter.showAlert('SD Card Unavailable', 'SD Card functions are currently unavailable.');
                 return;
             }
             // Case 1: File is already on SD (Context Aware)
             if (window.currentSDFile) {
-                reporter.showConfirm('Run from SD', `Run ${window.currentSDFile} directly from SD card?`, () => {
+                reporter.showConfirm('Run from SD', `Run ${window.currentSDFile} directly from SD Card?`, () => {
                     // Start SD Print
                     ws.sendCommand(`$F=${window.currentSDFile}`);
                     // UI will update via status reports
@@ -3604,7 +3604,7 @@
             const content = window.editor.getValue();
             const defaultName = document.getElementById('editor-file-name').innerText !== "No file loaded" ? document.getElementById('editor-file-name').innerText : "job.gcode";
 
-            reporter.showPrompt('Upload & Run', 'Upload this job to SD card and run it?', defaultName, (filename) => {
+            reporter.showPrompt('Upload & Run', 'Upload this job to SD Card and run it?', defaultName, (filename) => {
                 if (!filename) return;
                 const file = new File([content], filename, { type: "text/plain" });
 
@@ -3657,9 +3657,18 @@
 
         function syncSdUploadBtn() {
             const available = window.sdMounted && window.ws?.isConnected && !window.sdJobActive;
+            const mkdirBtn = document.getElementById('sd-mkdir-btn');
+            if (mkdirBtn) {
+                mkdirBtn.disabled = !available;
+                mkdirBtn.classList.toggle('opacity-50', !available);
+                mkdirBtn.classList.toggle('pointer-events-none', !available);
+            }
+
             const uploadBtn = document.getElementById('sd-upload-btn');
             if (uploadBtn) {
                 uploadBtn.disabled = !available;
+                uploadBtn.classList.toggle('opacity-50', !available);
+                uploadBtn.classList.toggle('pointer-events-none', !available);
             }
 
             const editorUploadBtn = document.getElementById('editor-upload-sd-btn');
@@ -3677,6 +3686,7 @@
             const openFileSdBtn = document.getElementById('open-file-sd-option');
             if (openFileSdBtn) {
                 openFileSdBtn.disabled = !available;
+                openFileSdBtn.classList.toggle('hidden', !available);
                 openFileSdBtn.classList.toggle('opacity-50', !available);
                 openFileSdBtn.classList.toggle('pointer-events-none', !available);
             }
@@ -3686,14 +3696,22 @@
                 refreshBtn.disabled = !available;
             }
 
+            const sdTabBtn = document.getElementById('sd-tab-btn');
+            if (sdTabBtn) {
+                sdTabBtn.classList.remove('opacity-50', 'pointer-events-none');
+                sdTabBtn.disabled = false;
+            }
+
             const formatBtn = document.getElementById('sd-format-btn');
             if (formatBtn) {
                 formatBtn.disabled = !available;
+                formatBtn.classList.toggle('opacity-50', !available);
+                formatBtn.classList.toggle('pointer-events-none', !available);
             }
 
             const upLevelBtn = document.getElementById('sd-up-level-btn');
             if (upLevelBtn) {
-                upLevelBtn.disabled = !available;
+                upLevelBtn.disabled = !available || (window.sdHandler?.path || '/') === '/';
             }
         }
 
@@ -3704,19 +3722,15 @@
 
         window.addEventListener('sd-mount-state', (e) => {
             const state = e.detail && e.detail.state !== undefined ? e.detail.state : (window.sdMounted ? 1 : 0);
+            const reason = e.detail?.reason || '';
             const isMounted = (state === 1 || state === 3);
-            const sdLink = document.getElementById('sd-tab-btn');
             if (isMounted) {
-                if (sdLink) sdLink.classList.remove('opacity-50', 'pointer-events-none');
                 if (window._sdPrevMounted !== true && window.showToast) {
                     window.showToast('SD Card Found', 'hard-drive', 'success');
                 }
             } else {
-                if (sdLink && !window.sdJobActive) {
-                    sdLink.classList.add('opacity-50', 'pointer-events-none');
-                }
-                if (window._sdPrevMounted !== false && window.showToast) {
-                    window.showToast('SD Card Not Found', 'hard-drive-off', 'error');
+                if (reason === 'mount-failed' && window._sdPrevMounted !== false && window.showToast) {
+                    window.showToast('SD Card Not Found', 'hard-drive', 'warning');
                 }
             }
             window._sdPrevMounted = isMounted;
@@ -4136,6 +4150,22 @@
                 </div>
             </div>
             <div id="config-wizard-footer" class="oz-modal__footer oz-modal__footer--actions hidden"></div>
+        </div>
+    </div>
+
+    <div id="firmware-flasher-overlay" class="oz-modal isolate hidden z-[100] modal-radial-overlay">
+        <div class="oz-modal__dialog w-full max-w-2xl" data-modal-panel>
+            <div class="oz-modal__header">
+                <h3><i data-lucide="cpu"></i><span>Firmware Flashing</span></h3>
+                <button type="button" data-modal-close><i data-lucide="x" ></i></button>
+            </div>
+            <div id="firmware-flasher-body" class="oz-modal__body">
+                <div class="text-center py-8">
+                    <i data-lucide="refresh-cw" class="animate-spin text-2xl text-grey"></i>
+                    <p class="text-xs text-grey mt-2">Loading...</p>
+                </div>
+            </div>
+            <div id="firmware-flasher-footer" class="oz-modal__footer oz-modal__footer--actions hidden"></div>
         </div>
     </div>
 

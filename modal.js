@@ -40,6 +40,8 @@ class AppModal {
         this.root.addEventListener('click', (event) => {
             const closeTrigger = event.target.closest('[data-modal-close]');
             if (closeTrigger) {
+                event.preventDefault();
+                event.stopPropagation();
                 this.hide();
                 return;
             }

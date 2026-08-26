@@ -135,3 +135,23 @@
 .oz-segmented-toggle--dark input:checked + .oz-segmented-bg .right-opt {
     color: var(--oz-primary) !important;
 }
+
+/* Surfacing uses the left option for Spoilboard, while its checked state remains
+   the existing useMaxArea setting. */
+#surf-dim-toggle:checked + .oz-segmented-bg .oz-segmented-slider {
+    transform: translateX(0);
+}
+
+#surf-dim-toggle:not(:checked) + .oz-segmented-bg .oz-segmented-slider {
+    transform: translateX(100%);
+}
+
+#surf-dim-toggle:checked + .oz-segmented-bg .left-opt,
+#surf-dim-toggle:not(:checked) + .oz-segmented-bg .right-opt {
+    color: var(--oz-primary) !important;
+}
+
+#surf-dim-toggle:checked + .oz-segmented-bg .right-opt,
+#surf-dim-toggle:not(:checked) + .oz-segmented-bg .left-opt {
+    color: #fff !important;
+}
